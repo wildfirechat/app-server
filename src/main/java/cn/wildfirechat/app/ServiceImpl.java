@@ -14,6 +14,7 @@ import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -81,7 +82,7 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult login(String mobile, String code, String clientId) {
-        if (!code.equals("66666")) {
+        if (StringUtils.isEmpty(mSMSConfig.superCode) || !code.equals(mSMSConfig.superCode)) {
             Record record = mRecords.get(mobile);
             if (record == null || !record.getCode().equals(code)) {
                 LOG.error("not empty or not correct");

@@ -11,6 +11,7 @@ public class SMSConfig {
     int appid;
     String appkey;
     int templateId;
+    String superCode;
 
     public int getAppid() {
         return appid;
@@ -34,5 +35,13 @@ public class SMSConfig {
 
     public void setTemplateId(int templateId) {
         this.templateId = templateId;
+    }
+
+    public String getSuperCode() {
+        return superCode;
+    }
+
+    public void setSuperCode(String superCode) {
+        this.superCode = superCode;
     }
 }
