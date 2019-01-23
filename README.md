@@ -10,14 +10,15 @@ mvn package
 应用使用的是腾讯云短信功能，需要申请到```appid/appkey/templateId```这三个参数，并配置到```sms.properties```中去。用户也可以自行更换为自己喜欢的短信提供商。
 
 #### 修改配置
-本演示服务有3个配置文件，分别是```application.properties```, ```im.properties```和```sms.properties```。请直接在工程的resource目录下修改打包进工程。或者放到jar包所在的目录下的```config```目录下。
+本演示服务有3个配置文件在工程的```config```目录下，分别是```application.properties```, ```im.properties```和```sms.properties```。请正确配置放到jar包所在的目录下的```config```目录下。
 
 #### 运行
+在```target```目录找到```app-XXXX.jar```，把jar包和放置配置文件的```config```目录放到一起，然后执行下面命令：
 ```
-nohup java -jar app-XXXXX.jar > app.log 2>&1 &
+java -jar app-XXXXX.jar
 ```
 
-#### 鸣谢
+#### 使用到的开源代码
 1. [TypeBuilder](https://github.com/ikidou/TypeBuilder) 一个用于生成泛型的简易Builder
 
 #### LICENSE
