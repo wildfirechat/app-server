@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix="im")
-@PropertySource(value = "classpath:im.properties")
+@PropertySource(value = "file:config/im.properties")
 public class IMConfig {
     String admin_url;
     String admin_secret;
