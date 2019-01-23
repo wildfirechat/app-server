@@ -7,7 +7,7 @@ mvn package
 ```
 
 #### 短信资源
-应用使用的是腾讯云短信功能，需要申请到```appid/appkey/templateId```这三个参数，并配置到```sms.properties```中去。用户也可以自行更换为自己喜欢的短信提供商。
+应用使用的是腾讯云短信功能，需要申请到```appid/appkey/templateId```这三个参数，并配置到```sms.properties```中去。用户也可以自行更换为自己喜欢的短信提供商。在没有短信供应商的情况下，为了测试可以使用```superCode```，设置好后，客户端可以直接使用```superCode```进行登陆。上线时一定要注意删掉```superCode```。
 
 #### 修改配置
 本演示服务有3个配置文件在工程的```config```目录下，分别是```application.properties```, ```im.properties```和```sms.properties```。请正确配置放到jar包所在的目录下的```config```目录下。
