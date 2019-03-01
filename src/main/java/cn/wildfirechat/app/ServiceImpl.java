@@ -1,7 +1,10 @@
 package cn.wildfirechat.app;
 
 
+import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
+import cn.wildfirechat.app.pojo.CreateSessionRequest;
 import cn.wildfirechat.app.pojo.LoginResponse;
+import cn.wildfirechat.app.pojo.SessionOutput;
 import cn.wildfirechat.sdk.ChatAdmin;
 import cn.wildfirechat.sdk.model.IMResult;
 import cn.wildfirechat.sdk.model.Token;
@@ -18,12 +21,17 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static cn.wildfirechat.app.RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED;
 
 @org.springframework.stereotype.Service
 public class ServiceImpl implements Service {
     private static final Logger LOG = LoggerFactory.getLogger(ServiceImpl.class);
     private static ConcurrentHashMap<String, Record> mRecords = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, PCSession> mPCSession = new ConcurrentHashMap<>();
+
 
     @Autowired
     private SMSConfig mSMSConfig;
@@ -139,6 +147,106 @@ public class ServiceImpl implements Service {
             e.printStackTrace();
             LOG.error("Exception happens {}", e);
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        }
+    }
+
+
+    @Override
+    public RestResult createPcSession(CreateSessionRequest request) {
+        PCSession session = new PCSession();
+        session.setClientId(request.getClientId());
+        session.setCreateDt(System.currentTimeMillis());
+        session.setDuration(30*1000); //30 seconds
+
+        if (StringUtils.isEmpty(request.getToken())) {
+            request.setToken(UUID.randomUUID().toString());
+        }
+
+        session.setToken(request.getToken());
+        mPCSession.put(request.getToken(), session);
+
+        SessionOutput output = session.toOutput();
+
+        return RestResult.ok(output);
+    }
+
+    @Override
+    public RestResult getPcSession(String token) {
+        PCSession session = mPCSession.get(token);
+        if (session != null) {
+            SessionOutput output = session.toOutput();
+            if (output.getExpired() > 0)
+                return RestResult.ok(output);
+            else
+                return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+        }
+    }
+
+    @Override
+    public RestResult loginWithSession(String token) {
+        PCSession session = mPCSession.get(token);
+        if (session != null) {
+            if (session.getStatus() == 2) {
+                //使用用户id获取token
+                try {
+                    IMResult<Token> tokenResult = ChatAdmin.getUserToken(session.getConfirmedUserId(), session.getClientId());
+                    if (tokenResult.getCode() != 0) {
+                        LOG.error("Get user failure {}", tokenResult.code);
+                        return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+                    }
+
+                    //返回用户id，token和是否新建
+                    LoginResponse response = new LoginResponse();
+                    response.setUserId(session.getConfirmedUserId());
+                    response.setToken(tokenResult.getResult().getToken());
+                    return RestResult.ok(response);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+                }
+            } else {
+                return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
+            }
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+        }
+    }
+
+    @Override
+    public RestResult scanPc(String token) {
+        PCSession session = mPCSession.get(token);
+        if (session != null) {
+            SessionOutput output = session.toOutput();
+            if (output.getExpired() > 0) {
+                session.setStatus(1);
+                output.setStatus(1);
+                return RestResult.ok(output);
+            } else {
+                return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+            }
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+        }
+    }
+
+    @Override
+    public RestResult confirmPc(ConfirmSessionRequest request) {
+        PCSession session = mPCSession.get(request.getToken());
+        if (session != null) {
+            SessionOutput output = session.toOutput();
+            if (output.getExpired() > 0) {
+                //todo 检查IMtoken，确认用户id不是冒充的
+                session.setStatus(2);
+                output.setStatus(2);
+                session.setConfirmedUserId(request.getUser_id());
+                return RestResult.ok(output);
+            } else {
+                return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+            }
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         }
     }
 }
