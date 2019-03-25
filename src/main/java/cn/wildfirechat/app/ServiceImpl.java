@@ -28,10 +28,32 @@ import static cn.wildfirechat.app.RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED
 
 @org.springframework.stereotype.Service
 public class ServiceImpl implements Service {
+    static class Count {
+        long count;
+        long startTime;
+        void reset() {
+            count = 1;
+            startTime = System.currentTimeMillis();
+        }
+
+        boolean increaseAndCheck() {
+            long now = System.currentTimeMillis();
+            if (now - startTime > 86400000) {
+                reset();
+                return true;
+            }
+            count++;
+            if (count > 10) {
+                return false;
+            }
+            return true;
+        }
+    }
     private static final Logger LOG = LoggerFactory.getLogger(ServiceImpl.class);
     private static ConcurrentHashMap<String, Record> mRecords = new ConcurrentHashMap<>();
     private static ConcurrentHashMap<String, PCSession> mPCSession = new ConcurrentHashMap<>();
 
+    private static ConcurrentHashMap<String, Count> mCounts = new ConcurrentHashMap<>();
 
     @Autowired
     private SMSConfig mSMSConfig;
@@ -57,10 +79,15 @@ public class ServiceImpl implements Service {
                 LOG.error("Send code over frequency. timestamp {}, now {}", record.getTimestamp(), System.currentTimeMillis());
                 return RestResult.error(RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY);
             }
+            Count count = mCounts.get(mobile);
+            if (count == null) {
+                count = new Count();
+                mCounts.put(mobile, count);
+            }
 
-            if (mobile.equals("18701580951")) {
-                mRecords.put(mobile, new Record("55555", mobile));
-                return RestResult.ok(null);
+            if (!count.increaseAndCheck()) {
+                LOG.error("Count check failure, already send {} messages today", count.count);
+                return RestResult.error(RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY);
             }
 
             String code = Utils.getRandomCode(4);
