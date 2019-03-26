@@ -9,6 +9,7 @@ public class PCSession {
     private long duration;
     private int status;
     private String confirmedUserId;
+    private String device_name;
 
     public String getToken() {
         return token;
@@ -58,7 +59,15 @@ public class PCSession {
         this.confirmedUserId = confirmedUserId;
     }
 
+    public String getDevice_name() {
+        return device_name;
+    }
+
+    public void setDevice_name(String device_name) {
+        this.device_name = device_name;
+    }
+
     public SessionOutput toOutput() {
-        return new SessionOutput(token, status, duration - (System.currentTimeMillis() - createDt));
+        return new SessionOutput(token, status, duration - (System.currentTimeMillis() - createDt), device_name);
     }
 }

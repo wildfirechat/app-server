@@ -25,17 +25,11 @@ public class Controller {
 
     /* PC扫码操作
     1, PC -> App     创建会话
-    2, PC -> App     轮询会话，检查状态 0 新建状态；1 已扫码；2 已确认
-    3, PC -> App     如果状态变为已确认，调用session_login进行登陆。
+    2, PC -> App     轮询调用session_login进行登陆，如果已经扫码确认返回token，否则反正错误码9（已经扫码还没确认)或10(还没有被扫码)。
      */
     @PostMapping(value = "/pc_session", produces = "application/json;charset=UTF-8"   )
     public Object createPcSession(@RequestBody CreateSessionRequest request) {
         return mService.createPcSession(request);
-    }
-
-    @GetMapping(value = "/pc_session/{token}", produces = "application/json;charset=UTF-8"   )
-    public Object getPcSession(@PathVariable("token") String token) {
-        return mService.getPcSession(token);
     }
 
     @PostMapping(value = "/session_login/{token}", produces = "application/json;charset=UTF-8"   )

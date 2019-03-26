@@ -10,7 +10,6 @@ public interface Service {
 
 
     RestResult createPcSession(CreateSessionRequest request);
-    RestResult getPcSession(String token);
     RestResult loginWithSession(String token);
 
     RestResult scanPc(String token);

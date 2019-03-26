@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static cn.wildfirechat.app.RestResult.RestCode.ERROR_SESSION_NOT_SCANED;
 import static cn.wildfirechat.app.RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED;
 
 @org.springframework.stereotype.Service
@@ -198,20 +199,6 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult getPcSession(String token) {
-        PCSession session = mPCSession.get(token);
-        if (session != null) {
-            SessionOutput output = session.toOutput();
-            if (output.getExpired() > 0)
-                return RestResult.ok(output);
-            else
-                return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
-        } else {
-            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
-        }
-    }
-
-    @Override
     public RestResult loginWithSession(String token) {
         PCSession session = mPCSession.get(token);
         if (session != null) {
@@ -234,7 +221,11 @@ public class ServiceImpl implements Service {
                     return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
                 }
             } else {
-                return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
+                if (session.getStatus() == 0)
+                    return RestResult.error(ERROR_SESSION_NOT_SCANED);
+                else {
+                    return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
+                }
             }
         } else {
             return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
