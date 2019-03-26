@@ -183,7 +183,7 @@ public class ServiceImpl implements Service {
         PCSession session = new PCSession();
         session.setClientId(request.getClientId());
         session.setCreateDt(System.currentTimeMillis());
-        session.setDuration(30*1000); //30 seconds
+        session.setDuration(300*1000); //300 seconds
 
         if (StringUtils.isEmpty(request.getToken())) {
             request.setToken(UUID.randomUUID().toString());
