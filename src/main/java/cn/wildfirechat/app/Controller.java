@@ -41,7 +41,7 @@ public class Controller {
     1，扫码，调用/scan_pc接口。
     2，调用/confirm_pc 接口进行确认
      */
-    @GetMapping(value = "/scan_pc/{token}", produces = "application/json;charset=UTF-8"   )
+    @PostMapping(value = "/scan_pc/{token}", produces = "application/json;charset=UTF-8"   )
     public Object scanPc(@PathVariable("token") String token) {
         return mService.scanPc(token);
     }
