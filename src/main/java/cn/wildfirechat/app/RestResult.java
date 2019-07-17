@@ -11,8 +11,8 @@ public class RestResult {
         ERROR_SERVER_CONFIG_ERROR(7, "服务器配置错误"),
         ERROR_SESSION_EXPIRED(8, "会话不存在或已过期"),
         ERROR_SESSION_NOT_VERIFIED(9, "会话没有验证"),
-        ERROR_SESSION_NOT_SCANED(10, "会话没有被扫码");
-
+        ERROR_SESSION_NOT_SCANED(10, "会话没有被扫码"),
+        ERROR_SERVER_NOT_IMPLEMENT(11, "功能没有实现");
         public int code;
         public String msg;
 

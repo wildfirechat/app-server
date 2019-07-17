@@ -19,6 +19,7 @@ import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
@@ -59,10 +60,13 @@ public class ServiceImpl implements Service {
     private static ConcurrentHashMap<String, Count> mCounts = new ConcurrentHashMap<>();
 
     @Autowired
-    private SMSConfig mSMSConfig;
+    private SmsService smsService;
 
     @Autowired
     private IMConfig mIMConfig;
+
+    @Value("${sms.super_code}")
+    private int superCode;
 
     @PostConstruct
     private void init() {
@@ -94,25 +98,16 @@ public class ServiceImpl implements Service {
             }
 
             String code = Utils.getRandomCode(4);
-            String[] params = {code};
-            SmsSingleSender ssender = new SmsSingleSender(mSMSConfig.appid, mSMSConfig.appkey);
-            SmsSingleSenderResult result = ssender.sendWithParam("86", mobile,
-                    mSMSConfig.templateId, params, null, "", "");
-            if (result.result == 0) {
+
+            RestResult.RestCode restCode = smsService.sendCode(mobile, code);
+            if (restCode == RestResult.RestCode.SUCCESS) {
                 mRecords.put(mobile, new Record(code, mobile));
-                return RestResult.ok(null);
+                return RestResult.ok(restCode);
             } else {
-                LOG.error("Failure to send SMS {}", result);
-                return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+                return RestResult.error(restCode);
             }
-        } catch (HTTPException e) {
-            // HTTP响应码错误
-            e.printStackTrace();
         } catch (JSONException e) {
             // json解析错误
-            e.printStackTrace();
-        } catch (IOException e) {
-            // 网络IO错误
             e.printStackTrace();
         }
         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
@@ -120,9 +115,7 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult login(String mobile, String code, String clientId) {
-        if (("13900000000".equals(mobile) || "13900000001".equals(mobile)) && code.equals("556677")) {
-            LOG.info("is test account");
-        } else if (StringUtils.isEmpty(mSMSConfig.superCode) || !code.equals(mSMSConfig.superCode)) {
+        if (StringUtils.isEmpty(superCode) || !code.equals(superCode)) {
             Record record = mRecords.get(mobile);
             if (record == null || !record.getCode().equals(code)) {
                 LOG.error("not empty or not correct");
