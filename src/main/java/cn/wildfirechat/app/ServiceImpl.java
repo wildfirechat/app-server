@@ -66,7 +66,7 @@ public class ServiceImpl implements Service {
     private IMConfig mIMConfig;
 
     @Value("${sms.super_code}")
-    private int superCode;
+    private String superCode;
 
     @PostConstruct
     private void init() {
