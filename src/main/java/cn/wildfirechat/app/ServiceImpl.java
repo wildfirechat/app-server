@@ -6,10 +6,10 @@ import cn.wildfirechat.app.pojo.CreateSessionRequest;
 import cn.wildfirechat.app.pojo.LoginResponse;
 import cn.wildfirechat.app.pojo.SessionOutput;
 import cn.wildfirechat.common.ErrorCode;
-import cn.wildfirechat.pojos.InputOutputUserInfo;
-import cn.wildfirechat.pojos.OutputCreateUser;
-import cn.wildfirechat.pojos.OutputGetIMTokenData;
+import cn.wildfirechat.pojos.*;
+import cn.wildfirechat.proto.ProtoConstants;
 import cn.wildfirechat.sdk.ChatConfig;
+import cn.wildfirechat.sdk.MessageAdmin;
 import cn.wildfirechat.sdk.UserAdmin;
 import cn.wildfirechat.sdk.model.IMResult;
 import com.github.qcloudsms.SmsSingleSender;
@@ -167,12 +167,42 @@ public class ServiceImpl implements Service {
             response.setUserId(user.getUserId());
             response.setToken(tokenResult.getResult().getToken());
             response.setRegister(isNewUser);
+
+            if (isNewUser) {
+                sendTextMessage(user.getUserId(), mIMConfig.welcome_for_new_user);
+            } else {
+                sendTextMessage(user.getUserId(), mIMConfig.welcome_for_back_user);
+            }
+
             return RestResult.ok(response);
         } catch (Exception e) {
             e.printStackTrace();
             LOG.error("Exception happens {}", e);
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
+    }
+
+    private void sendTextMessage(String toUser, String text) {
+        Conversation conversation = new Conversation();
+        conversation.setTarget(toUser);
+        conversation.setType(ProtoConstants.ConversationType.ConversationType_Private);
+        MessagePayload payload = new MessagePayload();
+        payload.setType(1);
+        payload.setSearchableContent(text);
+
+
+        try {
+            IMResult<SendMessageResult> resultSendMessage = MessageAdmin.sendMessage("admin", conversation, payload);
+            if (resultSendMessage != null && resultSendMessage.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                LOG.info("send message success");
+            } else {
+                LOG.error("send message error {}", resultSendMessage != null ? resultSendMessage.getErrorCode().code : "unknown");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("send message error {}", e.getLocalizedMessage());
+        }
+
     }
 
 
