@@ -169,9 +169,13 @@ public class ServiceImpl implements Service {
             response.setRegister(isNewUser);
 
             if (isNewUser) {
-                sendTextMessage(user.getUserId(), mIMConfig.welcome_for_new_user);
+                if (!StringUtils.isEmpty(mIMConfig.welcome_for_new_user)) {
+                    sendTextMessage(user.getUserId(), mIMConfig.welcome_for_new_user);
+                }
             } else {
-                sendTextMessage(user.getUserId(), mIMConfig.welcome_for_back_user);
+                if (!StringUtils.isEmpty(mIMConfig.welcome_for_back_user)) {
+                    sendTextMessage(user.getUserId(), mIMConfig.welcome_for_back_user);
+                }
             }
 
             return RestResult.ok(response);
