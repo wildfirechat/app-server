@@ -138,7 +138,12 @@ public class ServiceImpl implements Service {
                 LOG.info("User not exist, try to create");
                 user = new InputOutputUserInfo();
                 user.setName(mobile);
-                user.setDisplayName(mobile);
+                if (mIMConfig.use_random_name) {
+                    String displayName = "用户" + (int) (Math.random() * 10000);
+                    user.setDisplayName(displayName);
+                } else {
+                    user.setDisplayName(mobile);
+                }
                 user.setMobile(mobile);
                 IMResult<OutputCreateUser> userIdResult = UserAdmin.createUser(user);
                 if (userIdResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {

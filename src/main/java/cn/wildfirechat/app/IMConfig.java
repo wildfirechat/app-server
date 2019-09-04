@@ -11,6 +11,15 @@ public class IMConfig {
     String admin_url;
     String admin_secret;
 
+    public boolean isUse_random_name() {
+        return use_random_name;
+    }
+
+    public void setUse_random_name(boolean use_random_name) {
+        this.use_random_name = use_random_name;
+    }
+
+    boolean use_random_name;
     String welcome_for_new_user;
     String welcome_for_back_user;
 
