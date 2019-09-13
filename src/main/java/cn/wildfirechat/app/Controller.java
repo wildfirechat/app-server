@@ -12,6 +12,11 @@ public class Controller {
     @Autowired
     private Service mService;
 
+    @GetMapping()
+    public Object health() {
+        return "Ok";
+    }
+
     @PostMapping(value = "/send_code", produces = "application/json;charset=UTF-8"   )
     public Object sendCode(@RequestBody SendCodeRequest request) {
         return mService.sendCode(request.getMobile());
