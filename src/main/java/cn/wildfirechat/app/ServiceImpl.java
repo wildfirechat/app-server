@@ -1,6 +1,8 @@
 package cn.wildfirechat.app;
 
 
+import cn.wildfirechat.app.jpa.Announcement;
+import cn.wildfirechat.app.jpa.AnnouncementRepository;
 import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
 import cn.wildfirechat.app.pojo.CreateSessionRequest;
 import cn.wildfirechat.app.pojo.LoginResponse;
@@ -12,9 +14,6 @@ import cn.wildfirechat.sdk.ChatConfig;
 import cn.wildfirechat.sdk.MessageAdmin;
 import cn.wildfirechat.sdk.UserAdmin;
 import cn.wildfirechat.sdk.model.IMResult;
-import com.github.qcloudsms.SmsSingleSender;
-import com.github.qcloudsms.SmsSingleSenderResult;
-import com.github.qcloudsms.httpclient.HTTPException;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +22,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static cn.wildfirechat.app.RestResult.RestCode.ERROR_SESSION_NOT_SCANED;
-import static cn.wildfirechat.app.RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED;
+import static cn.wildfirechat.app.RestResult.RestCode.*;
 
 @org.springframework.stereotype.Service
 public class ServiceImpl implements Service {
@@ -64,6 +62,9 @@ public class ServiceImpl implements Service {
 
     @Autowired
     private IMConfig mIMConfig;
+
+    @Autowired
+    private AnnouncementRepository announcementRepository;
 
     @Value("${sms.super_code}")
     private String superCode;
@@ -302,5 +303,58 @@ public class ServiceImpl implements Service {
         } else {
             return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         }
+    }
+
+    @Override
+    public RestResult getGroupAnnouncement(String groupId) {
+        Optional<Announcement>  announcement = announcementRepository.findById(groupId);
+        if (announcement.isPresent()){
+            GroupAnnouncementPojo pojo = new GroupAnnouncementPojo();
+            pojo.groupId = announcement.get().getGroupId();
+            pojo.author = announcement.get().getAuthor();
+            pojo.text = announcement.get().getAnnouncement();
+            pojo.timestamp = announcement.get().getTimestamp();
+            return RestResult.ok(pojo);
+        } else {
+            return RestResult.error(ERROR_GROUP_ANNOUNCEMENT_NOT_EXIST);
+        }
+    }
+
+    @Override
+    public RestResult putGroupAnnouncement(GroupAnnouncementPojo request) {
+        if (!StringUtils.isEmpty(request.text)) {
+            Conversation conversation = new Conversation();
+            conversation.setTarget(request.groupId);
+            conversation.setType(ProtoConstants.ConversationType.ConversationType_Group);
+            MessagePayload payload = new MessagePayload();
+            payload.setType(1);
+            payload.setSearchableContent("@所有人 " + request.text);
+            payload.setMentionedType(2);
+
+
+            try {
+                IMResult<SendMessageResult> resultSendMessage = MessageAdmin.sendMessage(request.author, conversation, payload);
+                if (resultSendMessage != null && resultSendMessage.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                    LOG.info("send message success");
+                } else {
+                    LOG.error("send message error {}", resultSendMessage != null ? resultSendMessage.getErrorCode().code : "unknown");
+                    return RestResult.error(ERROR_SERVER_ERROR);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                LOG.error("send message error {}", e.getLocalizedMessage());
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+        }
+
+        Announcement announcement = new Announcement();
+        announcement.setGroupId(request.groupId);
+        announcement.setAuthor(request.author);
+        announcement.setAnnouncement(request.text);
+        request.timestamp = System.currentTimeMillis();
+        announcement.setTimestamp(request.timestamp);
+
+        announcementRepository.save(announcement);
+        return RestResult.ok(request);
     }
 }

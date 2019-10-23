@@ -1,9 +1,6 @@
 package cn.wildfirechat.app;
 
-import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
-import cn.wildfirechat.app.pojo.LoginRequest;
-import cn.wildfirechat.app.pojo.CreateSessionRequest;
-import cn.wildfirechat.app.pojo.SendCodeRequest;
+import cn.wildfirechat.app.pojo.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,5 +51,22 @@ public class Controller {
     @PostMapping(value = "/confirm_pc", produces = "application/json;charset=UTF-8"   )
     public Object confirmPc(@RequestBody ConfirmSessionRequest request) {
         return mService.confirmPc(request);
+    }
+
+
+    /*
+     * 本工程为demo应用，没有鉴权机制，谁都可以调用。正式商用需要加上鉴权，防止被攻击
+     */
+    @PostMapping(value = "/put_group_announcement", produces = "application/json;charset=UTF-8"   )
+    public Object putGroupAnnouncement(@RequestBody GroupAnnouncementPojo request) {
+        return mService.putGroupAnnouncement(request);
+    }
+
+    /*
+     * 本工程为demo应用，没有鉴权机制，这里这里请求需要带上请求用户。
+     */
+    @PostMapping(value = "/get_group_announcement", produces = "application/json;charset=UTF-8"   )
+    public Object getGroupAnnouncement(@RequestBody GroupIdPojo request) {
+        return mService.getGroupAnnouncement(request.groupId);
     }
 }

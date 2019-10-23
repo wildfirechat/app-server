@@ -14,4 +14,7 @@ public interface Service {
 
     RestResult scanPc(String token);
     RestResult confirmPc(ConfirmSessionRequest request);
+
+    RestResult putGroupAnnouncement(GroupAnnouncementPojo request);
+    RestResult getGroupAnnouncement(String groupId);
 }
