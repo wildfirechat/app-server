@@ -6,6 +6,7 @@ import javax.persistence.*;
 @Table(name = "text")
 public class Announcement {
 	@Id
+	@Column(length = 128)
 	private String groupId;
 
 	private String author;

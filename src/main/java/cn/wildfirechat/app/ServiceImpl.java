@@ -7,6 +7,9 @@ import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
 import cn.wildfirechat.app.pojo.CreateSessionRequest;
 import cn.wildfirechat.app.pojo.LoginResponse;
 import cn.wildfirechat.app.pojo.SessionOutput;
+import cn.wildfirechat.app.tools.OrderedIdUserNameGenerator;
+import cn.wildfirechat.app.tools.PhoneNumberUserNameGenerator;
+import cn.wildfirechat.app.tools.UserNameGenerator;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
@@ -69,6 +72,9 @@ public class ServiceImpl implements Service {
     @Value("${sms.super_code}")
     private String superCode;
 
+    @Autowired
+    private PhoneNumberUserNameGenerator userNameGenerator;
+
     @PostConstruct
     private void init() {
         ChatConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
@@ -130,7 +136,7 @@ public class ServiceImpl implements Service {
 
         try {
             //使用电话号码查询用户信息。
-            IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByName(mobile);
+            IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
 
             //如果用户信息不存在，创建用户
             InputOutputUserInfo user;
@@ -138,7 +144,8 @@ public class ServiceImpl implements Service {
             if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
                 LOG.info("User not exist, try to create");
                 user = new InputOutputUserInfo();
-                user.setName(mobile);
+                String userName = userNameGenerator.getUserName(mobile);
+                user.setName(userName);
                 if (mIMConfig.use_random_name) {
                     String displayName = "用户" + (int) (Math.random() * 10000);
                     user.setDisplayName(displayName);
