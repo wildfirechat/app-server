@@ -4,6 +4,7 @@ public class LoginRequest {
     private String mobile;
     private String code;
     private String clientId;
+    private Integer platform;
 
     public String getClientId() {
         return clientId;
@@ -23,6 +24,14 @@ public class LoginRequest {
 
     public String getCode() {
         return code;
+    }
+
+    public Integer getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(Integer platform) {
+        this.platform = platform;
     }
 
     public void setCode(String code) {

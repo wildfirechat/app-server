@@ -10,6 +10,15 @@ public class PCSession {
     private int status;
     private String confirmedUserId;
     private String device_name;
+    private int platform;
+
+    public int getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(int platform) {
+        this.platform = platform;
+    }
 
     public String getToken() {
         return token;

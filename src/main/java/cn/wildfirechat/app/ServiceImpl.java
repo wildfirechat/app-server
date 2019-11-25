@@ -121,7 +121,7 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult login(String mobile, String code, String clientId) {
+    public RestResult login(String mobile, String code, String clientId, int platform) {
         if (StringUtils.isEmpty(superCode) || !code.equals(superCode)) {
             Record record = mRecords.get(mobile);
             if (record == null || !record.getCode().equals(code)) {
@@ -169,7 +169,7 @@ public class ServiceImpl implements Service {
             }
 
             //使用用户id获取token
-            IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(user.getUserId(), clientId);
+            IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(user.getUserId(), clientId, platform);
             if (tokenResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
                 LOG.error("Get user failure {}", tokenResult.code);
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
@@ -228,6 +228,7 @@ public class ServiceImpl implements Service {
         PCSession session = new PCSession();
         session.setClientId(request.getClientId());
         session.setCreateDt(System.currentTimeMillis());
+        session.setPlatform(request.getPlatform());
         session.setDuration(300*1000); //300 seconds
 
         if (StringUtils.isEmpty(request.getToken())) {
@@ -249,7 +250,7 @@ public class ServiceImpl implements Service {
             if (session.getStatus() == 2) {
                 //使用用户id获取token
                 try {
-                    IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(session.getConfirmedUserId(), session.getClientId());
+                    IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(session.getConfirmedUserId(), session.getClientId(), session.getPlatform());
                     if (tokenResult.getCode() != 0) {
                         LOG.error("Get user failure {}", tokenResult.code);
                         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);

@@ -4,6 +4,15 @@ public class CreateSessionRequest {
     private String token;
     private String device_name;
     private String clientId;
+    private int platform;
+
+    public int getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(int platform) {
+        this.platform = platform;
+    }
 
     public String getToken() {
         return token;

@@ -21,7 +21,7 @@ public class Controller {
 
     @PostMapping(value = "/login", produces = "application/json;charset=UTF-8")
     public Object login(@RequestBody LoginRequest request) {
-        return mService.login(request.getMobile(), request.getCode(), request.getClientId());
+        return mService.login(request.getMobile(), request.getCode(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform());
     }
 
 
