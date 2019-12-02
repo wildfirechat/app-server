@@ -10,7 +10,8 @@ mvn package
 应用使用的是腾讯云短信功能，需要申请到```appid/appkey/templateId```这三个参数，并配置到```tencent_sms.properties```中去。用户也可以自行更换为自己喜欢的短信提供商。在没有短信供应商的情况下，为了测试可以使用```superCode```，设置好后，客户端可以直接使用```superCode```进行登陆。上线时一定要注意删掉```superCode```。
 
 #### 修改配置
-本演示服务有3个配置文件在工程的```config```目录下，分别是```application.properties```, ```im.properties```和```tencent_sms.properties```。请正确配置放到jar包所在的目录下的```config```目录下。
+本演示服务有4个配置文件在工程的```config```目录下，分别是```application.properties```, ```im.properties```, ```aliyun_sms.properties```和```tencent_sms.properties```。请正确配置放到jar包所在的目录下的```config```目录下。
+> ```application.properties```配置中的```sms.verdor```决定是使用那个短信服务商，1为腾讯短信，2为阿里云短信
 
 #### 运行
 在```target```目录找到```app-XXXX.jar```，把jar包和放置配置文件的```config```目录放到一起，然后执行下面命令：
@@ -23,3 +24,7 @@ java -jar app-XXXXX.jar
 
 #### LICENSE
 UNDER MIT LICENSE. 详情见LICENSE文件
+
+
+#### 使用阿里云短信
+请参考说明[使用阿里云短信](./aliyun_sms.md)

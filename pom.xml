@@ -134,6 +134,13 @@
 			<systemPath>${project.basedir}/src/lib/common-${project.version}.jar</systemPath>
 		</dependency>
 
+
+		<dependency>
+			<groupId>com.aliyun</groupId>
+			<artifactId>aliyun-java-sdk-core</artifactId>
+			<version>4.1.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
