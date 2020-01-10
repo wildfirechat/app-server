@@ -1,8 +1,14 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.pojo.*;
+import org.apache.tomcat.jni.FileInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 
 @RestController
 public class Controller {
@@ -70,5 +76,15 @@ public class Controller {
     @PostMapping(value = "/get_group_announcement", produces = "application/json;charset=UTF-8")
     public Object getGroupAnnouncement(@RequestBody GroupIdPojo request) {
         return mService.getGroupAnnouncement(request.groupId);
+    }
+
+    @PostMapping(value = "/user/online_event")
+    public Object onUserOnlineEvent(@RequestBody String request) {
+        return "hello";
+    }
+
+    @PostMapping(value = "/logs/{userId}/upload")
+    public Object uploadFiles(@RequestParam("file") MultipartFile file, @PathVariable("userId") String userId) throws IOException {
+        return mService.saveUserLogs(userId, file);
     }
 }

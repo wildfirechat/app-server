@@ -23,8 +23,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,6 +74,9 @@ public class ServiceImpl implements Service {
 
     @Value("${sms.super_code}")
     private String superCode;
+
+    @Value("${logs.user_logs_path}")
+    private String userLogPath;
 
     @Autowired
     private PhoneNumberUserNameGenerator userNameGenerator;
@@ -364,5 +370,19 @@ public class ServiceImpl implements Service {
 
         announcementRepository.save(announcement);
         return RestResult.ok(request);
+    }
+
+    @Override
+    public RestResult saveUserLogs(String userId, MultipartFile file) {
+        File localFile = new File(userLogPath, userId + "_" + file.getOriginalFilename());
+
+        try {
+            file.transferTo(localFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return RestResult.error(ERROR_SERVER_ERROR);
+        }
+
+        return RestResult.ok(null);
     }
 }

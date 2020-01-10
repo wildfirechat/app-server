@@ -3,6 +3,7 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
 import cn.wildfirechat.app.pojo.CreateSessionRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface Service {
     RestResult sendCode(String mobile);
@@ -17,4 +18,6 @@ public interface Service {
 
     RestResult putGroupAnnouncement(GroupAnnouncementPojo request);
     RestResult getGroupAnnouncement(String groupId);
+
+    RestResult saveUserLogs(String userId, MultipartFile file);
 }
