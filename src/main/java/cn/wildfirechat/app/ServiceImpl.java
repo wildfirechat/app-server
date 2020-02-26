@@ -222,6 +222,11 @@ public class ServiceImpl implements Service {
         Subject subject = SecurityUtils.getSubject();
         // 在认证提交前准备 token（令牌）
         TokenAuthenticationToken tt = new TokenAuthenticationToken(token);
+        RestResult.RestCode restCode = authDataSource.checkPcSession(token);
+        if (restCode != SUCCESS) {
+            return RestResult.error(restCode);
+        }
+
         // 执行认证登陆
         try {
             subject.login(tt);

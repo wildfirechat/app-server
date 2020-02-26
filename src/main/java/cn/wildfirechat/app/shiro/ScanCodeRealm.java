@@ -49,7 +49,7 @@ public class ScanCodeRealm extends AuthorizingRealm {
         String token = (String) authenticationToken.getPrincipal();
         PCSession session = authDataSource.getSession(token, false);
         if (session == null) {
-            throw new IncorrectCredentialsException("会话不存在");
+            throw new AuthenticationException("会话不存在");
         }
 
         return new SimpleAuthenticationInfo(token, token, getName());

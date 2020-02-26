@@ -43,6 +43,6 @@ public class PhoneCodeRealm extends AuthorizingRealm {
             return new SimpleAuthenticationInfo(mobile, code.getBytes(), getName());
         }
 
-        throw new AccountException("密码不正确");
+        throw new AuthenticationException("没发送验证码或者验证码过期");
     }
 }
