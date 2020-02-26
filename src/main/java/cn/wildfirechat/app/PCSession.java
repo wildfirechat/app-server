@@ -77,6 +77,6 @@ public class PCSession {
     }
 
     public SessionOutput toOutput() {
-        return new SessionOutput(token, status, duration - (System.currentTimeMillis() - createDt), device_name, platform);
+        return new SessionOutput(confirmedUserId, token, status, duration - (System.currentTimeMillis() - createDt), device_name, platform);
     }
 }
