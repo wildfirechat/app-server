@@ -1,4 +1,4 @@
-package cn.wildfirechat.app;
+package cn.wildfirechat.app.model;
 
 import cn.wildfirechat.app.pojo.SessionOutput;
 

@@ -3,6 +3,7 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
 import cn.wildfirechat.app.pojo.CreateSessionRequest;
+import cn.wildfirechat.app.pojo.GroupAnnouncementPojo;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface Service {

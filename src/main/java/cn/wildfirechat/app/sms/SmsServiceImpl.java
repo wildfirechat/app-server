@@ -1,5 +1,6 @@
-package cn.wildfirechat.app;
+package cn.wildfirechat.app.sms;
 
+import cn.wildfirechat.app.RestResult;
 import com.aliyuncs.CommonRequest;
 import com.aliyuncs.CommonResponse;
 import com.aliyuncs.DefaultAcsClient;

@@ -1,4 +1,4 @@
-package cn.wildfirechat.app;
+package cn.wildfirechat.app.sms;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

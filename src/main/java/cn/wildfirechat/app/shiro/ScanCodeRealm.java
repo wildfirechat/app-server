@@ -1,8 +1,7 @@
 package cn.wildfirechat.app.shiro;
 
 
-import cn.wildfirechat.app.PCSession;
-import cn.wildfirechat.app.RestResult;
+import cn.wildfirechat.app.model.PCSession;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
