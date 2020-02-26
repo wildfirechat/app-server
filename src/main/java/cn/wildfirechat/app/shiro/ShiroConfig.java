@@ -38,14 +38,15 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/", "anon");
 
 
-        filterChainDefinitionMap.put("/confirm_pc", "authc");
-        filterChainDefinitionMap.put("/scan_pc/**", "authc");
-        filterChainDefinitionMap.put("/put_group_announcement", "authc");
-        filterChainDefinitionMap.put("/get_group_announcement", "authc");
+        filterChainDefinitionMap.put("/confirm_pc", "login");
+        filterChainDefinitionMap.put("/scan_pc/**", "login");
+        filterChainDefinitionMap.put("/put_group_announcement", "login");
+        filterChainDefinitionMap.put("/get_group_announcement", "login");
 
         //主要这行代码必须放在所有权限设置的最后，不然会导致所有 url 都被拦截 剩余的都需要认证
-        filterChainDefinitionMap.put("/**", "authc");
+        filterChainDefinitionMap.put("/**", "login");
         shiroFilterFactoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
+        shiroFilterFactoryBean.getFilters().put("login", new JsonAuthLoginFilter());
         return shiroFilterFactoryBean;
 
     }

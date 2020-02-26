@@ -13,7 +13,8 @@ public class RestResult {
         ERROR_SESSION_NOT_VERIFIED(9, "会话没有验证"),
         ERROR_SESSION_NOT_SCANED(10, "会话没有被扫码"),
         ERROR_SERVER_NOT_IMPLEMENT(11, "功能没有实现"),
-        ERROR_GROUP_ANNOUNCEMENT_NOT_EXIST(12, "群公告不存在");
+        ERROR_GROUP_ANNOUNCEMENT_NOT_EXIST(12, "群公告不存在"),
+        ERROR_NOT_LOGIN(13, "没有登录");
         public int code;
         public String msg;
 
