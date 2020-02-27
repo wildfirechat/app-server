@@ -220,13 +220,16 @@ public class ServiceImpl implements Service {
     public RestResult loginWithSession(String token) {
         Subject subject = SecurityUtils.getSubject();
         // 在认证提交前准备 token（令牌）
+        // comment start 如果确定登录不成功，就不通过Shiro尝试登录了
         TokenAuthenticationToken tt = new TokenAuthenticationToken(token);
         RestResult.RestCode restCode = authDataSource.checkPcSession(token);
         if (restCode != SUCCESS) {
             return RestResult.error(restCode);
         }
+        // comment end
 
         // 执行认证登陆
+        // comment start 由于PC端登录之后，可以请求app server创建群公告等。为了保证安全, PC端登录时，也需要在app server创建session。
         try {
             subject.login(tt);
         } catch (UnknownAccountException uae) {
@@ -245,6 +248,7 @@ public class ServiceImpl implements Service {
         } else {
             return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
         }
+        // comment end
 
         PCSession session = authDataSource.getSession(token, true);
         if (session == null) {
