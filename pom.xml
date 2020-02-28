@@ -22,6 +22,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
+		<wfc.sdk.version>0.37</wfc.sdk.version>
 	</properties>
 
 	<dependencies>
@@ -121,17 +122,17 @@
 		<dependency>
 			<groupId>cn.wildfirechat</groupId>
 			<artifactId>sdk</artifactId>
-			<version>${project.version}</version>
+			<version>${wfc.sdk.version}</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/src/lib/sdk-${project.version}.jar</systemPath>
+			<systemPath>${project.basedir}/src/lib/sdk-${wfc.sdk.version}.jar</systemPath>
 		</dependency>
 
 		<dependency>
 			<groupId>cn.wildfirechat</groupId>
 			<artifactId>common</artifactId>
-			<version>${project.version}</version>
+			<version>${wfc.sdk.version}</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/src/lib/common-${project.version}.jar</systemPath>
+			<systemPath>${project.basedir}/src/lib/common-${wfc.sdk.version}.jar</systemPath>
 		</dependency>
 
 
