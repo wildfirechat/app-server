@@ -6,11 +6,21 @@ public class SessionOutput {
     private long expired;
     private int platform;
     private String device_name;
+    private String userId;
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
     public SessionOutput() {
     }
 
-    public SessionOutput(String token, int status, long expired, String device_name, int platform) {
+    public SessionOutput(String userId, String token, int status, long expired, String device_name, int platform) {
+        this.userId = userId;
         this.token = token;
         this.status = status;
         this.expired = expired;

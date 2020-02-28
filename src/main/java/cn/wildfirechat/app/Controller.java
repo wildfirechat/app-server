@@ -1,14 +1,11 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.pojo.*;
-import org.apache.tomcat.jni.FileInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Date;
 
 @RestController
 public class Controller {

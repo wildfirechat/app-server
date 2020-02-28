@@ -1,4 +1,4 @@
-package cn.wildfirechat.app;
+package cn.wildfirechat.app.model;
 
 import cn.wildfirechat.app.pojo.SessionOutput;
 
@@ -77,6 +77,6 @@ public class PCSession {
     }
 
     public SessionOutput toOutput() {
-        return new SessionOutput(token, status, duration - (System.currentTimeMillis() - createDt), device_name, platform);
+        return new SessionOutput(confirmedUserId, token, status, duration - (System.currentTimeMillis() - createDt), device_name, platform);
     }
 }

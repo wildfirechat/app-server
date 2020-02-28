@@ -3,13 +3,13 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.jpa.Announcement;
 import cn.wildfirechat.app.jpa.AnnouncementRepository;
-import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
-import cn.wildfirechat.app.pojo.CreateSessionRequest;
-import cn.wildfirechat.app.pojo.LoginResponse;
-import cn.wildfirechat.app.pojo.SessionOutput;
-import cn.wildfirechat.app.tools.OrderedIdUserNameGenerator;
+import cn.wildfirechat.app.model.PCSession;
+import cn.wildfirechat.app.pojo.*;
+import cn.wildfirechat.app.shiro.AuthDataSource;
+import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
+import cn.wildfirechat.app.sms.SmsService;
 import cn.wildfirechat.app.tools.PhoneNumberUserNameGenerator;
-import cn.wildfirechat.app.tools.UserNameGenerator;
+import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
@@ -17,6 +17,9 @@ import cn.wildfirechat.sdk.ChatConfig;
 import cn.wildfirechat.sdk.MessageAdmin;
 import cn.wildfirechat.sdk.UserAdmin;
 import cn.wildfirechat.sdk.model.IMResult;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.*;
+import org.apache.shiro.subject.Subject;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,39 +32,12 @@ import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
 
 @org.springframework.stereotype.Service
 public class ServiceImpl implements Service {
-    static class Count {
-        long count;
-        long startTime;
-        void reset() {
-            count = 1;
-            startTime = System.currentTimeMillis();
-        }
-
-        boolean increaseAndCheck() {
-            long now = System.currentTimeMillis();
-            if (now - startTime > 86400000) {
-                reset();
-                return true;
-            }
-            count++;
-            if (count > 10) {
-                return false;
-            }
-            return true;
-        }
-    }
     private static final Logger LOG = LoggerFactory.getLogger(ServiceImpl.class);
-    private static ConcurrentHashMap<String, Record> mRecords = new ConcurrentHashMap<>();
-    private static ConcurrentHashMap<String, PCSession> mPCSession = new ConcurrentHashMap<>();
-
-    private static ConcurrentHashMap<String, Count> mCounts = new ConcurrentHashMap<>();
 
     @Autowired
     private SmsService smsService;
@@ -81,6 +57,9 @@ public class ServiceImpl implements Service {
     @Autowired
     private PhoneNumberUserNameGenerator userNameGenerator;
 
+    @Autowired
+    private AuthDataSource authDataSource;
+
     @PostConstruct
     private void init() {
         ChatConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
@@ -89,56 +68,55 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult sendCode(String mobile) {
         try {
-            if (!Utils.isMobile(mobile)) {
-                LOG.error("Not valid mobile {}", mobile);
-                return RestResult.error(RestResult.RestCode.ERROR_INVALID_MOBILE);
-            }
-
-            Record record = mRecords.get(mobile);
-            if (record != null && System.currentTimeMillis() - record.getTimestamp() < 60 * 1000) {
-                LOG.error("Send code over frequency. timestamp {}, now {}", record.getTimestamp(), System.currentTimeMillis());
-                return RestResult.error(RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY);
-            }
-            Count count = mCounts.get(mobile);
-            if (count == null) {
-                count = new Count();
-                mCounts.put(mobile, count);
-            }
-
-            if (!count.increaseAndCheck()) {
-                LOG.error("Count check failure, already send {} messages today", count.count);
-                return RestResult.error(RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY);
-            }
-
             String code = Utils.getRandomCode(4);
+            RestResult.RestCode restCode = authDataSource.insertRecord(mobile, code);
 
-            RestResult.RestCode restCode = smsService.sendCode(mobile, code);
+            if (restCode != SUCCESS) {
+                return RestResult.error(restCode);
+            }
+
+
+            restCode = smsService.sendCode(mobile, code);
             if (restCode == RestResult.RestCode.SUCCESS) {
-                mRecords.put(mobile, new Record(code, mobile));
                 return RestResult.ok(restCode);
             } else {
+                authDataSource.clearRecode(mobile);
                 return RestResult.error(restCode);
             }
         } catch (JSONException e) {
             // json解析错误
             e.printStackTrace();
+            authDataSource.clearRecode(mobile);
         }
         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
     }
 
     @Override
     public RestResult login(String mobile, String code, String clientId, int platform) {
-        if (StringUtils.isEmpty(superCode) || !code.equals(superCode)) {
-            Record record = mRecords.get(mobile);
-            if (record == null || !record.getCode().equals(code)) {
-                LOG.error("not empty or not correct");
-                return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
-            }
-            if (System.currentTimeMillis() - record.getTimestamp() > 5 * 60 * 1000) {
-                LOG.error("Code expired. timestamp {}, now {}", record.getTimestamp(), System.currentTimeMillis());
-                return RestResult.error(RestResult.RestCode.ERROR_CODE_EXPIRED);
-            }
+        Subject subject = SecurityUtils.getSubject();
+        // 在认证提交前准备 token（令牌）
+        UsernamePasswordToken token = new UsernamePasswordToken(mobile, code);
+        // 执行认证登陆
+        try {
+            subject.login(token);
+        } catch (UnknownAccountException uae) {
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        } catch (IncorrectCredentialsException ice) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (LockedAccountException lae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (ExcessiveAttemptsException eae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (AuthenticationException ae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
         }
+        if (subject.isAuthenticated()) {
+            LOG.info("Login success");
+        } else {
+            token.clear();
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        }
+
 
         try {
             //使用电话号码查询用户信息。
@@ -180,6 +158,8 @@ public class ServiceImpl implements Service {
                 LOG.error("Get user failure {}", tokenResult.code);
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             }
+
+            subject.getSession().setAttribute("userId", user.getUserId());
 
             //返回用户id，token和是否新建
             LoginResponse response = new LoginResponse();
@@ -231,92 +211,82 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult createPcSession(CreateSessionRequest request) {
-        PCSession session = new PCSession();
-        session.setClientId(request.getClientId());
-        session.setCreateDt(System.currentTimeMillis());
-        session.setPlatform(request.getPlatform());
-        session.setDuration(300*1000); //300 seconds
-
-        if (StringUtils.isEmpty(request.getToken())) {
-            request.setToken(UUID.randomUUID().toString());
-        }
-
-        session.setToken(request.getToken());
-        mPCSession.put(request.getToken(), session);
-
+        PCSession session = authDataSource.createSession(request.getClientId(), request.getToken(), request.getPlatform());
         SessionOutput output = session.toOutput();
-
         return RestResult.ok(output);
     }
 
     @Override
     public RestResult loginWithSession(String token) {
-        PCSession session = mPCSession.get(token);
-        if (session != null) {
-            if (session.getStatus() == 2) {
-                //使用用户id获取token
-                try {
-                    IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(session.getConfirmedUserId(), session.getClientId(), session.getPlatform());
-                    if (tokenResult.getCode() != 0) {
-                        LOG.error("Get user failure {}", tokenResult.code);
-                        return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
-                    }
+        Subject subject = SecurityUtils.getSubject();
+        // 在认证提交前准备 token（令牌）
+        // comment start 如果确定登录不成功，就不通过Shiro尝试登录了
+        TokenAuthenticationToken tt = new TokenAuthenticationToken(token);
+        RestResult.RestCode restCode = authDataSource.checkPcSession(token);
+        if (restCode != SUCCESS) {
+            return RestResult.error(restCode);
+        }
+        // comment end
 
-                    //返回用户id，token和是否新建
-                    LoginResponse response = new LoginResponse();
-                    response.setUserId(session.getConfirmedUserId());
-                    response.setToken(tokenResult.getResult().getToken());
-                    return RestResult.ok(response);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
-                }
-            } else {
-                if (session.getStatus() == 0)
-                    return RestResult.error(ERROR_SESSION_NOT_SCANED);
-                else {
-                    return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
-                }
-            }
+        // 执行认证登陆
+        // comment start 由于PC端登录之后，可以请求app server创建群公告等。为了保证安全, PC端登录时，也需要在app server创建session。
+        try {
+            subject.login(tt);
+        } catch (UnknownAccountException uae) {
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        } catch (IncorrectCredentialsException ice) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (LockedAccountException lae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (ExcessiveAttemptsException eae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (AuthenticationException ae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        }
+        if (subject.isAuthenticated()) {
+            LOG.info("Login success");
         } else {
-            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        }
+        // comment end
+
+        PCSession session = authDataSource.getSession(token, true);
+        if (session == null) {
+            subject.logout();
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_EXPIRED);
+        }
+        subject.getSession().setAttribute("userId", session.getConfirmedUserId());
+
+        try {
+            //使用用户id获取token
+            IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(session.getConfirmedUserId(), session.getClientId(), session.getPlatform());
+            if (tokenResult.getCode() != 0) {
+                LOG.error("Get user failure {}", tokenResult.code);
+                subject.logout();
+                return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+            }
+            //返回用户id，token和是否新建
+            LoginResponse response = new LoginResponse();
+            response.setUserId(session.getConfirmedUserId());
+            response.setToken(tokenResult.getResult().getToken());
+            return RestResult.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            subject.logout();
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
     }
 
     @Override
     public RestResult scanPc(String token) {
-        PCSession session = mPCSession.get(token);
-        if (session != null) {
-            SessionOutput output = session.toOutput();
-            if (output.getExpired() > 0) {
-                session.setStatus(1);
-                output.setStatus(1);
-                return RestResult.ok(output);
-            } else {
-                return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
-            }
-        } else {
-            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
-        }
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String)subject.getSession().getAttribute("userId");
+        return authDataSource.scanPc(userId, token);
     }
 
     @Override
     public RestResult confirmPc(ConfirmSessionRequest request) {
-        PCSession session = mPCSession.get(request.getToken());
-        if (session != null) {
-            SessionOutput output = session.toOutput();
-            if (output.getExpired() > 0) {
-                //todo 检查IMtoken，确认用户id不是冒充的
-                session.setStatus(2);
-                output.setStatus(2);
-                session.setConfirmedUserId(request.getUser_id());
-                return RestResult.ok(output);
-            } else {
-                return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
-            }
-        } else {
-            return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
-        }
+        return authDataSource.confirmPc(request.getUser_id(), request.getToken());
     }
 
     @Override

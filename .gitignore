@@ -1,3 +1,5 @@
 target
 .idea
 appdata.mv.db
+nohup.out
+appdata.trace.db

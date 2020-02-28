@@ -1,4 +1,4 @@
-package cn.wildfirechat.app;
+package cn.wildfirechat.app.pojo;
 
 public class GroupAnnouncementPojo {
     public String groupId;

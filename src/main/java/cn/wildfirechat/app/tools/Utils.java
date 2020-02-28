@@ -1,4 +1,4 @@
-package cn.wildfirechat.app;
+package cn.wildfirechat.app.tools;
 
 import java.util.Random;
 import java.util.regex.Matcher;
