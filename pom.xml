@@ -5,11 +5,11 @@
 
 	<groupId>cn.wildfirechat</groupId>
 	<artifactId>app</artifactId>
-	<version>0.37</version>
+	<version>0.40</version>
 	<packaging>jar</packaging>
 
 	<name>app</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Demo project for Wildfire chat app server</description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
