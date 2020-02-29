@@ -56,6 +56,7 @@ public class ShiroConfig {
         DefaultWebSecurityManager defaultSecurityManager = new DefaultWebSecurityManager();
         defaultSecurityManager.setRealms(Arrays.asList(phoneCodeRealm, scanCodeRealm));
         ShiroSessionManager sessionManager = new ShiroSessionManager();
+        sessionManager.setGlobalSessionTimeout(Long.MAX_VALUE);
         sessionManager.setSessionDAO(dbSessionDao);
         defaultSecurityManager.setSessionManager(sessionManager);
         return defaultSecurityManager;

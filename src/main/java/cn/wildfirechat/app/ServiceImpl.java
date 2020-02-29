@@ -111,7 +111,8 @@ public class ServiceImpl implements Service {
             return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
         }
         if (subject.isAuthenticated()) {
-            LOG.info("Login success");
+            long timeout = subject.getSession().getTimeout();
+            LOG.info("Login success " + timeout);
         } else {
             token.clear();
             return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
