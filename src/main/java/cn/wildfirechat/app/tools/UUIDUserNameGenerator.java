@@ -8,6 +8,6 @@ import java.util.UUID;
 public class UUIDUserNameGenerator implements UserNameGenerator {
     @Override
     public String getUserName(String phone) {
-        return UUID.randomUUID().toString();
+        return "wfid-" + UUID.randomUUID().toString().replaceAll("-", "");
     }
 }

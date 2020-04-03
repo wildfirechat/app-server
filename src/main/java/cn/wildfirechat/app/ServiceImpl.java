@@ -9,6 +9,7 @@ import cn.wildfirechat.app.shiro.AuthDataSource;
 import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
 import cn.wildfirechat.app.sms.SmsService;
 import cn.wildfirechat.app.tools.PhoneNumberUserNameGenerator;
+import cn.wildfirechat.app.tools.UUIDUserNameGenerator;
 import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.pojos.*;
@@ -55,7 +56,7 @@ public class ServiceImpl implements Service {
     private String userLogPath;
 
     @Autowired
-    private PhoneNumberUserNameGenerator userNameGenerator;
+    private UUIDUserNameGenerator userNameGenerator;
 
     @Autowired
     private AuthDataSource authDataSource;

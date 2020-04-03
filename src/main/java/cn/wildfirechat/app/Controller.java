@@ -58,18 +58,11 @@ public class Controller {
         return mService.confirmPc(request);
     }
 
-
-    /*
-     * 本工程为demo应用，没有鉴权机制，谁都可以调用。正式商用需要加上鉴权，防止被攻击
-     */
     @PostMapping(value = "/put_group_announcement", produces = "application/json;charset=UTF-8")
     public Object putGroupAnnouncement(@RequestBody GroupAnnouncementPojo request) {
         return mService.putGroupAnnouncement(request);
     }
 
-    /*
-     * 本工程为demo应用，没有鉴权机制，这里这里请求需要带上请求用户。
-     */
     @PostMapping(value = "/get_group_announcement", produces = "application/json;charset=UTF-8")
     public Object getGroupAnnouncement(@RequestBody GroupIdPojo request) {
         return mService.getGroupAnnouncement(request.groupId);
