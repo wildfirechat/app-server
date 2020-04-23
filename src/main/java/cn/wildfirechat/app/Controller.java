@@ -1,6 +1,7 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.pojo.*;
+import cn.wildfirechat.pojos.UserOnlineStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -69,7 +70,8 @@ public class Controller {
     }
 
     @PostMapping(value = "/user/online_event")
-    public Object onUserOnlineEvent(@RequestBody String request) {
+    public Object onUserOnlineEvent(@RequestBody UserOnlineStatus onlineStatus) {
+        System.out.println("User:" + onlineStatus.userId + " on device:" + onlineStatus.clientId + " online status:" + onlineStatus.status);
         return "hello";
     }
 
