@@ -8,13 +8,13 @@ import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.app.shiro.AuthDataSource;
 import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
 import cn.wildfirechat.app.sms.SmsService;
-import cn.wildfirechat.app.tools.PhoneNumberUserNameGenerator;
 import cn.wildfirechat.app.tools.UUIDUserNameGenerator;
 import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
 import cn.wildfirechat.sdk.ChatConfig;
+import cn.wildfirechat.sdk.GroupAdmin;
 import cn.wildfirechat.sdk.MessageAdmin;
 import cn.wildfirechat.sdk.UserAdmin;
 import cn.wildfirechat.sdk.model.IMResult;
@@ -309,6 +309,29 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult putGroupAnnouncement(GroupAnnouncementPojo request) {
         if (!StringUtils.isEmpty(request.text)) {
+            Subject subject = SecurityUtils.getSubject();
+            String userId = (String)subject.getSession().getAttribute("userId");
+            boolean isGroupMember = false;
+            try {
+                IMResult<OutputGroupMemberList> imResult = GroupAdmin.getGroupMembers(request.groupId);
+                if (imResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS && imResult.getResult() != null && imResult.getResult().getMembers() != null) {
+                    for (PojoGroupMember member : imResult.getResult().getMembers()) {
+                        if (member.getMember_id().equals(userId)) {
+                            if (member.getType() != ProtoConstants.GroupMemberType.GroupMemberType_Removed
+                                && member.getType() != ProtoConstants.GroupMemberType.GroupMemberType_Silent) {
+                                isGroupMember = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (!isGroupMember) {
+                return RestResult.error(ERROR_NO_RIGHT);
+            }
+
             Conversation conversation = new Conversation();
             conversation.setTarget(request.groupId);
             conversation.setType(ProtoConstants.ConversationType.ConversationType_Group);
@@ -356,5 +379,47 @@ public class ServiceImpl implements Service {
         }
 
         return RestResult.ok(null);
+    }
+
+    @Override
+    public RestResult addDevice(InputCreateDevice createDevice) {
+        try {
+            Subject subject = SecurityUtils.getSubject();
+            String userId = (String)subject.getSession().getAttribute("userId");
+
+            if (!StringUtils.isEmpty(createDevice.getDeviceId())) {
+                IMResult<OutputDevice> outputDeviceIMResult = UserAdmin.getDevice(createDevice.getDeviceId());
+                if (outputDeviceIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                    if (!createDevice.getOwners().contains(userId)) {
+                        return RestResult.error(ERROR_NO_RIGHT);
+                    }
+                } else if (outputDeviceIMResult.getErrorCode() != ErrorCode.ERROR_CODE_NOT_EXIST) {
+                    return RestResult.error(ERROR_SERVER_ERROR);
+                }
+            }
+
+            IMResult<OutputCreateDevice> result = UserAdmin.createOrUpdateDevice(createDevice);
+            if (result!= null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                return RestResult.ok(result.getResult());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return RestResult.error(ERROR_SERVER_ERROR);
+    }
+
+    @Override
+    public RestResult getDeviceList() {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String)subject.getSession().getAttribute("userId");
+        try {
+            IMResult<OutputDeviceList> imResult = UserAdmin.getUserDevices(userId);
+            if (imResult != null && imResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                return RestResult.ok(imResult.getResult().getDevices());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return RestResult.error(ERROR_SERVER_ERROR);
     }
 }

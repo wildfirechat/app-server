@@ -1,6 +1,7 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.pojo.*;
+import cn.wildfirechat.pojos.InputCreateDevice;
 import cn.wildfirechat.pojos.UserOnlineStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,9 @@ public class Controller {
         return "Ok";
     }
 
+    /*
+    移动端登录
+     */
     @PostMapping(value = "/send_code", produces = "application/json;charset=UTF-8")
     public Object sendCode(@RequestBody SendCodeRequest request) {
         return mService.sendCode(request.getMobile());
@@ -59,6 +63,9 @@ public class Controller {
         return mService.confirmPc(request);
     }
 
+    /*
+    群公告相关接口
+     */
     @PostMapping(value = "/put_group_announcement", produces = "application/json;charset=UTF-8")
     public Object putGroupAnnouncement(@RequestBody GroupAnnouncementPojo request) {
         return mService.putGroupAnnouncement(request);
@@ -69,14 +76,33 @@ public class Controller {
         return mService.getGroupAnnouncement(request.groupId);
     }
 
+    /*
+    用户在线状态回调
+     */
     @PostMapping(value = "/user/online_event")
     public Object onUserOnlineEvent(@RequestBody UserOnlineStatus onlineStatus) {
         System.out.println("User:" + onlineStatus.userId + " on device:" + onlineStatus.clientId + " online status:" + onlineStatus.status);
         return "hello";
     }
 
+    /*
+    客户端上传协议栈日志
+     */
     @PostMapping(value = "/logs/{userId}/upload")
     public Object uploadFiles(@RequestParam("file") MultipartFile file, @PathVariable("userId") String userId) throws IOException {
         return mService.saveUserLogs(userId, file);
+    }
+
+    /*
+    物联网相关接口
+     */
+    @PostMapping(value = "/things/add_device")
+    public Object addDevice(@RequestBody InputCreateDevice createDevice) {
+        return mService.addDevice(createDevice);
+    }
+
+    @PostMapping(value = "/things/list_device")
+    public Object getDeviceList()  {
+        return mService.getDeviceList();
     }
 }

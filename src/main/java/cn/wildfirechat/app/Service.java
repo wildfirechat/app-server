@@ -4,6 +4,7 @@ package cn.wildfirechat.app;
 import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
 import cn.wildfirechat.app.pojo.CreateSessionRequest;
 import cn.wildfirechat.app.pojo.GroupAnnouncementPojo;
+import cn.wildfirechat.pojos.InputCreateDevice;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface Service {
@@ -21,4 +22,7 @@ public interface Service {
     RestResult getGroupAnnouncement(String groupId);
 
     RestResult saveUserLogs(String userId, MultipartFile file);
+
+    RestResult addDevice(InputCreateDevice createDevice);
+    RestResult getDeviceList();
 }
