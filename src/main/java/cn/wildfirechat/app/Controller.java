@@ -66,11 +66,13 @@ public class Controller {
     /*
     群公告相关接口
      */
+    @CrossOrigin
     @PostMapping(value = "/put_group_announcement", produces = "application/json;charset=UTF-8")
     public Object putGroupAnnouncement(@RequestBody GroupAnnouncementPojo request) {
         return mService.putGroupAnnouncement(request);
     }
 
+    @CrossOrigin
     @PostMapping(value = "/get_group_announcement", produces = "application/json;charset=UTF-8")
     public Object getGroupAnnouncement(@RequestBody GroupIdPojo request) {
         return mService.getGroupAnnouncement(request.groupId);

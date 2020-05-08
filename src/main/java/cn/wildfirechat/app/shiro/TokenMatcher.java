@@ -1,6 +1,10 @@
 package cn.wildfirechat.app.shiro;
 
 import cn.wildfirechat.app.RestResult;
+import cn.wildfirechat.pojos.InputOutputUserInfo;
+import cn.wildfirechat.sdk.UserAdmin;
+import cn.wildfirechat.sdk.model.IMResult;
+import cn.wildfirechat.sdk.utilities.AdminHttpUtils;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
@@ -22,5 +26,16 @@ public class TokenMatcher implements CredentialsMatcher {
             }
         }
         return false;
+    }
+
+    public static void main(String[] args) {
+        AdminHttpUtils.init("http://wildfirechat.cn:18080", "37923");
+        try {
+            IMResult<InputOutputUserInfo> userByMobile = UserAdmin.getUserByMobile("13888888888");
+            System.out.println(userByMobile.msg);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
