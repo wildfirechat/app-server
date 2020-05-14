@@ -31,6 +31,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/send_code", "anon");
         filterChainDefinitionMap.put("/login", "anon");
         filterChainDefinitionMap.put("/pc_session", "anon");
+        filterChainDefinitionMap.put("/amr2mp3", "anon");
 
         filterChainDefinitionMap.put("/session_login/**", "anon");
         filterChainDefinitionMap.put("/user/online_event", "anon");
