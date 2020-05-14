@@ -13,11 +13,8 @@ import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -27,24 +24,20 @@ public class AudioController {
     @Value("${wfc.audio.cache.dir}")
     String cacheDirPath;
     private File cacheDir;
-    private MessageDigest md;
 
     @PostConstruct
-    public void init() throws NoSuchAlgorithmException {
+    public void init() {
         cacheDir = new File(cacheDirPath);
         if (!cacheDir.exists()) {
             cacheDir.mkdirs();
         }
-        md = MessageDigest.getInstance("MD5");
     }
 
     @GetMapping("amr2mp3")
     public CompletableFuture<ResponseEntity<InputStreamResource>> amr2mp3(@RequestParam("path") String amrUrl) throws FileNotFoundException {
 
         MediaType mediaType = new MediaType("application", "octet-stream");
-        byte[] messageDigest = md.digest(amrUrl.getBytes());
-        BigInteger number = new BigInteger(1, messageDigest);
-        String mp3FileName = number.toString() + ".mp3";
+        String mp3FileName = amrUrl.substring(amrUrl.lastIndexOf('/') + 1) + ".mp3";
 
         File mp3File = new File(cacheDir, mp3FileName);
         if (mp3File.exists()) {
