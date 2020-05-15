@@ -36,7 +36,7 @@ public class AudioController {
     @GetMapping("amr2mp3")
     public CompletableFuture<ResponseEntity<InputStreamResource>> amr2mp3(@RequestParam("path") String amrUrl) throws FileNotFoundException {
 
-        MediaType mediaType = new MediaType("application", "octet-stream");
+        MediaType mediaType = new MediaType("audio", "mp3");
         String mp3FileName = amrUrl.substring(amrUrl.lastIndexOf('/') + 1) + ".mp3";
 
         File mp3File = new File(cacheDir, mp3FileName);
