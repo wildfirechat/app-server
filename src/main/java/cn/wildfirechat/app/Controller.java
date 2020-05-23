@@ -110,7 +110,7 @@ public class Controller {
 
     @PostMapping(value = "/things/del_device")
     public Object delDevice(@RequestBody InputCreateDevice createDevice) {
-        return mService.addDevice(createDevice);
+        return mService.delDevice(createDevice);
     }
 
 }

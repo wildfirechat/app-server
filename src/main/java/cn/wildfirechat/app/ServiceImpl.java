@@ -433,7 +433,7 @@ public class ServiceImpl implements Service {
             if (!StringUtils.isEmpty(createDevice.getDeviceId())) {
                 IMResult<OutputDevice> outputDeviceIMResult = UserAdmin.getDevice(createDevice.getDeviceId());
                 if (outputDeviceIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
-                    if (createDevice.getOwners().contains(userId)) {
+                    if (outputDeviceIMResult.getResult().getOwners().contains(userId)) {
                         createDevice.setExtra(outputDeviceIMResult.getResult().getExtra());
                         outputDeviceIMResult.getResult().getOwners().remove(userId);
                         createDevice.setOwners(outputDeviceIMResult.getResult().getOwners());
