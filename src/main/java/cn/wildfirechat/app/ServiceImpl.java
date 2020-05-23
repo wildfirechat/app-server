@@ -422,4 +422,44 @@ public class ServiceImpl implements Service {
         }
         return RestResult.error(ERROR_SERVER_ERROR);
     }
+
+
+    @Override
+    public RestResult delDevice(InputCreateDevice createDevice) {
+        try {
+            Subject subject = SecurityUtils.getSubject();
+            String userId = (String)subject.getSession().getAttribute("userId");
+
+            if (!StringUtils.isEmpty(createDevice.getDeviceId())) {
+                IMResult<OutputDevice> outputDeviceIMResult = UserAdmin.getDevice(createDevice.getDeviceId());
+                if (outputDeviceIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                    if (createDevice.getOwners().contains(userId)) {
+                        createDevice.setExtra(outputDeviceIMResult.getResult().getExtra());
+                        outputDeviceIMResult.getResult().getOwners().remove(userId);
+                        createDevice.setOwners(outputDeviceIMResult.getResult().getOwners());
+                        IMResult<OutputCreateDevice> result = UserAdmin.createOrUpdateDevice(createDevice);
+                        if (result!= null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                            return RestResult.ok(result.getResult());
+                        } else {
+                            return RestResult.error(ERROR_SERVER_ERROR);
+                        }
+                    } else {
+                        return RestResult.error(ERROR_NO_RIGHT);
+                    }
+                } else {
+                    if (outputDeviceIMResult.getErrorCode() != ErrorCode.ERROR_CODE_NOT_EXIST) {
+                        return RestResult.error(ERROR_SERVER_ERROR);
+                    } else {
+                        return RestResult.error(ERROR_NOT_EXIST);
+                    }
+                }
+            } else {
+                return RestResult.error(ERROR_INVALID_PARAMETER);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return RestResult.error(ERROR_SERVER_ERROR);
+    }
 }

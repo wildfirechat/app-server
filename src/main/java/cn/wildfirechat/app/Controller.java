@@ -107,4 +107,10 @@ public class Controller {
     public Object getDeviceList()  {
         return mService.getDeviceList();
     }
+
+    @PostMapping(value = "/things/del_device")
+    public Object delDevice(@RequestBody InputCreateDevice createDevice) {
+        return mService.addDevice(createDevice);
+    }
+
 }

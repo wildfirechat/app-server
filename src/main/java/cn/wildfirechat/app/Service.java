@@ -25,4 +25,5 @@ public interface Service {
 
     RestResult addDevice(InputCreateDevice createDevice);
     RestResult getDeviceList();
+    RestResult delDevice(InputCreateDevice createDevice);
 }
