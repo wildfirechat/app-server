@@ -21,6 +21,7 @@ import cn.wildfirechat.sdk.model.IMResult;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.subject.Subject;
+import org.h2.command.ddl.CreateUser;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -289,6 +290,44 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult confirmPc(ConfirmSessionRequest request) {
         return authDataSource.confirmPc(request.getUser_id(), request.getToken());
+    }
+
+    @Override
+    public RestResult changeName(String newName) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String)subject.getSession().getAttribute("userId");
+        try {
+            IMResult<InputOutputUserInfo> existUser = UserAdmin.getUserByName(newName);
+            if (existUser != null) {
+                if (existUser.code == ErrorCode.ERROR_CODE_SUCCESS.code) {
+                    if (userId.equals(existUser.getResult().getUserId())) {
+                        return RestResult.ok(null);
+                    } else {
+                        return RestResult.error(ERROR_USER_NAME_ALREADY_EXIST);
+                    }
+                } else if(existUser.code == ErrorCode.ERROR_CODE_NOT_EXIST.code) {
+                    existUser = UserAdmin.getUserByUserId(userId);
+                    if (existUser == null || existUser.code != ErrorCode.ERROR_CODE_SUCCESS.code || existUser.getResult() == null) {
+                        return RestResult.error(ERROR_SERVER_ERROR);
+                    }
+
+                    existUser.getResult().setName(newName);
+                    IMResult<OutputCreateUser> createUser = UserAdmin.createUser(existUser.getResult());
+                    if (createUser.code == ErrorCode.ERROR_CODE_SUCCESS.code) {
+                        return RestResult.ok(null);
+                    } else {
+                        return RestResult.error(ERROR_SERVER_ERROR);
+                    }
+                } else {
+                    return RestResult.error(ERROR_SERVER_ERROR);
+                }
+            } else {
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RestResult.error(ERROR_SERVER_ERROR);
+        }
     }
 
     @Override

@@ -18,6 +18,8 @@ public interface Service {
     RestResult scanPc(String token);
     RestResult confirmPc(ConfirmSessionRequest request);
 
+    RestResult changeName(String newName);
+
     RestResult putGroupAnnouncement(GroupAnnouncementPojo request);
     RestResult getGroupAnnouncement(String groupId);
 

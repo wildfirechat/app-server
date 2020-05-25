@@ -17,7 +17,8 @@ public class RestResult {
         ERROR_NOT_LOGIN(13, "没有登录"),
         ERROR_NO_RIGHT(14, "没有权限"),
         ERROR_INVALID_PARAMETER(15, "无效参数"),
-        ERROR_NOT_EXIST(16, "对象不存在");
+        ERROR_NOT_EXIST(16, "对象不存在"),
+        ERROR_USER_NAME_ALREADY_EXIST(17, "用户名已经存在");
         public int code;
         public String msg;
 

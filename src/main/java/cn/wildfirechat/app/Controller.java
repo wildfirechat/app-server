@@ -3,6 +3,7 @@ package cn.wildfirechat.app;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import cn.wildfirechat.pojos.UserOnlineStatus;
+import org.h2.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -62,6 +63,19 @@ public class Controller {
     public Object confirmPc(@RequestBody ConfirmSessionRequest request) {
         return mService.confirmPc(request);
     }
+
+    /*
+    修改野火账户
+    */
+    @CrossOrigin
+    @PostMapping(value = "/change_name", produces = "application/json;charset=UTF-8")
+    public Object changeName(@RequestBody ChangeNameRequest request) {
+        if (StringUtils.isNullOrEmpty(request.getNewName())) {
+            return RestResult.error(RestResult.RestCode.ERROR_INVALID_PARAMETER);
+        }
+        return mService.changeName(request.getNewName());
+    }
+
 
     /*
     群公告相关接口
