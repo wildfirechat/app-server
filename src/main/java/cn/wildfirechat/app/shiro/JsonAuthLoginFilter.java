@@ -9,6 +9,7 @@ import org.apache.shiro.subject.Subject;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -17,6 +18,12 @@ public class JsonAuthLoginFilter extends AccessControlFilter {
     @Override
     protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue)
             throws Exception {
+        if (request instanceof HttpServletRequest) {
+            if (((HttpServletRequest) request).getMethod().toUpperCase().equals("OPTIONS")) {
+                return true;
+            }
+        }
+
         Subject subject = SecurityUtils.getSubject();
 
         if(null != subject){
