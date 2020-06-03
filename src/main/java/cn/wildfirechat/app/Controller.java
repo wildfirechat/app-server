@@ -5,10 +5,15 @@ import cn.wildfirechat.pojos.InputCreateDevice;
 import cn.wildfirechat.pojos.UserOnlineStatus;
 import org.h2.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 public class Controller {
@@ -47,7 +52,28 @@ public class Controller {
     @CrossOrigin
     @PostMapping(value = "/session_login/{token}", produces = "application/json;charset=UTF-8")
     public Object loginWithSession(@PathVariable("token") String token) {
-        return mService.loginWithSession(token);
+        RestResult timeoutResult = RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
+        ResponseEntity<RestResult> timeoutResponseEntity = new ResponseEntity<>(timeoutResult, HttpStatus.OK);
+        DeferredResult<ResponseEntity> deferredResult = new DeferredResult<>(60L * 1000, timeoutResponseEntity);
+        CompletableFuture.runAsync(() -> {
+            try {
+                while (true) {
+                    RestResult restResult = mService.loginWithSession(token);
+                    if (restResult.getCode() == RestResult.RestCode.SUCCESS.code
+                        || restResult.getCode() == RestResult.RestCode.ERROR_SESSION_EXPIRED.code
+                        || restResult.getCode() == RestResult.RestCode.ERROR_SERVER_ERROR.code
+                        || restResult.getCode() == RestResult.RestCode.ERROR_CODE_INCORRECT.code) {
+                        deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));
+                        break;
+                    } else {
+                        TimeUnit.SECONDS.sleep(1);
+                    }
+                }
+            } catch (Exception ex) {
+                deferredResult.setResult(new ResponseEntity(RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR), HttpStatus.OK));
+            }
+        });
+        return deferredResult;
     }
 
     /* 手机扫码操作
@@ -118,7 +144,7 @@ public class Controller {
     }
 
     @PostMapping(value = "/things/list_device")
-    public Object getDeviceList()  {
+    public Object getDeviceList() {
         return mService.getDeviceList();
     }
 

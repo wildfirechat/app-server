@@ -1,6 +1,7 @@
 package cn.wildfirechat.app.shiro;
 
 
+import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.session.mgt.SessionManager;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
@@ -61,6 +62,7 @@ public class ShiroConfig {
         sessionManager.setGlobalSessionTimeout(Long.MAX_VALUE);
         sessionManager.setSessionDAO(dbSessionDao);
         defaultSecurityManager.setSessionManager(sessionManager);
+        SecurityUtils.setSecurityManager(defaultSecurityManager);
         return defaultSecurityManager;
     }
 
