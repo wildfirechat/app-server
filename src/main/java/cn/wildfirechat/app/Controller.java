@@ -41,7 +41,7 @@ public class Controller {
 
     /* PC扫码操作
     1, PC -> App     创建会话
-    2, PC -> App     轮询调用session_login进行登陆，如果已经扫码确认返回token，否则反正错误码9（已经扫码还没确认)或10(还没有被扫码)。
+    2, PC -> App     轮询调用session_login进行登陆，如果已经扫码确认返回token，否则返回错误码9（已经扫码还没确认)或者10(还没有被扫码)
      */
     @CrossOrigin
     @PostMapping(value = "/pc_session", produces = "application/json;charset=UTF-8")
@@ -54,12 +54,17 @@ public class Controller {
     public Object loginWithSession(@PathVariable("token") String token) {
         RestResult timeoutResult = RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         ResponseEntity<RestResult> timeoutResponseEntity = new ResponseEntity<>(timeoutResult, HttpStatus.OK);
-        DeferredResult<ResponseEntity> deferredResult = new DeferredResult<>(60L * 1000, timeoutResponseEntity);
+        int timeoutSecond = 60;
+        DeferredResult<ResponseEntity> deferredResult = new DeferredResult<>(timeoutSecond * 1000L, timeoutResponseEntity);
         CompletableFuture.runAsync(() -> {
             try {
-                while (true) {
+                int i = 0;
+                while (i < timeoutSecond) {
                     RestResult restResult = mService.loginWithSession(token);
-                    if (restResult.getCode() == RestResult.RestCode.SUCCESS.code
+                    if (restResult.getCode() == RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED.code && restResult.getResult() != null) {
+                        deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));
+                        break;
+                    } else if (restResult.getCode() == RestResult.RestCode.SUCCESS.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_SESSION_EXPIRED.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_SERVER_ERROR.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_CODE_INCORRECT.code) {
@@ -68,6 +73,7 @@ public class Controller {
                     } else {
                         TimeUnit.SECONDS.sleep(1);
                     }
+                    i ++;
                 }
             } catch (Exception ex) {
                 deferredResult.setResult(new ResponseEntity(RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR), HttpStatus.OK));

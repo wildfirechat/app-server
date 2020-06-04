@@ -40,6 +40,10 @@ public class RestResult {
         return new RestResult(code, null);
     }
 
+    public static RestResult result(RestCode code, Object object){
+        return new RestResult(code, object);
+    }
+
     private RestResult(RestCode code, Object result) {
         this.code = code.code;
         this.message = code.msg;

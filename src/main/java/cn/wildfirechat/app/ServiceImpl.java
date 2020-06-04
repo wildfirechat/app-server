@@ -21,7 +21,6 @@ import cn.wildfirechat.sdk.model.IMResult;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.subject.Subject;
-import org.h2.command.ddl.CreateUser;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -225,9 +224,26 @@ public class ServiceImpl implements Service {
         // 在认证提交前准备 token（令牌）
         // comment start 如果确定登录不成功，就不通过Shiro尝试登录了
         TokenAuthenticationToken tt = new TokenAuthenticationToken(token);
-        RestResult.RestCode restCode = authDataSource.checkPcSession(token);
-        if (restCode != SUCCESS) {
-            return RestResult.error(restCode);
+        PCSession session = authDataSource.getSession(token, false);
+        if(session == null){
+            return RestResult.error(ERROR_CODE_EXPIRED);
+        }else if(session.getStatus() == 0){
+            return RestResult.error(ERROR_SESSION_NOT_SCANED);
+        }else if (session.getStatus() == 1){
+            session.setStatus(3);
+            LoginResponse response = new LoginResponse();
+            try {
+                IMResult<InputOutputUserInfo> result = UserAdmin.getUserByUserId(session.getConfirmedUserId());
+                if(result.getCode() == 0){
+                    response.setUserName(result.getResult().getDisplayName());
+                    response.setPortrait(result.getResult().getPortrait());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return RestResult.result(ERROR_SESSION_NOT_VERIFIED, response);
+        }else if(session.getStatus() == 3){
+            return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
         }
         // comment end
 
@@ -253,7 +269,7 @@ public class ServiceImpl implements Service {
         }
         // comment end
 
-        PCSession session = authDataSource.getSession(token, true);
+        session = authDataSource.getSession(token, true);
         if (session == null) {
             subject.logout();
             return RestResult.error(RestResult.RestCode.ERROR_CODE_EXPIRED);
