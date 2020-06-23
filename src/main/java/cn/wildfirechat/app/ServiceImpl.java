@@ -13,10 +13,7 @@ import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
-import cn.wildfirechat.sdk.ChatConfig;
-import cn.wildfirechat.sdk.GroupAdmin;
-import cn.wildfirechat.sdk.MessageAdmin;
-import cn.wildfirechat.sdk.UserAdmin;
+import cn.wildfirechat.sdk.*;
 import cn.wildfirechat.sdk.model.IMResult;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
@@ -32,7 +29,10 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
 
@@ -147,6 +147,9 @@ public class ServiceImpl implements Service {
                     LOG.info("Create user failure {}", userIdResult.code);
                     return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
                 }
+
+
+
             } else if(userResult.getCode() != 0){
                 LOG.error("Get user failure {}", userResult.code);
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
@@ -171,11 +174,18 @@ public class ServiceImpl implements Service {
 
             if (isNewUser) {
                 if (!StringUtils.isEmpty(mIMConfig.welcome_for_new_user)) {
-                    sendTextMessage(user.getUserId(), mIMConfig.welcome_for_new_user);
+                    sendTextMessage("admin", user.getUserId(), mIMConfig.welcome_for_new_user);
+                }
+
+                if (mIMConfig.new_user_robot_friend && !StringUtils.isEmpty(mIMConfig.robot_friend_id)) { ;
+                    RelationAdmin.setUserFriend(user.getUserId(), mIMConfig.robot_friend_id, true, null);
+                    if (!StringUtils.isEmpty(mIMConfig.robot_welcome)) {
+                        sendTextMessage(mIMConfig.robot_friend_id, user.getUserId(), mIMConfig.robot_welcome);
+                    }
                 }
             } else {
                 if (!StringUtils.isEmpty(mIMConfig.welcome_for_back_user)) {
-                    sendTextMessage(user.getUserId(), mIMConfig.welcome_for_back_user);
+                    sendTextMessage("admin", user.getUserId(), mIMConfig.welcome_for_back_user);
                 }
             }
 
@@ -187,7 +197,7 @@ public class ServiceImpl implements Service {
         }
     }
 
-    private void sendTextMessage(String toUser, String text) {
+    private void sendTextMessage(String fromUser, String toUser, String text) {
         Conversation conversation = new Conversation();
         conversation.setTarget(toUser);
         conversation.setType(ProtoConstants.ConversationType.ConversationType_Private);
@@ -197,7 +207,7 @@ public class ServiceImpl implements Service {
 
 
         try {
-            IMResult<SendMessageResult> resultSendMessage = MessageAdmin.sendMessage("admin", conversation, payload);
+            IMResult<SendMessageResult> resultSendMessage = MessageAdmin.sendMessage(fromUser, conversation, payload);
             if (resultSendMessage != null && resultSendMessage.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
                 LOG.info("send message success");
             } else {

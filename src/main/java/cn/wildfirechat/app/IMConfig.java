@@ -23,6 +23,10 @@ public class IMConfig {
     String welcome_for_new_user;
     String welcome_for_back_user;
 
+    boolean new_user_robot_friend;
+    String robot_friend_id;
+    String robot_welcome;
+
     public String getAdmin_url() {
         return admin_url;
     }
@@ -53,5 +57,29 @@ public class IMConfig {
 
     public void setWelcome_for_back_user(String welcome_for_back_user) {
         this.welcome_for_back_user = welcome_for_back_user;
+    }
+
+    public boolean isNew_user_robot_friend() {
+        return new_user_robot_friend;
+    }
+
+    public void setNew_user_robot_friend(boolean new_user_robot_friend) {
+        this.new_user_robot_friend = new_user_robot_friend;
+    }
+
+    public String getRobot_friend_id() {
+        return robot_friend_id;
+    }
+
+    public void setRobot_friend_id(String robot_friend_id) {
+        this.robot_friend_id = robot_friend_id;
+    }
+
+    public String getRobot_welcome() {
+        return robot_welcome;
+    }
+
+    public void setRobot_welcome(String robot_welcome) {
+        this.robot_welcome = robot_welcome;
     }
 }
