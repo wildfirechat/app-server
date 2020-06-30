@@ -8,7 +8,7 @@ import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.app.shiro.AuthDataSource;
 import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
 import cn.wildfirechat.app.sms.SmsService;
-import cn.wildfirechat.app.tools.UUIDUserNameGenerator;
+import cn.wildfirechat.app.tools.ShortUUIDGenerator;
 import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.pojos.*;
@@ -29,10 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
 
@@ -56,7 +53,7 @@ public class ServiceImpl implements Service {
     private String userLogPath;
 
     @Autowired
-    private UUIDUserNameGenerator userNameGenerator;
+    private ShortUUIDGenerator userNameGenerator;
 
     @Autowired
     private AuthDataSource authDataSource;
@@ -129,8 +126,22 @@ public class ServiceImpl implements Service {
             boolean isNewUser = false;
             if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
                 LOG.info("User not exist, try to create");
+
+                //获取用户名。如果用的是shortUUID生成器，是有极小概率会重复的，所以需要去检查是否已经存在相同的userName。
+                //ShortUUIDGenerator内的main函数有测试代码，可以观察一下碰撞的概率，这个重复是理论上的，作者测试了几千万次次都没有产生碰撞。
+                //另外由于并发的问题，也有同时生成相同的id并同时去检查的并同时通过的情况，但这种情况概率极低，可以忽略不计。
+                String userName;
+                int tryCount = 0;
+                do {
+                    tryCount++;
+                    userName = userNameGenerator.getUserName(mobile);
+                    if (tryCount > 10) {
+                        return RestResult.error(ERROR_SERVER_ERROR);
+                    }
+                } while (!isUsernameAvailable(userName));
+
+
                 user = new InputOutputUserInfo();
-                String userName = userNameGenerator.getUserName(mobile);
                 user.setName(userName);
                 if (mIMConfig.use_random_name) {
                     String displayName = "用户" + (int) (Math.random() * 10000);
@@ -197,6 +208,17 @@ public class ServiceImpl implements Service {
         }
     }
 
+    private boolean isUsernameAvailable(String username) {
+        try {
+            IMResult<InputOutputUserInfo> existUser = UserAdmin.getUserByName(username);
+            if (existUser.code == ErrorCode.ERROR_CODE_NOT_EXIST.code) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     private void sendTextMessage(String fromUser, String toUser, String text) {
         Conversation conversation = new Conversation();
         conversation.setTarget(toUser);
