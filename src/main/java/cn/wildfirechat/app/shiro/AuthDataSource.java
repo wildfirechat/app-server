@@ -69,7 +69,9 @@ public class AuthDataSource {
 
         if (!count.increaseAndCheck()) {
             LOG.error("Count check failure, already send {} messages today", count.count);
-            return RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY;
+            RestResult.RestCode c = RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY;
+            c.msg = "发送给用户 " + mobile + " 超出频率限制";
+            return c;
         }
         mRecords.put(mobile, new Record(code, mobile));
         return RestResult.RestCode.SUCCESS;

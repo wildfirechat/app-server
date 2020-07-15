@@ -8,6 +8,7 @@ import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.app.shiro.AuthDataSource;
 import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
 import cn.wildfirechat.app.sms.SmsService;
+import cn.wildfirechat.app.tools.RateLimiter;
 import cn.wildfirechat.app.tools.ShortUUIDGenerator;
 import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
@@ -24,9 +25,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
@@ -58,13 +62,27 @@ public class ServiceImpl implements Service {
     @Autowired
     private AuthDataSource authDataSource;
 
+    private RateLimiter rateLimiter;
+
     @PostConstruct
     private void init() {
         ChatConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
+        rateLimiter = new RateLimiter(60, 200);
     }
 
     @Override
     public RestResult sendCode(String mobile) {
+        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = requestAttributes.getRequest();
+        String remoteIp = request.getRemoteAddr();
+        LOG.info("request send sms from {}", remoteIp);
+
+        //判断当前IP发送是否超频。
+        //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
+        if (!rateLimiter.isGranted(remoteIp)) {
+            return RestResult.result(ERROR_SEND_SMS_OVER_FREQUENCY.code, "IP " + remoteIp + " 请求短信超频", null);
+        }
+
         try {
             String code = Utils.getRandomCode(4);
             RestResult.RestCode restCode = authDataSource.insertRecord(mobile, code);

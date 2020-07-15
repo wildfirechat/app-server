@@ -34,6 +34,9 @@ java -jar app-XXXXX.jar
 
 + 0.43版本把Web和PC登录的短轮询改为长轮询，如果应用服务升级需要对Web和PC进行对应修改。
 
+#### 注意事项
+服务中对同一个IP的请求会有限频，默认是一个ip一小时可以请求200次，可以根据您的实际情况调整（搜索rateLimiter字符串就能找到）。如果使用了nginx做反向代理需要注意把用户真实ip带过去，避免获取不到真实ip从而影响正常使用。
+
 #### 使用到的开源代码
 1. [TypeBuilder](https://github.com/ikidou/TypeBuilder) 一个用于生成泛型的简易Builder
 

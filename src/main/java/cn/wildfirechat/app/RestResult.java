@@ -44,6 +44,13 @@ public class RestResult {
         return new RestResult(code, object);
     }
 
+    public static RestResult result(int code, String message, Object object){
+        RestResult r = new RestResult(RestCode.SUCCESS, object);
+        r.code = code;
+        r.message = message;
+        return r;
+    }
+
     private RestResult(RestCode code, Object result) {
         this.code = code.code;
         this.message = code.msg;
