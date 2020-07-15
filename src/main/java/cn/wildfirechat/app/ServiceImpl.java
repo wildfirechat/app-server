@@ -70,11 +70,30 @@ public class ServiceImpl implements Service {
         rateLimiter = new RateLimiter(60, 200);
     }
 
-    @Override
-    public RestResult sendCode(String mobile) {
+    private String getIp() {
         ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = requestAttributes.getRequest();
-        String remoteIp = request.getRemoteAddr();
+        String ip = request.getHeader("X-Real-IP");
+        if (!StringUtils.isEmpty(ip) && !"unknown".equalsIgnoreCase(ip)) {
+            return ip;
+        }
+        ip = request.getHeader("X-Forwarded-For");
+        if (!StringUtils.isEmpty(ip) && !"unknown".equalsIgnoreCase(ip)) {
+            // 多次反向代理后会有多个IP值，第一个为真实IP。
+            int index = ip.indexOf(',');
+            if (index != -1) {
+                return ip.substring(0, index);
+            } else {
+                return ip;
+            }
+        } else {
+            return request.getRemoteAddr();
+        }
+    }
+
+    @Override
+    public RestResult sendCode(String mobile) {
+        String remoteIp = getIp();
         LOG.info("request send sms from {}", remoteIp);
 
         //判断当前IP发送是否超频。
