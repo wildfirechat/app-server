@@ -22,7 +22,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
-		<wfc.sdk.version>0.41</wfc.sdk.version>
+		<wfc.sdk.version>0.43</wfc.sdk.version>
 	</properties>
 
 	<dependencies>
