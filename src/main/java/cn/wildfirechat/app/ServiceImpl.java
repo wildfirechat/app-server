@@ -20,10 +20,12 @@ import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.subject.Subject;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -33,6 +35,7 @@ import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Optional;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
@@ -256,6 +259,33 @@ public class ServiceImpl implements Service {
         }
         return false;
     }
+
+    private void sendPcLoginRequestMessage(String fromUser, String toUser, int platform, String token) {
+        Conversation conversation = new Conversation();
+        conversation.setTarget(toUser);
+        conversation.setType(ProtoConstants.ConversationType.ConversationType_Private);
+        MessagePayload payload = new MessagePayload();
+        payload.setType(94);
+        payload.setPersistFlag(ProtoConstants.PersistFlag.Transparent);
+        JSONObject data = new JSONObject();
+        data.put("p", platform);
+        data.put("t", token);
+        payload.setBase64edData(Base64Utils.encodeToString(data.toString().getBytes()));
+
+        try {
+            IMResult<SendMessageResult> resultSendMessage = MessageAdmin.sendMessage(fromUser, conversation, payload);
+            if (resultSendMessage != null && resultSendMessage.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                LOG.info("send message success");
+            } else {
+                LOG.error("send message error {}", resultSendMessage != null ? resultSendMessage.getErrorCode().code : "unknown");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("send message error {}", e.getLocalizedMessage());
+        }
+
+    }
+
     private void sendTextMessage(String fromUser, String toUser, String text) {
         Conversation conversation = new Conversation();
         conversation.setTarget(toUser);
@@ -282,7 +312,10 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult createPcSession(CreateSessionRequest request) {
-        PCSession session = authDataSource.createSession(request.getClientId(), request.getToken(), request.getPlatform());
+        PCSession session = authDataSource.createSession(request.getUserId(), request.getClientId(), request.getToken(), request.getPlatform());
+        if(!StringUtils.isEmpty(request.getUserId())) {
+            sendPcLoginRequestMessage("admin", request.getUserId(), 0, session.getToken());
+        }
         SessionOutput output = session.toOutput();
         return RestResult.ok(output);
     }

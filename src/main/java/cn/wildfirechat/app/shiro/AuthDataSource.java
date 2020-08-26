@@ -1,8 +1,8 @@
 package cn.wildfirechat.app.shiro;
 
+import cn.wildfirechat.app.RestResult;
 import cn.wildfirechat.app.model.PCSession;
 import cn.wildfirechat.app.model.Record;
-import cn.wildfirechat.app.RestResult;
 import cn.wildfirechat.app.pojo.SessionOutput;
 import cn.wildfirechat.app.tools.Utils;
 import org.slf4j.Logger;
@@ -19,9 +19,11 @@ import static cn.wildfirechat.app.RestResult.RestCode.*;
 @Service
 public class AuthDataSource {
     private static final Logger LOG = LoggerFactory.getLogger(AuthDataSource.class);
+
     static class Count {
         long count;
         long startTime;
+
         void reset() {
             count = 1;
             startTime = System.currentTimeMillis();
@@ -96,12 +98,14 @@ public class AuthDataSource {
         return RestResult.RestCode.SUCCESS;
     }
 
-    public PCSession createSession(String clientId, String token, int platform) {
+    public PCSession createSession(String userId, String clientId, String token, int platform) {
         PCSession session = new PCSession();
+        session.setConfirmedUserId(userId);
+        session.setStatus(StringUtils.isEmpty(userId) ? 0 : 1);
         session.setClientId(clientId);
         session.setCreateDt(System.currentTimeMillis());
         session.setPlatform(platform);
-        session.setDuration(300*1000); //300 seconds
+        session.setDuration(300 * 1000); //300 seconds
 
         if (StringUtils.isEmpty(token)) {
             token = UUID.randomUUID().toString();

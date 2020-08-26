@@ -5,6 +5,7 @@ public class CreateSessionRequest {
     private String device_name;
     private String clientId;
     private int platform;
+    private String userId;
 
     public int getPlatform() {
         return platform;
@@ -36,5 +37,13 @@ public class CreateSessionRequest {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }
