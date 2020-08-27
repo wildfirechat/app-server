@@ -35,7 +35,7 @@ import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
-import java.util.Base64;
+import java.util.Objects;
 import java.util.Optional;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
@@ -200,8 +200,7 @@ public class ServiceImpl implements Service {
                 }
 
 
-
-            } else if(userResult.getCode() != 0){
+            } else if (userResult.getCode() != 0) {
                 LOG.error("Get user failure {}", userResult.code);
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             } else {
@@ -228,7 +227,8 @@ public class ServiceImpl implements Service {
                     sendTextMessage("admin", user.getUserId(), mIMConfig.welcome_for_new_user);
                 }
 
-                if (mIMConfig.new_user_robot_friend && !StringUtils.isEmpty(mIMConfig.robot_friend_id)) { ;
+                if (mIMConfig.new_user_robot_friend && !StringUtils.isEmpty(mIMConfig.robot_friend_id)) {
+                    ;
                     RelationAdmin.setUserFriend(user.getUserId(), mIMConfig.robot_friend_id, true, null);
                     if (!StringUtils.isEmpty(mIMConfig.robot_welcome)) {
                         sendTextMessage(mIMConfig.robot_friend_id, user.getUserId(), mIMConfig.robot_welcome);
@@ -266,7 +266,9 @@ public class ServiceImpl implements Service {
         conversation.setType(ProtoConstants.ConversationType.ConversationType_Private);
         MessagePayload payload = new MessagePayload();
         payload.setType(94);
-        payload.setPersistFlag(ProtoConstants.PersistFlag.Transparent);
+        payload.setPushContent("PC或Web端登录请求");
+        payload.setExpireDuration(3 * 60 * 1000);
+        payload.setPersistFlag(ProtoConstants.PersistFlag.Not_Persist);
         JSONObject data = new JSONObject();
         data.put("p", platform);
         data.put("t", token);
@@ -312,9 +314,15 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult createPcSession(CreateSessionRequest request) {
-        PCSession session = authDataSource.createSession(request.getUserId(), request.getClientId(), request.getToken(), request.getPlatform());
-        if(!StringUtils.isEmpty(request.getUserId())) {
-            sendPcLoginRequestMessage("admin", request.getUserId(), 0, session.getToken());
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        // 兼容旧版pc-chat，当request中，userId字段为空时，为旧版接口，未实现pc直接登录功能
+        if (!Objects.equals(request.getUserId(), userId)) {
+            userId = null;
+        }
+        PCSession session = authDataSource.createSession(userId, request.getClientId(), request.getToken(), request.getPlatform());
+        if (userId != null) {
+            sendPcLoginRequestMessage("admin", userId, request.getPlatform(), session.getToken());
         }
         SessionOutput output = session.toOutput();
         return RestResult.ok(output);
@@ -327,16 +335,16 @@ public class ServiceImpl implements Service {
         // comment start 如果确定登录不成功，就不通过Shiro尝试登录了
         TokenAuthenticationToken tt = new TokenAuthenticationToken(token);
         PCSession session = authDataSource.getSession(token, false);
-        if(session == null){
+        if (session == null) {
             return RestResult.error(ERROR_CODE_EXPIRED);
-        }else if(session.getStatus() == 0){
+        } else if (session.getStatus() == 0) {
             return RestResult.error(ERROR_SESSION_NOT_SCANED);
-        }else if (session.getStatus() == 1){
+        } else if (session.getStatus() == 1) {
             session.setStatus(3);
             LoginResponse response = new LoginResponse();
             try {
                 IMResult<InputOutputUserInfo> result = UserAdmin.getUserByUserId(session.getConfirmedUserId());
-                if(result.getCode() == 0){
+                if (result.getCode() == 0) {
                     response.setUserName(result.getResult().getDisplayName());
                     response.setPortrait(result.getResult().getPortrait());
                 }
@@ -344,7 +352,7 @@ public class ServiceImpl implements Service {
                 e.printStackTrace();
             }
             return RestResult.result(ERROR_SESSION_NOT_VERIFIED, response);
-        }else if(session.getStatus() == 3){
+        } else if (session.getStatus() == 3) {
             return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
         }
         // comment end
@@ -401,7 +409,7 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult scanPc(String token) {
         Subject subject = SecurityUtils.getSubject();
-        String userId = (String)subject.getSession().getAttribute("userId");
+        String userId = (String) subject.getSession().getAttribute("userId");
         return authDataSource.scanPc(userId, token);
     }
 
@@ -413,7 +421,7 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult changeName(String newName) {
         Subject subject = SecurityUtils.getSubject();
-        String userId = (String)subject.getSession().getAttribute("userId");
+        String userId = (String) subject.getSession().getAttribute("userId");
         try {
             IMResult<InputOutputUserInfo> existUser = UserAdmin.getUserByName(newName);
             if (existUser != null) {
@@ -423,7 +431,7 @@ public class ServiceImpl implements Service {
                     } else {
                         return RestResult.error(ERROR_USER_NAME_ALREADY_EXIST);
                     }
-                } else if(existUser.code == ErrorCode.ERROR_CODE_NOT_EXIST.code) {
+                } else if (existUser.code == ErrorCode.ERROR_CODE_NOT_EXIST.code) {
                     existUser = UserAdmin.getUserByUserId(userId);
                     if (existUser == null || existUser.code != ErrorCode.ERROR_CODE_SUCCESS.code || existUser.getResult() == null) {
                         return RestResult.error(ERROR_SERVER_ERROR);
@@ -450,8 +458,8 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult getGroupAnnouncement(String groupId) {
-        Optional<Announcement>  announcement = announcementRepository.findById(groupId);
-        if (announcement.isPresent()){
+        Optional<Announcement> announcement = announcementRepository.findById(groupId);
+        if (announcement.isPresent()) {
             GroupAnnouncementPojo pojo = new GroupAnnouncementPojo();
             pojo.groupId = announcement.get().getGroupId();
             pojo.author = announcement.get().getAuthor();
@@ -467,7 +475,7 @@ public class ServiceImpl implements Service {
     public RestResult putGroupAnnouncement(GroupAnnouncementPojo request) {
         if (!StringUtils.isEmpty(request.text)) {
             Subject subject = SecurityUtils.getSubject();
-            String userId = (String)subject.getSession().getAttribute("userId");
+            String userId = (String) subject.getSession().getAttribute("userId");
             boolean isGroupMember = false;
             try {
                 IMResult<OutputGroupMemberList> imResult = GroupAdmin.getGroupMembers(request.groupId);
@@ -542,7 +550,7 @@ public class ServiceImpl implements Service {
     public RestResult addDevice(InputCreateDevice createDevice) {
         try {
             Subject subject = SecurityUtils.getSubject();
-            String userId = (String)subject.getSession().getAttribute("userId");
+            String userId = (String) subject.getSession().getAttribute("userId");
 
             if (!StringUtils.isEmpty(createDevice.getDeviceId())) {
                 IMResult<OutputDevice> outputDeviceIMResult = UserAdmin.getDevice(createDevice.getDeviceId());
@@ -556,7 +564,7 @@ public class ServiceImpl implements Service {
             }
 
             IMResult<OutputCreateDevice> result = UserAdmin.createOrUpdateDevice(createDevice);
-            if (result!= null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+            if (result != null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
                 return RestResult.ok(result.getResult());
             }
         } catch (Exception e) {
@@ -568,7 +576,7 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult getDeviceList() {
         Subject subject = SecurityUtils.getSubject();
-        String userId = (String)subject.getSession().getAttribute("userId");
+        String userId = (String) subject.getSession().getAttribute("userId");
         try {
             IMResult<OutputDeviceList> imResult = UserAdmin.getUserDevices(userId);
             if (imResult != null && imResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
@@ -585,7 +593,7 @@ public class ServiceImpl implements Service {
     public RestResult delDevice(InputCreateDevice createDevice) {
         try {
             Subject subject = SecurityUtils.getSubject();
-            String userId = (String)subject.getSession().getAttribute("userId");
+            String userId = (String) subject.getSession().getAttribute("userId");
 
             if (!StringUtils.isEmpty(createDevice.getDeviceId())) {
                 IMResult<OutputDevice> outputDeviceIMResult = UserAdmin.getDevice(createDevice.getDeviceId());
@@ -595,7 +603,7 @@ public class ServiceImpl implements Service {
                         outputDeviceIMResult.getResult().getOwners().remove(userId);
                         createDevice.setOwners(outputDeviceIMResult.getResult().getOwners());
                         IMResult<OutputCreateDevice> result = UserAdmin.createOrUpdateDevice(createDevice);
-                        if (result!= null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                        if (result != null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
                             return RestResult.ok(result.getResult());
                         } else {
                             return RestResult.error(ERROR_SERVER_ERROR);
