@@ -266,7 +266,18 @@ public class ServiceImpl implements Service {
         conversation.setType(ProtoConstants.ConversationType.ConversationType_Private);
         MessagePayload payload = new MessagePayload();
         payload.setType(94);
-        payload.setPushContent("PC或Web端登录请求");
+        if (platform == ProtoConstants.Platform.Platform_WEB) {
+            payload.setPushContent("Web端登录请求");
+        } else if (platform == ProtoConstants.Platform.Platform_OSX) {
+            payload.setPushContent("Mac 端登录请求");
+        } else if(platform == ProtoConstants.Platform.Platform_LINUX) {
+            payload.setPushContent("Linux 端登录请求");
+        } else if(platform == ProtoConstants.Platform.Platform_Windows) {
+            payload.setPushContent("Windows 端登录请求");
+        } else {
+            payload.setPushContent("PC 端登录请求");
+        }
+
         payload.setExpireDuration(3 * 60 * 1000);
         payload.setPersistFlag(ProtoConstants.PersistFlag.Not_Persist);
         JSONObject data = new JSONObject();
