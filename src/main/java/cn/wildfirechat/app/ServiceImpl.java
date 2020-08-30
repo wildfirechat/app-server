@@ -37,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
 
@@ -66,6 +67,11 @@ public class ServiceImpl implements Service {
     private AuthDataSource authDataSource;
 
     private RateLimiter rateLimiter;
+
+    @Value("${wfc.compat_pc_quick_login}")
+    protected boolean compatPcQuickLogin;
+
+    private ConcurrentHashMap<String, Boolean> supportPCQuickLoginUsers = new ConcurrentHashMap<>();
 
     @PostConstruct
     private void init() {
@@ -331,6 +337,13 @@ public class ServiceImpl implements Service {
         if (!Objects.equals(request.getUserId(), userId)) {
             userId = null;
         }
+
+        if (compatPcQuickLogin) {
+            if (userId != null && supportPCQuickLoginUsers.get(userId) == null) {
+                userId = null;
+            }
+        }
+
         PCSession session = authDataSource.createSession(userId, request.getClientId(), request.getToken(), request.getPlatform());
         if (userId != null) {
             sendPcLoginRequestMessage("admin", userId, request.getPlatform(), session.getToken());
@@ -426,7 +439,17 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult confirmPc(ConfirmSessionRequest request) {
-        return authDataSource.confirmPc(request.getUser_id(), request.getToken());
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        if (compatPcQuickLogin) {
+            if (request.isQuickLogin()) {
+                supportPCQuickLoginUsers.put(userId, true);
+            } else {
+                supportPCQuickLoginUsers.remove(userId);
+            }
+        }
+
+        return authDataSource.confirmPc(userId, request.getToken());
     }
 
     @Override
