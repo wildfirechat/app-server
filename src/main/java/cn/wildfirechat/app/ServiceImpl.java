@@ -332,11 +332,11 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult createPcSession(CreateSessionRequest request) {
         Subject subject = SecurityUtils.getSubject();
-        String userId = (String) subject.getSession().getAttribute("userId");
+        String userId = request.getUserId();
         // 兼容旧版pc-chat，当request中，userId字段为空时，为旧版接口，未实现pc直接登录功能
-        if (!Objects.equals(request.getUserId(), userId)) {
-            userId = null;
-        }
+//        if (!Objects.equals(request.getUserId(), userId)) {
+//            userId = null;
+//        }
 
         if (compatPcQuickLogin) {
             if (userId != null && supportPCQuickLoginUsers.get(userId) == null) {
@@ -442,7 +442,7 @@ public class ServiceImpl implements Service {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
         if (compatPcQuickLogin) {
-            if (request.isQuickLogin()) {
+            if (request.getQuick_login() > 0) {
                 supportPCQuickLoginUsers.put(userId, true);
             } else {
                 supportPCQuickLoginUsers.remove(userId);

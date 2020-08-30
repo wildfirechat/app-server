@@ -4,8 +4,9 @@ public class ConfirmSessionRequest {
     private String im_token;
     private String token;
     private String user_id;
-    private boolean quick_login;
+    private int quick_login;
 
+    //{"token":"22295ee9-d4e3-4fc0-bda3-bcfe008dce08","user_id":"CeDRCRtt","quick_login":true}
     public String getIm_token() {
         return im_token;
     }
@@ -30,11 +31,11 @@ public class ConfirmSessionRequest {
         this.user_id = user_id;
     }
 
-    public boolean isQuickLogin() {
+    public int getQuick_login() {
         return quick_login;
     }
 
-    public void setQuickLogin(boolean quickLogin) {
-        this.quick_login = quickLogin;
+    public void setQuick_login(int quick_login) {
+        this.quick_login = quick_login;
     }
 }
