@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
+import static cn.wildfirechat.app.model.PCSession.PCSessionStatus.*;
 
 @org.springframework.stereotype.Service
 public class ServiceImpl implements Service {
@@ -361,10 +362,10 @@ public class ServiceImpl implements Service {
         PCSession session = authDataSource.getSession(token, false);
         if (session == null) {
             return RestResult.error(ERROR_CODE_EXPIRED);
-        } else if (session.getStatus() == 0) {
+        } else if (session.getStatus() == Session_Created) {
             return RestResult.error(ERROR_SESSION_NOT_SCANED);
-        } else if (session.getStatus() == 1) {
-            session.setStatus(3);
+        } else if (session.getStatus() == Session_Scanned) {
+            session.setStatus(Session_Pre_Verify);
             LoginResponse response = new LoginResponse();
             try {
                 IMResult<InputOutputUserInfo> result = UserAdmin.getUserByUserId(session.getConfirmedUserId());
@@ -376,8 +377,10 @@ public class ServiceImpl implements Service {
                 e.printStackTrace();
             }
             return RestResult.result(ERROR_SESSION_NOT_VERIFIED, response);
-        } else if (session.getStatus() == 3) {
+        } else if (session.getStatus() == Session_Pre_Verify) {
             return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
+        } else if(session.getStatus() == Session_Canceled) {
+            return RestResult.error(ERROR_SESSION_CANCELED);
         }
         // comment end
 
@@ -450,6 +453,11 @@ public class ServiceImpl implements Service {
         }
 
         return authDataSource.confirmPc(userId, request.getToken());
+    }
+
+    @Override
+    public RestResult cancelPc(CancelSessionRequest request) {
+        return authDataSource.cancelPc(request.getToken());
     }
 
     @Override

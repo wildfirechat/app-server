@@ -67,6 +67,7 @@ public class Controller {
                     } else if (restResult.getCode() == RestResult.RestCode.SUCCESS.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_SESSION_EXPIRED.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_SERVER_ERROR.code
+                        || restResult.getCode() == RestResult.RestCode.ERROR_SESSION_CANCELED.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_CODE_INCORRECT.code) {
                         deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));
                         break;
@@ -94,6 +95,10 @@ public class Controller {
     @PostMapping(value = "/confirm_pc", produces = "application/json;charset=UTF-8")
     public Object confirmPc(@RequestBody ConfirmSessionRequest request) {
         return mService.confirmPc(request);
+    }
+    @PostMapping(value = "/cancel_pc", produces = "application/json;charset=UTF-8")
+    public Object cancelPc(@RequestBody CancelSessionRequest request) {
+        return mService.cancelPc(request);
     }
 
     /*

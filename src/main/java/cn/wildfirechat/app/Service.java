@@ -1,6 +1,7 @@
 package cn.wildfirechat.app;
 
 
+import cn.wildfirechat.app.pojo.CancelSessionRequest;
 import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
 import cn.wildfirechat.app.pojo.CreateSessionRequest;
 import cn.wildfirechat.app.pojo.GroupAnnouncementPojo;
@@ -17,6 +18,7 @@ public interface Service {
 
     RestResult scanPc(String token);
     RestResult confirmPc(ConfirmSessionRequest request);
+    RestResult cancelPc(CancelSessionRequest request);
 
     RestResult changeName(String newName);
 

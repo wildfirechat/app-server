@@ -3,10 +3,19 @@ package cn.wildfirechat.app.model;
 import cn.wildfirechat.app.pojo.SessionOutput;
 
 public class PCSession {
+    public interface PCSessionStatus {
+        int Session_Created = 0;
+        int Session_Scanned = 1;
+        int Session_Pre_Verify = 3;
+        int Session_Verified = 2;
+        int Session_Canceled = 4;
+    }
+
     private String token;
     private String clientId;
     private long createDt;
     private long duration;
+    //PCSessionStatus
     private int status;
     private String confirmedUserId;
     private String device_name;

@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
+import static cn.wildfirechat.app.model.PCSession.PCSessionStatus.*;
 
 @Service
 public class AuthDataSource {
@@ -101,7 +102,7 @@ public class AuthDataSource {
     public PCSession createSession(String userId, String clientId, String token, int platform) {
         PCSession session = new PCSession();
         session.setConfirmedUserId(userId);
-        session.setStatus(StringUtils.isEmpty(userId) ? 0 : 1);
+        session.setStatus(StringUtils.isEmpty(userId) ? Session_Created : Session_Scanned);
         session.setClientId(clientId);
         session.setCreateDt(System.currentTimeMillis());
         session.setPlatform(platform);
@@ -130,9 +131,9 @@ public class AuthDataSource {
         if (session != null) {
             SessionOutput output = session.toOutput();
             if (output.getExpired() > 0) {
-                session.setStatus(1);
+                session.setStatus(Session_Scanned);
                 session.setConfirmedUserId(userId);
-                output.setStatus(1);
+                output.setStatus(Session_Scanned);
                 output.setUserId(userId);
                 return RestResult.ok(output);
             } else {
@@ -148,8 +149,8 @@ public class AuthDataSource {
         if (session != null) {
             SessionOutput output = session.toOutput();
             if (output.getExpired() > 0) {
-                session.setStatus(2);
-                output.setStatus(2);
+                session.setStatus(Session_Verified);
+                output.setStatus(Session_Verified);
                 session.setConfirmedUserId(userId);
                 return RestResult.ok(output);
             } else {
@@ -160,17 +161,27 @@ public class AuthDataSource {
         }
     }
 
-    public RestResult.RestCode checkPcSession(String token) {
-
+    public RestResult cancelPc(String token) {
         PCSession session = mPCSession.get(token);
         if (session != null) {
-            if (session.getStatus() == 2) {
+            session.setStatus(Session_Canceled);
+        }
+
+        return RestResult.ok(null);
+    }
+
+    public RestResult.RestCode checkPcSession(String token) {
+        PCSession session = mPCSession.get(token);
+        if (session != null) {
+            if (session.getStatus() == Session_Verified) {
                 //使用用户id获取token
                 return SUCCESS;
             } else {
-                if (session.getStatus() == 0)
+                if (session.getStatus() == Session_Created) {
                     return ERROR_SESSION_NOT_SCANED;
-                else {
+                } else if (session.getStatus() == Session_Canceled) {
+                    return ERROR_SESSION_CANCELED;
+                } else {
                     return ERROR_SESSION_NOT_VERIFIED;
                 }
             }

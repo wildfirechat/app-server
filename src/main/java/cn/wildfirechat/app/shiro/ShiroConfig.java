@@ -40,6 +40,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/", "anon");
 
         filterChainDefinitionMap.put("/confirm_pc", "login");
+        filterChainDefinitionMap.put("/cancel_pc", "login");
         filterChainDefinitionMap.put("/scan_pc/**", "login");
         filterChainDefinitionMap.put("/put_group_announcement", "login");
         filterChainDefinitionMap.put("/get_group_announcement", "login");
