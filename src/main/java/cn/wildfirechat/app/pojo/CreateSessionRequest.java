@@ -5,7 +5,8 @@ public class CreateSessionRequest {
     private String device_name;
     private String clientId;
     private int platform;
-    private String userId;
+    // 0，表示pc端为旧版本，不支持快速登录；1，表示pc端为新版本，支持快速登录
+    private int flag;
 
     public int getPlatform() {
         return platform;
@@ -39,11 +40,11 @@ public class CreateSessionRequest {
         this.clientId = clientId;
     }
 
-    public String getUserId() {
-        return userId;
+    public int getFlag() {
+        return flag;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setFlag(int flag) {
+        this.flag = flag;
     }
 }
