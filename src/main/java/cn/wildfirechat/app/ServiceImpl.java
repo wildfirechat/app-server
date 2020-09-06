@@ -332,9 +332,9 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult createPcSession(CreateSessionRequest request) {
-        String userId = null;
-        // 兼容旧版pc-chat，当request中，userId字段为空时，为旧版接口，未实现pc直接登录功能
-        if(request.getFlag() == 1){
+        String userId = request.getUserId();
+        // pc端切换登录用户时，还会带上之前的cookie，通过请求里面是否带有userId来判断是否是切换到新用户
+        if(request.getFlag() == 1 && !StringUtils.isEmpty(userId)){
             Subject subject = SecurityUtils.getSubject();
             userId = (String) subject.getSession().getAttribute("userId");
         }
