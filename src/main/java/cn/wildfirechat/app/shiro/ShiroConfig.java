@@ -67,7 +67,9 @@ public class ShiroConfig {
         sessionManager.setSessionDAO(dbSessionDao);
 
         Cookie cookie = new SimpleCookie(ShiroHttpSession.DEFAULT_SESSION_ID_NAME);
-        cookie.setSameSite(null);
+        cookie.setSameSite(Cookie.SameSiteOptions.NONE);
+        cookie.setSecure(true);
+        cookie.setMaxAge(Integer.MAX_VALUE);
         sessionManager.setSessionIdCookie(cookie);
         sessionManager.setSessionIdCookieEnabled(true);
         sessionManager.setSessionIdUrlRewritingEnabled(true);
