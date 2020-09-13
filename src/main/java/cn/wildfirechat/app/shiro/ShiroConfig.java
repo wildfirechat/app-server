@@ -10,6 +10,7 @@ import org.apache.shiro.web.servlet.Cookie;
 import org.apache.shiro.web.servlet.ShiroHttpSession;
 import org.apache.shiro.web.servlet.SimpleCookie;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,6 +23,9 @@ public class ShiroConfig {
 
     @Autowired
     DBSessionDao dbSessionDao;
+
+    @Value("${wfc.all_client_support_ssl}")
+    private boolean All_Client_Support_SSL;
 
     @Bean(name = "shiroFilter")
     public ShiroFilterFactoryBean shiroFilter(SecurityManager securityManager) {
@@ -67,8 +71,12 @@ public class ShiroConfig {
         sessionManager.setSessionDAO(dbSessionDao);
 
         Cookie cookie = new SimpleCookie(ShiroHttpSession.DEFAULT_SESSION_ID_NAME);
-        cookie.setSameSite(Cookie.SameSiteOptions.NONE);
-        cookie.setSecure(true);
+        if (All_Client_Support_SSL) {
+            cookie.setSameSite(Cookie.SameSiteOptions.NONE);
+            cookie.setSecure(true);
+        } else {
+            cookie.setSameSite(null);
+        }
         cookie.setMaxAge(Integer.MAX_VALUE);
         sessionManager.setSessionIdCookie(cookie);
         sessionManager.setSessionIdCookieEnabled(true);
