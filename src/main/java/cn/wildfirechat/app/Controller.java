@@ -164,4 +164,11 @@ public class Controller {
         return mService.delDevice(createDevice);
     }
 
+    /*
+    发送消息
+     */
+    @PostMapping(value = "/messages/send")
+    public Object sendMessage(@RequestBody SendMessageRequest sendMessageRequest) {
+        return mService.sendMessage(sendMessageRequest);
+    }
 }

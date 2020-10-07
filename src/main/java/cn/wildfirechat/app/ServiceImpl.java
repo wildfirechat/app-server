@@ -669,4 +669,38 @@ public class ServiceImpl implements Service {
         }
         return RestResult.error(ERROR_SERVER_ERROR);
     }
+
+    @Override
+    public RestResult sendMessage(SendMessageRequest request) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+
+        Conversation conversation = new Conversation();
+        conversation.setType(request.type);
+        conversation.setTarget(request.target);
+        conversation.setLine(request.line);
+
+        MessagePayload payload = new MessagePayload();
+        payload.setType(request.content_type);
+        payload.setSearchableContent(request.content_searchable);
+        payload.setPushContent(request.content_push);
+        payload.setPushData(request.content_push_data);
+        payload.setContent(request.content);
+        payload.setBase64edData(request.content_binary);
+        payload.setMediaType(request.content_media_type);
+        payload.setRemoteMediaUrl(request.content_remote_url);
+        payload.setMentionedType(request.content_mentioned_type);
+        payload.setMentionedTarget(request.content_mentioned_targets);
+        payload.setExtra(request.content_extra);
+
+        try {
+            IMResult<SendMessageResult> imResult = MessageAdmin.sendMessage(userId, conversation, payload);
+            if (imResult != null && imResult.getCode() == ErrorCode.ERROR_CODE_SUCCESS.code) {
+                return RestResult.ok(null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return RestResult.error(ERROR_SERVER_ERROR);
+    }
 }

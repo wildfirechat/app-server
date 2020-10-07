@@ -1,10 +1,7 @@
 package cn.wildfirechat.app;
 
 
-import cn.wildfirechat.app.pojo.CancelSessionRequest;
-import cn.wildfirechat.app.pojo.ConfirmSessionRequest;
-import cn.wildfirechat.app.pojo.CreateSessionRequest;
-import cn.wildfirechat.app.pojo.GroupAnnouncementPojo;
+import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,4 +27,6 @@ public interface Service {
     RestResult addDevice(InputCreateDevice createDevice);
     RestResult getDeviceList();
     RestResult delDevice(InputCreateDevice createDevice);
+
+    RestResult sendMessage(SendMessageRequest request);
 }
