@@ -5,7 +5,7 @@
 
 	<groupId>cn.wildfirechat</groupId>
 	<artifactId>app</artifactId>
-	<version>0.45.1</version>
+	<version>0.46</version>
 	<packaging>jar</packaging>
 
 	<name>app</name>
