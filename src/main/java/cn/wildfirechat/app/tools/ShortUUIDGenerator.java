@@ -15,6 +15,10 @@ public class ShortUUIDGenerator implements UserNameGenerator {
 
     @Override
     public String getUserName(String phone) {
+        return getShortUUID();
+    }
+
+    public String getShortUUID() {
         StringBuffer shortBuffer = new StringBuffer();
         String uuid = UUID.randomUUID().toString().replace("-", "");
         for (int i = 0; i < 8; i++) {
@@ -24,7 +28,6 @@ public class ShortUUIDGenerator implements UserNameGenerator {
         }
         return shortBuffer.toString();
     }
-
     public static void main(String[] args) {
         Set<String> idSet = new HashSet<>();
         ShortUUIDGenerator generator = new ShortUUIDGenerator();

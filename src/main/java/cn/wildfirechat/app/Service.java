@@ -29,4 +29,5 @@ public interface Service {
     RestResult delDevice(InputCreateDevice createDevice);
 
     RestResult sendMessage(SendMessageRequest request);
+    RestResult uploadMedia(int mediaType, MultipartFile file);
 }

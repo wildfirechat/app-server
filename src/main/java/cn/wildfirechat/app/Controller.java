@@ -171,4 +171,9 @@ public class Controller {
     public Object sendMessage(@RequestBody SendMessageRequest sendMessageRequest) {
         return mService.sendMessage(sendMessageRequest);
     }
+
+    @PostMapping(value = "/media/upload/{media_type}")
+    public Object uploadMedia(@RequestParam("file") MultipartFile file, @PathVariable("media_type") int mediaType) throws IOException {
+        return mService.uploadMedia(mediaType, file);
+    }
 }

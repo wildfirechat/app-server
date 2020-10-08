@@ -16,6 +16,22 @@ import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
 import cn.wildfirechat.sdk.*;
 import cn.wildfirechat.sdk.model.IMResult;
+import com.aliyun.oss.ClientException;
+import com.aliyun.oss.OSS;
+import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.OSSException;
+import com.aliyun.oss.model.PutObjectRequest;
+import com.google.gson.Gson;
+import com.qiniu.common.QiniuException;
+import com.qiniu.http.Response;
+import com.qiniu.storage.Configuration;
+import com.qiniu.storage.Region;
+import com.qiniu.storage.UploadManager;
+import com.qiniu.storage.model.DefaultPutRet;
+import com.qiniu.util.Auth;
+import io.minio.MinioClient;
+import io.minio.PutObjectOptions;
+import io.minio.errors.MinioException;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.subject.Subject;
@@ -35,7 +51,8 @@ import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,6 +88,57 @@ public class ServiceImpl implements Service {
 
     @Value("${wfc.compat_pc_quick_login}")
     protected boolean compatPcQuickLogin;
+
+    @Value("${media.server.media_type}")
+    private int ossType;
+
+    @Value("${media.server_url}")
+    private String ossUrl;
+
+    @Value("${media.access_key}")
+    private String ossAccessKey;
+
+    @Value("${media.secret_key}")
+    private String ossSecretKey;
+
+    @Value("${media.bucket_general_name}")
+    private String ossGeneralBucket;
+    @Value("${media.bucket_general_domain}")
+    private String ossGeneralBucketDomain;
+
+    @Value("${media.bucket_image_name}")
+    private String ossImageBucket;
+    @Value("${media.bucket_image_domain}")
+    private String ossImageBucketDomain;
+
+    @Value("${media.bucket_voice_name}")
+    private String ossVoiceBucket;
+    @Value("${media.bucket_voice_domain}")
+    private String ossVoiceBucketDomain;
+
+    @Value("${media.bucket_video_name}")
+    private String ossVideoBucket;
+    @Value("${media.bucket_video_domain}")
+    private String ossVideoBucketDomain;
+
+
+    @Value("${media.bucket_file_name}")
+    private String ossFileBucket;
+    @Value("${media.bucket_file_domain}")
+    private String ossFileBucketDomain;
+
+    @Value("${media.bucket_sticker_name}")
+    private String ossStickerBucket;
+    @Value("${media.bucket_sticker_domain}")
+    private String ossStickerBucketDomain;
+
+    @Value("${media.bucket_moments_name}")
+    private String ossMomentsBucket;
+    @Value("${media.bucket_moments_domain}")
+    private String ossMomentsBucketDomain;
+
+    @Value("${local.media.temp_storage}")
+    private String ossTempPath;
 
     private ConcurrentHashMap<String, Boolean> supportPCQuickLoginUsers = new ConcurrentHashMap<>();
 
@@ -702,5 +770,135 @@ public class ServiceImpl implements Service {
             e.printStackTrace();
         }
         return RestResult.error(ERROR_SERVER_ERROR);
+    }
+
+    @Override
+    public RestResult uploadMedia(int mediaType, MultipartFile file) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        String uuid = new ShortUUIDGenerator().getUserName(userId);
+        String fileName = userId + "-" + System.currentTimeMillis() + "-" + uuid + "-" + file.getOriginalFilename();
+        File localFile = new File(ossTempPath, fileName);
+
+        try {
+            file.transferTo(localFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return RestResult.error(ERROR_SERVER_ERROR);
+        }
+        /*
+        #Media_Type_GENERAL = 0,
+#Media_Type_IMAGE = 1,
+#Media_Type_VOICE = 2,
+#Media_Type_VIDEO = 3,
+#Media_Type_FILE = 4,
+#Media_Type_PORTRAIT = 5,
+#Media_Type_FAVORITE = 6,
+#Media_Type_STICKER = 7,
+#Media_Type_MOMENTS = 8
+         */
+        String bucket;
+        String bucketDomain;
+        switch (mediaType) {
+            case 0:
+            default:
+                bucket = ossGeneralBucket;
+                bucketDomain = ossGeneralBucketDomain;
+                break;
+            case 1:
+                bucket = ossImageBucket;
+                bucketDomain = ossImageBucketDomain;
+                break;
+            case 2:
+                bucket = ossVoiceBucket;
+                bucketDomain = ossVideoBucketDomain;
+                break;
+            case 3:
+                bucket = ossVideoBucket;
+                bucketDomain = ossVideoBucketDomain;
+                break;
+            case 4:
+                bucket = ossFileBucket;
+                bucketDomain = ossFileBucketDomain;
+                break;
+            case 7:
+                bucket = ossMomentsBucket;
+                bucketDomain = ossMomentsBucketDomain;
+                break;
+            case 8:
+                bucket = ossStickerBucket;
+                bucketDomain = ossStickerBucketDomain;
+                break;
+        }
+
+        String url = bucketDomain + "/" + fileName;
+        if (ossType == 1) {
+            //构造一个带指定 Region 对象的配置类
+            Configuration cfg = new Configuration(Region.region0());
+            //...其他参数参考类注释
+            UploadManager uploadManager = new UploadManager(cfg);
+            //...生成上传凭证，然后准备上传
+
+            //如果是Windows情况下，格式是 D:\\qiniu\\test.png
+            String localFilePath = localFile.getAbsolutePath();
+            //默认不指定key的情况下，以文件内容的hash值作为文件名
+            String key = fileName;
+            Auth auth = Auth.create(ossAccessKey, ossSecretKey);
+            String upToken = auth.uploadToken(bucket);
+            try {
+                Response response = uploadManager.put(localFilePath, key, upToken);
+                //解析上传成功的结果
+                DefaultPutRet putRet = new Gson().fromJson(response.bodyString(), DefaultPutRet.class);
+                System.out.println(putRet.key);
+                System.out.println(putRet.hash);
+            } catch (QiniuException ex) {
+                Response r = ex.response;
+                System.err.println(r.toString());
+                try {
+                    System.err.println(r.bodyString());
+                } catch (QiniuException ex2) {
+                    //ignore
+                }
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+        } else if (ossType == 2) {
+            // 创建OSSClient实例。
+            OSS ossClient = new OSSClientBuilder().build(ossUrl, ossAccessKey, ossSecretKey);
+
+            // 创建PutObjectRequest对象。
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, fileName, localFile);
+
+            // 上传文件。
+            try {
+                ossClient.putObject(putObjectRequest);
+            } catch (OSSException | ClientException e) {
+                e.printStackTrace();
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+            // 关闭OSSClient。
+            ossClient.shutdown();
+        } else if(ossType == 3) {
+            try {
+                // 使用MinIO服务的URL，端口，Access key和Secret key创建一个MinioClient对象
+//                MinioClient minioClient = new MinioClient("https://play.min.io", "Q3AM3UQ867SPQQA43P2F", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG");
+                MinioClient minioClient = new MinioClient(ossUrl, ossAccessKey, ossSecretKey);
+
+                // 使用putObject上传一个文件到存储桶中。
+//                minioClient.putObject("asiatrip",fileName, localFile.getAbsolutePath(), new PutObjectOptions(PutObjectOptions.MAX_OBJECT_SIZE, PutObjectOptions.MIN_MULTIPART_SIZE));
+                minioClient.putObject(bucket, fileName, localFile.getAbsolutePath(), new PutObjectOptions(file.getSize(), 0));
+            } catch(MinioException e) {
+                System.out.println("Error occurred: " + e);
+                return RestResult.error(ERROR_SERVER_ERROR);
+            } catch (NoSuchAlgorithmException | IOException | InvalidKeyException e) {
+                e.printStackTrace();
+                return RestResult.error(ERROR_SERVER_ERROR);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+        }
+        UploadFileResponse response = new UploadFileResponse();
+        response.url = url;
+        return RestResult.ok(response);
     }
 }
