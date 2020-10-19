@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-public class Controller {
+public class AppController {
     @Autowired
     private Service mService;
 
@@ -130,15 +130,6 @@ public class Controller {
     }
 
     /*
-    用户在线状态回调
-     */
-    @PostMapping(value = "/user/online_event")
-    public Object onUserOnlineEvent(@RequestBody UserOnlineStatus onlineStatus) {
-        System.out.println("User:" + onlineStatus.userId + " on device:" + onlineStatus.clientId + " online status:" + onlineStatus.status);
-        return "hello";
-    }
-
-    /*
     客户端上传协议栈日志
      */
     @PostMapping(value = "/logs/{userId}/upload")
@@ -172,6 +163,9 @@ public class Controller {
         return mService.sendMessage(sendMessageRequest);
     }
 
+    /*
+    iOS设备Share extension分享图片文件等使用
+     */
     @PostMapping(value = "/media/upload/{media_type}")
     public Object uploadMedia(@RequestParam("file") MultipartFile file, @PathVariable("media_type") int mediaType) throws IOException {
         return mService.uploadMedia(mediaType, file);
