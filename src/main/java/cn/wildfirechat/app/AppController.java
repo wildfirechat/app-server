@@ -4,6 +4,8 @@ import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import cn.wildfirechat.pojos.UserOnlineStatus;
 import org.h2.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 @RestController
 public class AppController {
+    private static final Logger LOG = LoggerFactory.getLogger(AppController.class);
     @Autowired
     private Service mService;
 
@@ -52,6 +55,7 @@ public class AppController {
     @CrossOrigin
     @PostMapping(value = "/session_login/{token}", produces = "application/json;charset=UTF-8")
     public Object loginWithSession(@PathVariable("token") String token) {
+        LOG.info("receive login with session key {}", token);
         RestResult timeoutResult = RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         ResponseEntity<RestResult> timeoutResponseEntity = new ResponseEntity<>(timeoutResult, HttpStatus.OK);
         int timeoutSecond = 60;
@@ -60,6 +64,7 @@ public class AppController {
             try {
                 int i = 0;
                 while (i < timeoutSecond) {
+                    LOG.info("Check session {} status. time is {}", token, i);
                     RestResult restResult = mService.loginWithSession(token);
                     if (restResult.getCode() == RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED.code && restResult.getResult() != null) {
                         deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));

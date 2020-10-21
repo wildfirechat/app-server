@@ -130,6 +130,7 @@ public class AuthDataSource {
         PCSession session = mPCSession.get(token);
         if (session != null) {
             SessionOutput output = session.toOutput();
+            LOG.info("user {} scan pc, session {} expired time left {}", userId, token, output.getExpired());
             if (output.getExpired() > 0) {
                 session.setStatus(Session_Scanned);
                 session.setConfirmedUserId(userId);
@@ -140,6 +141,7 @@ public class AuthDataSource {
                 return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
             }
         } else {
+            LOG.info("user {} scan pc, session {} not exist!", userId, token);
             return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         }
     }
@@ -148,6 +150,7 @@ public class AuthDataSource {
         PCSession session = mPCSession.get(token);
         if (session != null) {
             SessionOutput output = session.toOutput();
+            LOG.info("user {} confirm pc, session {} expired time left {}", userId, token, output.getExpired());
             if (output.getExpired() > 0) {
                 session.setStatus(Session_Verified);
                 output.setStatus(Session_Verified);
@@ -157,11 +160,13 @@ public class AuthDataSource {
                 return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
             }
         } else {
+            LOG.error("user {} scan pc, session {} not exist!", userId, token);
             return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         }
     }
 
     public RestResult cancelPc(String token) {
+        LOG.error("session {} canceled", token);
         PCSession session = mPCSession.get(token);
         if (session != null) {
             session.setStatus(Session_Canceled);

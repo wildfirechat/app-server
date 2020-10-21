@@ -418,16 +418,26 @@ public class ServiceImpl implements Service {
             sendPcLoginRequestMessage("admin", userId, request.getPlatform(), session.getToken());
         }
         SessionOutput output = session.toOutput();
+        LOG.info("client {} create pc session, key is {}", request.getClientId(), output.getToken());
         return RestResult.ok(output);
     }
 
     @Override
     public RestResult loginWithSession(String token) {
+        LOG.info("loginWithSession token is {}", token);
+
         Subject subject = SecurityUtils.getSubject();
         // 在认证提交前准备 token（令牌）
         // comment start 如果确定登录不成功，就不通过Shiro尝试登录了
         TokenAuthenticationToken tt = new TokenAuthenticationToken(token);
         PCSession session = authDataSource.getSession(token, false);
+
+        if (session == null) {
+            LOG.info("Session {} not exist", token);
+        } else {
+            LOG.info("Session {} status is {}, and clientId is {}", token, session.getStatus(), session.getClientId());
+        }
+
         if (session == null) {
             return RestResult.error(ERROR_CODE_EXPIRED);
         } else if (session.getStatus() == Session_Created) {
@@ -505,6 +515,8 @@ public class ServiceImpl implements Service {
     public RestResult scanPc(String token) {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
+
+        LOG.info("user {} scan pc, session is {}", userId, token);
         return authDataSource.scanPc(userId, token);
     }
 
@@ -520,6 +532,7 @@ public class ServiceImpl implements Service {
             }
         }
 
+        LOG.info("user {} confirm pc, session is {}", userId, request.getToken());
         return authDataSource.confirmPc(userId, request.getToken());
     }
 
