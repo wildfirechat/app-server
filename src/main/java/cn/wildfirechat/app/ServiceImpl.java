@@ -3,6 +3,8 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.jpa.Announcement;
 import cn.wildfirechat.app.jpa.AnnouncementRepository;
+import cn.wildfirechat.app.jpa.FavoriteItem;
+import cn.wildfirechat.app.jpa.FavoriteRepository;
 import cn.wildfirechat.app.model.PCSession;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.app.shiro.AuthDataSource;
@@ -53,6 +55,7 @@ import java.io.File;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,6 +74,9 @@ public class ServiceImpl implements Service {
 
     @Autowired
     private AnnouncementRepository announcementRepository;
+
+    @Autowired
+    private FavoriteRepository favoriteRepository;
 
     @Value("${sms.super_code}")
     private String superCode;
@@ -912,6 +918,31 @@ public class ServiceImpl implements Service {
         }
         UploadFileResponse response = new UploadFileResponse();
         response.url = url;
+        return RestResult.ok(response);
+    }
+
+    @Override
+    public RestResult putFavoriteItem(FavoriteItem request) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        request.userId = userId;
+        request.timestamp = System.currentTimeMillis();
+        favoriteRepository.save(request);
+        return RestResult.ok(null);
+    }
+
+    @Override
+    public RestResult removeFavoriteItems(long id) {
+        favoriteRepository.deleteById(id);
+        return RestResult.ok(null);
+    }
+
+    @Override
+    public RestResult getFavoriteItems(long id, int count) {
+        List<FavoriteItem> favs = favoriteRepository.loadFav(id, count);
+        LoadFavoriteResponse response = new LoadFavoriteResponse();
+        response.items = favs;
+        response.hasMore = favs.size() == count;
         return RestResult.ok(response);
     }
 }

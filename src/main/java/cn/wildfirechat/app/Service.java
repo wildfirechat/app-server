@@ -1,6 +1,7 @@
 package cn.wildfirechat.app;
 
 
+import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,4 +31,8 @@ public interface Service {
 
     RestResult sendMessage(SendMessageRequest request);
     RestResult uploadMedia(int mediaType, MultipartFile file);
+
+    RestResult putFavoriteItem(FavoriteItem request);
+    RestResult removeFavoriteItems(long id);
+    RestResult getFavoriteItems(long id, int count);
 }

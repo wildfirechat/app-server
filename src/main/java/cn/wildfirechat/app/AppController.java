@@ -1,5 +1,6 @@
 package cn.wildfirechat.app;
 
+import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import cn.wildfirechat.pojos.UserOnlineStatus;
@@ -175,5 +176,23 @@ public class AppController {
     @PostMapping(value = "/media/upload/{media_type}")
     public Object uploadMedia(@RequestParam("file") MultipartFile file, @PathVariable("media_type") int mediaType) throws IOException {
         return mService.uploadMedia(mediaType, file);
+    }
+
+    @CrossOrigin
+    @PostMapping(value = "/fav/add", produces = "application/json;charset=UTF-8")
+    public Object putFavoriteItem(@RequestBody FavoriteItem request) {
+        return mService.putFavoriteItem(request);
+    }
+
+    @CrossOrigin
+    @PostMapping(value = "/fav/del/{fav_id}", produces = "application/json;charset=UTF-8")
+    public Object removeFavoriteItem(@PathVariable("fav_id") int favId) {
+        return mService.removeFavoriteItems(favId);
+    }
+
+    @CrossOrigin
+    @PostMapping(value = "/fav/list", produces = "application/json;charset=UTF-8")
+    public Object getFavoriteItems(@RequestBody LoadFavoriteRequest request) {
+        return mService.getFavoriteItems(request.id, request.count);
     }
 }
