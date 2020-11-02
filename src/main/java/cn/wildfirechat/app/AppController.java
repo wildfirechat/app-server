@@ -66,7 +66,6 @@ public class AppController {
             try {
                 int i = 0;
                 while (i < timeoutSecond) {
-                    LOG.info("Check session {} status. time is {}", token, i);
                     RestResult restResult = mService.loginWithSession(token);
                     if (restResult.getCode() == RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED.code && restResult.getResult() != null) {
                         deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));
