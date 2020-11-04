@@ -922,72 +922,74 @@ public class ServiceImpl implements Service {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
 
-        try {
-            //收藏时需要把对象拷贝到收藏bucket。
-            URL mediaURL = new URL(request.url);
+        if(!StringUtils.isEmpty(request.url)){
+            try {
+                //收藏时需要把对象拷贝到收藏bucket。
+                URL mediaURL = new URL(request.url);
 
-            String bucket = null;
-            if (mediaURL.getHost().equals(new URL(ossGeneralBucketDomain).getHost())) {
-                bucket = ossGeneralBucket;
-            } else if (mediaURL.getHost().equals(new URL(ossImageBucketDomain).getHost())) {
-                bucket = ossImageBucket;
-            } else if (mediaURL.getHost().equals(new URL(ossVoiceBucketDomain).getHost())) {
-                bucket = ossVoiceBucket;
-            } else if (mediaURL.getHost().equals(new URL(ossVideoBucketDomain).getHost())) {
-                bucket = ossVideoBucket;
-            } else if (mediaURL.getHost().equals(new URL(ossFileBucketDomain).getHost())) {
-                bucket = ossFileBucket;
-            } else if (mediaURL.getHost().equals(new URL(ossMomentsBucketDomain).getHost())) {
-                bucket = ossMomentsBucket;
-            } else if (mediaURL.getHost().equals(new URL(ossStickerBucketDomain).getHost())) {
-                bucket = ossStickerBucket;
-            } else if (mediaURL.getHost().equals(new URL(ossFavoriteBucketDomain).getHost())) {
-                //It's already in fav bucket, no need to copy
-                //bucket = ossFavoriteBucket;
-            }
-
-            if (bucket != null) {
-                String path = mediaURL.getPath();
-                if (ossType == 1) {
-                    Configuration cfg = new Configuration(Region.region0());
-                    String fromKey = path.substring(1);
-                    Auth auth = Auth.create(ossAccessKey, ossSecretKey);
-
-                    String toBucket = ossFavoriteBucket;
-                    String toKey = fromKey;
-                    if (!toKey.startsWith(userId)) {
-                        toKey = userId + "-" + toKey;
-                    }
-
-                    BucketManager bucketManager = new BucketManager(auth, cfg);
-                    bucketManager.copy(bucket, fromKey, toBucket, toKey);
-                    request.url = ossFavoriteBucketDomain + "/" + fromKey;
-                } else if (ossType == 2) {
-                    OSS ossClient = new OSSClient(ossUrl, ossAccessKey, ossSecretKey);
-                    path = path.substring(1);
-                    String objectName = path;
-                    String toKey = path;
-                    if (!toKey.startsWith(userId)) {
-                        toKey = userId + "-" + toKey;
-                    }
-
-                    ossClient.copyObject(bucket, objectName, ossFavoriteBucket, toKey);
-                    request.url = ossFavoriteBucketDomain + "/" + toKey;
-                    ossClient.shutdown();
-                } else if (ossType == 3) {
-                    path = path.substring(bucket.length() + 2);
-                    String objectName = path;
-                    String toKey = path;
-                    if (!toKey.startsWith(userId)) {
-                        toKey = userId + "-" + toKey;
-                    }
-                    MinioClient minioClient = new MinioClient(ossUrl, ossAccessKey, ossSecretKey);
-                    minioClient.copyObject(ossFavoriteBucket, toKey, null, null, bucket, objectName, null, null);
-                    request.url = ossFavoriteBucketDomain + "/" + toKey;
+                String bucket = null;
+                if (mediaURL.getHost().equals(new URL(ossGeneralBucketDomain).getHost())) {
+                    bucket = ossGeneralBucket;
+                } else if (mediaURL.getHost().equals(new URL(ossImageBucketDomain).getHost())) {
+                    bucket = ossImageBucket;
+                } else if (mediaURL.getHost().equals(new URL(ossVoiceBucketDomain).getHost())) {
+                    bucket = ossVoiceBucket;
+                } else if (mediaURL.getHost().equals(new URL(ossVideoBucketDomain).getHost())) {
+                    bucket = ossVideoBucket;
+                } else if (mediaURL.getHost().equals(new URL(ossFileBucketDomain).getHost())) {
+                    bucket = ossFileBucket;
+                } else if (mediaURL.getHost().equals(new URL(ossMomentsBucketDomain).getHost())) {
+                    bucket = ossMomentsBucket;
+                } else if (mediaURL.getHost().equals(new URL(ossStickerBucketDomain).getHost())) {
+                    bucket = ossStickerBucket;
+                } else if (mediaURL.getHost().equals(new URL(ossFavoriteBucketDomain).getHost())) {
+                    //It's already in fav bucket, no need to copy
+                    //bucket = ossFavoriteBucket;
                 }
+
+                if (bucket != null) {
+                    String path = mediaURL.getPath();
+                    if (ossType == 1) {
+                        Configuration cfg = new Configuration(Region.region0());
+                        String fromKey = path.substring(1);
+                        Auth auth = Auth.create(ossAccessKey, ossSecretKey);
+
+                        String toBucket = ossFavoriteBucket;
+                        String toKey = fromKey;
+                        if (!toKey.startsWith(userId)) {
+                            toKey = userId + "-" + toKey;
+                        }
+
+                        BucketManager bucketManager = new BucketManager(auth, cfg);
+                        bucketManager.copy(bucket, fromKey, toBucket, toKey);
+                        request.url = ossFavoriteBucketDomain + "/" + fromKey;
+                    } else if (ossType == 2) {
+                        OSS ossClient = new OSSClient(ossUrl, ossAccessKey, ossSecretKey);
+                        path = path.substring(1);
+                        String objectName = path;
+                        String toKey = path;
+                        if (!toKey.startsWith(userId)) {
+                            toKey = userId + "-" + toKey;
+                        }
+
+                        ossClient.copyObject(bucket, objectName, ossFavoriteBucket, toKey);
+                        request.url = ossFavoriteBucketDomain + "/" + toKey;
+                        ossClient.shutdown();
+                    } else if (ossType == 3) {
+                        path = path.substring(bucket.length() + 2);
+                        String objectName = path;
+                        String toKey = path;
+                        if (!toKey.startsWith(userId)) {
+                            toKey = userId + "-" + toKey;
+                        }
+                        MinioClient minioClient = new MinioClient(ossUrl, ossAccessKey, ossSecretKey);
+                        minioClient.copyObject(ossFavoriteBucket, toKey, null, null, bucket, objectName, null, null);
+                        request.url = ossFavoriteBucketDomain + "/" + toKey;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         request.userId = userId;
