@@ -19,7 +19,6 @@ import cn.wildfirechat.proto.ProtoConstants;
 import cn.wildfirechat.sdk.*;
 import cn.wildfirechat.sdk.model.IMResult;
 import com.aliyun.oss.*;
-import com.aliyun.oss.model.CopyObjectResult;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.google.gson.Gson;
 import com.qiniu.common.QiniuException;
@@ -356,9 +355,9 @@ public class ServiceImpl implements Service {
             payload.setPushContent("Web端登录请求");
         } else if (platform == ProtoConstants.Platform.Platform_OSX) {
             payload.setPushContent("Mac 端登录请求");
-        } else if(platform == ProtoConstants.Platform.Platform_LINUX) {
+        } else if (platform == ProtoConstants.Platform.Platform_LINUX) {
             payload.setPushContent("Linux 端登录请求");
-        } else if(platform == ProtoConstants.Platform.Platform_Windows) {
+        } else if (platform == ProtoConstants.Platform.Platform_Windows) {
             payload.setPushContent("Windows 端登录请求");
         } else {
             payload.setPushContent("PC 端登录请求");
@@ -413,7 +412,7 @@ public class ServiceImpl implements Service {
     public RestResult createPcSession(CreateSessionRequest request) {
         String userId = request.getUserId();
         // pc端切换登录用户时，还会带上之前的cookie，通过请求里面是否带有userId来判断是否是切换到新用户
-        if(request.getFlag() == 1 && !StringUtils.isEmpty(userId)){
+        if (request.getFlag() == 1 && !StringUtils.isEmpty(userId)) {
             Subject subject = SecurityUtils.getSubject();
             userId = (String) subject.getSession().getAttribute("userId");
         }
@@ -460,7 +459,7 @@ public class ServiceImpl implements Service {
             return RestResult.result(ERROR_SESSION_NOT_VERIFIED, response);
         } else if (session.getStatus() == Session_Pre_Verify) {
             return RestResult.error(ERROR_SESSION_NOT_VERIFIED);
-        } else if(session.getStatus() == Session_Canceled) {
+        } else if (session.getStatus() == Session_Canceled) {
             return RestResult.error(ERROR_SESSION_CANCELED);
         }
         // comment end
@@ -893,7 +892,7 @@ public class ServiceImpl implements Service {
             }
             // 关闭OSSClient。
             ossClient.shutdown();
-        } else if(ossType == 3) {
+        } else if (ossType == 3) {
             try {
                 // 使用MinIO服务的URL，端口，Access key和Secret key创建一个MinioClient对象
 //                MinioClient minioClient = new MinioClient("https://play.min.io", "Q3AM3UQ867SPQQA43P2F", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG");
@@ -902,7 +901,7 @@ public class ServiceImpl implements Service {
                 // 使用putObject上传一个文件到存储桶中。
 //                minioClient.putObject("asiatrip",fileName, localFile.getAbsolutePath(), new PutObjectOptions(PutObjectOptions.MAX_OBJECT_SIZE, PutObjectOptions.MIN_MULTIPART_SIZE));
                 minioClient.putObject(bucket, fileName, localFile.getAbsolutePath(), new PutObjectOptions(file.getSize(), 0));
-            } catch(MinioException e) {
+            } catch (MinioException e) {
                 System.out.println("Error occurred: " + e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             } catch (NoSuchAlgorithmException | IOException | InvalidKeyException e) {
@@ -1005,7 +1004,10 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult getFavoriteItems(long id, int count) {
-        List<FavoriteItem> favs = favoriteRepository.loadFav(id, count);
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+
+        List<FavoriteItem> favs = favoriteRepository.loadFav(userId, id, count);
         LoadFavoriteResponse response = new LoadFavoriteResponse();
         response.items = favs;
         response.hasMore = favs.size() == count;

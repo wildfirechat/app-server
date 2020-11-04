@@ -3,17 +3,20 @@ package cn.wildfirechat.app.jpa;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "t_favorites", indexes = {@Index(columnList = "userId, type")})
+@Table(name = "t_favorites", indexes = {@Index(columnList = "user_id, type")})
 public class FavoriteItem {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Column(name = "id")
 	public Long id;
 
+    @Column(name = "user_id")
 	public String userId;
 
+    @Column(name = "type")
 	public int type;
 
+    @Column(name = "timestamp")
 	public long timestamp;
 
 	@Column(name = "conv_type")
@@ -25,8 +28,10 @@ public class FavoriteItem {
 	@Column(name = "conv_target")
 	public String convTarget;
 
+	@Column(name = "origin")
 	public String origin;
 
+    @Column(name = "sender")
 	public String sender;
 
 	@Column(name="title",columnDefinition="LONGTEXT")
