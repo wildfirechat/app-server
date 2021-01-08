@@ -363,7 +363,7 @@ public class ServiceImpl implements Service {
             payload.setPushContent("PC 端登录请求");
         }
 
-        payload.setExpireDuration(3 * 60 * 1000);
+        payload.setExpireDuration(60 * 1000);
         payload.setPersistFlag(ProtoConstants.PersistFlag.Not_Persist);
         JSONObject data = new JSONObject();
         data.put("p", platform);
