@@ -1009,6 +1009,7 @@ public class ServiceImpl implements Service {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
 
+        id = id > 0 ? id : Long.MAX_VALUE;
         List<FavoriteItem> favs = favoriteRepository.loadFav(userId, id, count);
         LoadFavoriteResponse response = new LoadFavoriteResponse();
         response.items = favs;
