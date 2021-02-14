@@ -1,6 +1,7 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.pojos.*;
+import com.google.gson.Gson;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -101,4 +102,21 @@ public class IMCallbackController {
         return "ok";
     }
 
+    /*
+    消息审查示例。
+
+    如果允许发送，返回状态码为200，内容为空；如果替换内容发送，返回状态码200，内容为替换过的payload内容。如果不允许发送，返回状态码403。
+    */
+    @PostMapping(value = "/message/censor")
+    public Object censorMessage(@RequestBody OutputMessageData event) {
+        System.out.println("message:" +event.getMessageId());
+        if(event.getPayload().getSearchableContent() != null && event.getPayload().getSearchableContent().contains("testkongbufenzi")) {
+            throw new ForbiddenException();
+        }
+        if(event.getPayload().getSearchableContent() != null && event.getPayload().getSearchableContent().contains("testzhaopian")) {
+            event.getPayload().setSearchableContent(event.getPayload().getSearchableContent().replace("zhaopian", "照片"));
+            return new Gson().toJson(event.getPayload());
+        }
+        return "";
+    }
 }

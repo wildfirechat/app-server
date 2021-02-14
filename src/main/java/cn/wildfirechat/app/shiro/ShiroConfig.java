@@ -46,6 +46,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/logs/**", "anon");
         filterChainDefinitionMap.put("/im_event/**", "anon");
         filterChainDefinitionMap.put("/im_exception_event/**", "anon");
+        filterChainDefinitionMap.put("/message/censor", "anon");
         filterChainDefinitionMap.put("/", "anon");
 
         filterChainDefinitionMap.put("/confirm_pc", "login");
