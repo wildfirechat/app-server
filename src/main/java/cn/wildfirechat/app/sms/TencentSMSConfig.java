@@ -11,6 +11,7 @@ public class TencentSMSConfig {
     int appid;
     String appkey;
     int templateId;
+    String sign;
     String superCode;
 
     public int getAppid() {
@@ -35,6 +36,14 @@ public class TencentSMSConfig {
 
     public void setTemplateId(int templateId) {
         this.templateId = templateId;
+    }
+
+    public String getSign() {
+        return sign;
+    }
+
+    public void setSign(String sign) {
+        this.sign = sign;
     }
 
     public String getSuperCode() {

@@ -56,7 +56,7 @@ public class SmsServiceImpl implements SmsService {
             String[] params = {code};
             SmsSingleSender ssender = new SmsSingleSender(mTencentSMSConfig.appid, mTencentSMSConfig.appkey);
             SmsSingleSenderResult result = ssender.sendWithParam("86", mobile,
-                    mTencentSMSConfig.templateId, params, null, "", "");
+                    mTencentSMSConfig.templateId, params, mTencentSMSConfig.sign, "", "");
             if (result.result == 0) {
                 return RestResult.RestCode.SUCCESS;
             } else {
