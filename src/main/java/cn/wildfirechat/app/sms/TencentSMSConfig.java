@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix="sms")
-@PropertySource(value = "file:config/tencent_sms.properties")
+@PropertySource(value = "file:config/tencent_sms.properties", encoding = "UTF-8")
 public class TencentSMSConfig {
     int appid;
     String appkey;
