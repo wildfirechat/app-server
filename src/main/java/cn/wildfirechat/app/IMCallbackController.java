@@ -119,4 +119,40 @@ public class IMCallbackController {
         }
         return "";
     }
+
+    @PostMapping(value = "/im_event/conference/create")
+    public Object onConferenceCreated(@RequestBody ConferenceCreateEvent event) {
+        System.out.println("conference created:" + event);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/conference/destroy")
+    public Object onConferenceDestroyed(@RequestBody ConferenceDestroyEvent event) {
+        System.out.println("conference destroyed:" + event);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/conference/member_join")
+    public Object onConferenceMemberJoined(@RequestBody ConferenceJoinEvent event) {
+        System.out.println("conference member joined:" + event);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/conference/member_leave")
+    public Object onConferenceMemberLeaved(@RequestBody ConferenceLeaveEvent event) {
+        System.out.println("conference member leaved:" + event);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/conference/member_publish")
+    public Object onConferenceMemberPublished(@RequestBody ConferenceLeaveEvent event) {
+        System.out.println("conference member published:" + event);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/conference/member_unpublish")
+    public Object onConferenceMemberUnpublished(@RequestBody ConferenceUnpublishEvent event) {
+        System.out.println("conference member unpublished:" + event);
+        return "ok";
+    }
 }
