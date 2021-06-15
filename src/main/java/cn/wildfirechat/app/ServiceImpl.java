@@ -18,6 +18,7 @@ import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
 import cn.wildfirechat.sdk.*;
 import cn.wildfirechat.sdk.model.IMResult;
+import cn.wildfirechat.sdk.utilities.AdminHttpUtils;
 import com.aliyun.oss.*;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.google.gson.Gson;
@@ -41,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -154,7 +156,7 @@ public class ServiceImpl implements Service {
 
     @PostConstruct
     private void init() {
-        ChatConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
+        AdminHttpUtils.init(mIMConfig.admin_url, mIMConfig.admin_secret);
         rateLimiter = new RateLimiter(60, 200);
     }
 
