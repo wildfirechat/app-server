@@ -1,5 +1,6 @@
 package cn.wildfirechat.app.jpa;
 
+import javax.annotation.Nullable;
 import javax.persistence.*;
 
 @Entity
@@ -9,6 +10,10 @@ public class FavoriteItem {
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Column(name = "id")
 	public Long id;
+
+    @Column(name = "messageUid")
+    @Nullable
+    public Long messageUid;
 
     @Column(name = "user_id")
 	public String userId;
