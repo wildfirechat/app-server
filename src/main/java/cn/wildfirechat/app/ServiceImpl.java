@@ -156,7 +156,7 @@ public class ServiceImpl implements Service {
 
     @PostConstruct
     private void init() {
-        AdminHttpUtils.init(mIMConfig.admin_url, mIMConfig.admin_secret);
+        AdminConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
         rateLimiter = new RateLimiter(60, 200);
     }
 
