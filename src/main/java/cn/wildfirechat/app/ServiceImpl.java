@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -51,6 +52,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -217,7 +219,7 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult login(String mobile, String code, String clientId, int platform) {
+    public RestResult login(HttpServletResponse httpResponse, String mobile, String code, String clientId, int platform) {
         Subject subject = SecurityUtils.getSubject();
         // 在认证提交前准备 token（令牌）
         UsernamePasswordToken token = new UsernamePasswordToken(mobile, code);
@@ -327,6 +329,8 @@ public class ServiceImpl implements Service {
                 }
             }
 
+            Object sessionId = subject.getSession().getId();
+            httpResponse.setHeader("authToken", sessionId.toString());
             return RestResult.ok(response);
         } catch (Exception e) {
             e.printStackTrace();

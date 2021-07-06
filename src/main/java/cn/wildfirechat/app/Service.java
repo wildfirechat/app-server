@@ -6,9 +6,11 @@ import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
+
 public interface Service {
     RestResult sendCode(String mobile);
-    RestResult login(String mobile, String code, String clientId, int platform);
+    RestResult login(HttpServletResponse response, String mobile, String code, String clientId, int platform);
 
 
     RestResult createPcSession(CreateSessionRequest request);
