@@ -4,6 +4,8 @@ import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import cn.wildfirechat.pojos.UserOnlineStatus;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
 import org.h2.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +79,13 @@ public class AppController {
                         || restResult.getCode() == RestResult.RestCode.ERROR_SERVER_ERROR.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_SESSION_CANCELED.code
                         || restResult.getCode() == RestResult.RestCode.ERROR_CODE_INCORRECT.code) {
-                        deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));
+                        ResponseEntity.BodyBuilder builder =ResponseEntity.ok();
+                        if(restResult.getCode() == RestResult.RestCode.SUCCESS.code){
+                            Subject subject = SecurityUtils.getSubject();
+                            Object sessionId = subject.getSession().getId();
+                            builder.header("authToken", sessionId.toString());
+                        }
+                        deferredResult.setResult(builder.body(restResult));
                         break;
                     } else {
                         TimeUnit.SECONDS.sleep(1);
@@ -85,6 +93,7 @@ public class AppController {
                     i ++;
                 }
             } catch (Exception ex) {
+                ex.printStackTrace();
                 deferredResult.setResult(new ResponseEntity(RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR), HttpStatus.OK));
             }
         }, Executors.newCachedThreadPool());
