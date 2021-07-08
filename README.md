@@ -57,6 +57,8 @@ java -jar app-XXXXX.jar
 
 + 0.45.1 配置文件中添加了```wfc.all_client_support_ssl```开关，当升级到这个版本或之后时，需要配置文件中添加这个开关。
 
++ 0.51版本添加了token认证。可以同时支持token和cookies认证，客户端也做了对应修改，优先使用token。注意做好兼容。
+
 #### 注意事项
 服务中对同一个IP的请求会有限频，默认是一个ip一小时可以请求200次，可以根据您的实际情况调整（搜索rateLimiter字符串就能找到）。如果使用了nginx做反向代理需要注意把用户真实ip传递过去（使用X-Real-IP或X-Forwarded-For)，避免获取不到真实ip从而影响正常使用。
 
