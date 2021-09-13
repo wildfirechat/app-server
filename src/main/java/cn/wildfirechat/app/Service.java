@@ -21,6 +21,7 @@ public interface Service {
     RestResult cancelPc(CancelSessionRequest request);
 
     RestResult changeName(String newName);
+    RestResult complain(String text);
 
     RestResult putGroupAnnouncement(GroupAnnouncementPojo request);
     RestResult getGroupAnnouncement(String groupId);

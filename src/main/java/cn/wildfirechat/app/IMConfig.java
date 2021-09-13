@@ -8,8 +8,8 @@ import org.springframework.context.annotation.PropertySource;
 @ConfigurationProperties(prefix="im")
 @PropertySource(value = "file:config/im.properties", encoding = "UTF-8")
 public class IMConfig {
-    String admin_url;
-    String admin_secret;
+    public String admin_url;
+    public String admin_secret;
 
     public boolean isUse_random_name() {
         return use_random_name;

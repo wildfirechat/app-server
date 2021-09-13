@@ -588,6 +588,15 @@ public class ServiceImpl implements Service {
     }
 
     @Override
+    public RestResult complain(String text) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        LOG.error("Complain from user {} where content {}", userId, text);
+        sendTextMessage(userId, "cgc8c8VV", text);
+        return RestResult.ok(null);
+    }
+
+    @Override
     public RestResult getGroupAnnouncement(String groupId) {
         Optional<Announcement> announcement = announcementRepository.findById(groupId);
         if (announcement.isPresent()) {

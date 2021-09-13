@@ -155,6 +155,15 @@ public class AppController {
     }
 
     /*
+    投诉和建议
+    */
+    @CrossOrigin
+    @PostMapping(value = "/complain", produces = "application/json;charset=UTF-8")
+    public Object complain(@RequestBody ComplainRequest request) {
+        return mService.complain(request.text);
+    }
+
+    /*
     物联网相关接口
      */
     @PostMapping(value = "/things/add_device")
