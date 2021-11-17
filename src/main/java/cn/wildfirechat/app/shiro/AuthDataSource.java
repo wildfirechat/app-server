@@ -1,57 +1,38 @@
 package cn.wildfirechat.app.shiro;
 
 import cn.wildfirechat.app.RestResult;
-import cn.wildfirechat.app.model.PCSession;
-import cn.wildfirechat.app.model.Record;
+import cn.wildfirechat.app.jpa.PCSession;
+import cn.wildfirechat.app.jpa.PCSessionRepository;
+import cn.wildfirechat.app.jpa.Record;
+import cn.wildfirechat.app.jpa.RecordRepository;
 import cn.wildfirechat.app.pojo.SessionOutput;
 import cn.wildfirechat.app.tools.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
-import static cn.wildfirechat.app.model.PCSession.PCSessionStatus.*;
+import static cn.wildfirechat.app.jpa.PCSession.PCSessionStatus.*;
 
 @Service
 public class AuthDataSource {
     private static final Logger LOG = LoggerFactory.getLogger(AuthDataSource.class);
-
-    static class Count {
-        long count;
-        long startTime;
-
-        void reset() {
-            count = 1;
-            startTime = System.currentTimeMillis();
-        }
-
-        boolean increaseAndCheck() {
-            long now = System.currentTimeMillis();
-            if (now - startTime > 86400000) {
-                reset();
-                return true;
-            }
-            count++;
-            if (count > 10) {
-                return false;
-            }
-            return true;
-        }
-    }
-
-    private static ConcurrentHashMap<String, Record> mRecords = new ConcurrentHashMap<>();
-    private static ConcurrentHashMap<String, PCSession> mPCSession = new ConcurrentHashMap<>();
-
-    private static ConcurrentHashMap<String, Count> mCounts = new ConcurrentHashMap<>();
-
     @Value("${sms.super_code}")
     private String superCode;
 
+    @Autowired
+    private PCSessionRepository pcSessionRepository;
+
+    @Autowired
+    private RecordRepository recordRepository;
 
     public RestResult.RestCode insertRecord(String mobile, String code) {
         if (!Utils.isMobile(mobile)) {
@@ -59,40 +40,44 @@ public class AuthDataSource {
             return RestResult.RestCode.ERROR_INVALID_MOBILE;
         }
 
-        Record record = mRecords.get(mobile);
-        if (record != null && System.currentTimeMillis() - record.getTimestamp() < 60 * 1000) {
+        Record record = recordRepository.findById(mobile).orElseGet(() -> new Record(code, mobile));
+
+        if (System.currentTimeMillis() - record.getTimestamp() < 60 * 1000) {
             LOG.error("Send code over frequency. timestamp {}, now {}", record.getTimestamp(), System.currentTimeMillis());
             return RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY;
         }
-        Count count = mCounts.get(mobile);
-        if (count == null) {
-            count = new Count();
-            mCounts.put(mobile, count);
-        }
 
-        if (!count.increaseAndCheck()) {
-            LOG.error("Count check failure, already send {} messages today", count.count);
+        if (!record.increaseAndCheck()) {
+            LOG.error("Count check failure, already send {} messages today", record.getRequestCount());
             RestResult.RestCode c = RestResult.RestCode.ERROR_SEND_SMS_OVER_FREQUENCY;
             c.msg = "发送给用户 " + mobile + " 超出频率限制";
             return c;
         }
-        mRecords.put(mobile, new Record(code, mobile));
+
+        record.setCode(code);
+        record.setTimestamp(System.currentTimeMillis());
+        recordRepository.save(record);
         return RestResult.RestCode.SUCCESS;
     }
 
     public void clearRecode(String mobile) {
-        mRecords.remove(mobile);
+        recordRepository.deleteById(mobile);
     }
 
     public RestResult.RestCode verifyCode(String mobile, String code) {
         if (StringUtils.isEmpty(superCode) || !code.equals(superCode)) {
-            Record record = mRecords.get(mobile);
-            if (record == null || !record.getCode().equals(code)) {
-                LOG.error("not empty or not correct");
+            Optional<Record> recordOptional = recordRepository.findById(mobile);
+            if (!recordOptional.isPresent()) {
+                LOG.error("code not exist");
                 return RestResult.RestCode.ERROR_CODE_INCORRECT;
             }
-            if (System.currentTimeMillis() - record.getTimestamp() > 5 * 60 * 1000) {
-                LOG.error("Code expired. timestamp {}, now {}", record.getTimestamp(), System.currentTimeMillis());
+            if(!recordOptional.get().getCode().equals(code)) {
+                LOG.error("code not matched");
+                return RestResult.RestCode.ERROR_CODE_INCORRECT;
+            }
+
+            if (System.currentTimeMillis() - recordOptional.get().getTimestamp() > 5 * 60 * 1000) {
+                LOG.error("Code expired. timestamp {}, now {}", recordOptional.get().getTimestamp(), System.currentTimeMillis());
                 return RestResult.RestCode.ERROR_CODE_EXPIRED;
             }
         }
@@ -114,28 +99,33 @@ public class AuthDataSource {
 
         session.setToken(token);
 
-        mPCSession.put(token, session);
+        pcSessionRepository.save(session);
         return session;
     }
 
     public PCSession getSession(String token, boolean clear) {
-        PCSession session = mPCSession.get(token);
+        Optional<PCSession> session = pcSessionRepository.findById(token);
         if (clear) {
-            mPCSession.remove(token);
+            pcSessionRepository.deleteById(token);
         }
-        return session;
+        return session.orElse(null);
+    }
+
+    public void saveSession(PCSession session) {
+        pcSessionRepository.save(session);
     }
 
     public RestResult scanPc(String userId, String token) {
-        PCSession session = mPCSession.get(token);
-        if (session != null) {
-            SessionOutput output = session.toOutput();
+        Optional<PCSession> session = pcSessionRepository.findById(token);
+        if (session.isPresent()) {
+            SessionOutput output = session.get().toOutput();
             LOG.info("user {} scan pc, session {} expired time left {}", userId, token, output.getExpired());
             if (output.getExpired() > 0) {
-                session.setStatus(Session_Scanned);
-                session.setConfirmedUserId(userId);
+                session.get().setStatus(Session_Scanned);
+                session.get().setConfirmedUserId(userId);
                 output.setStatus(Session_Scanned);
                 output.setUserId(userId);
+                pcSessionRepository.save(session.get());
                 return RestResult.ok(output);
             } else {
                 return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
@@ -147,14 +137,15 @@ public class AuthDataSource {
     }
 
     public RestResult confirmPc(String userId, String token) {
-        PCSession session = mPCSession.get(token);
-        if (session != null) {
-            SessionOutput output = session.toOutput();
+        Optional<PCSession> session = pcSessionRepository.findById(token);
+        if (session.isPresent()) {
+            SessionOutput output = session.get().toOutput();
             LOG.info("user {} confirm pc, session {} expired time left {}", userId, token, output.getExpired());
             if (output.getExpired() > 0) {
-                session.setStatus(Session_Verified);
+                session.get().setStatus(Session_Verified);
                 output.setStatus(Session_Verified);
-                session.setConfirmedUserId(userId);
+                session.get().setConfirmedUserId(userId);
+                pcSessionRepository.save(session.get());
                 return RestResult.ok(output);
             } else {
                 return RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
@@ -167,24 +158,25 @@ public class AuthDataSource {
 
     public RestResult cancelPc(String token) {
         LOG.error("session {} canceled", token);
-        PCSession session = mPCSession.get(token);
-        if (session != null) {
-            session.setStatus(Session_Canceled);
+        Optional<PCSession> session = pcSessionRepository.findById(token);
+        if (session.isPresent()) {
+            session.get().setStatus(Session_Canceled);
+            pcSessionRepository.save(session.get());
         }
 
         return RestResult.ok(null);
     }
 
     public RestResult.RestCode checkPcSession(String token) {
-        PCSession session = mPCSession.get(token);
-        if (session != null) {
-            if (session.getStatus() == Session_Verified) {
+        Optional<PCSession> session = pcSessionRepository.findById(token);
+        if (session.isPresent()) {
+            if (session.get().getStatus() == Session_Verified) {
                 //使用用户id获取token
                 return SUCCESS;
             } else {
-                if (session.getStatus() == Session_Created) {
+                if (session.get().getStatus() == Session_Created) {
                     return ERROR_SESSION_NOT_SCANED;
-                } else if (session.getStatus() == Session_Canceled) {
+                } else if (session.get().getStatus() == Session_Canceled) {
                     return ERROR_SESSION_CANCELED;
                 } else {
                     return ERROR_SESSION_NOT_VERIFIED;
@@ -196,13 +188,13 @@ public class AuthDataSource {
     }
 
     public String getUserId(String token, boolean clear) {
-        PCSession session = mPCSession.get(token);
+        Optional<PCSession> session = pcSessionRepository.findById(token);
         if (clear) {
-            mPCSession.remove(token);
+            pcSessionRepository.deleteById(token);
         }
 
-        if (session != null) {
-            return session.getConfirmedUserId();
+        if (session.isPresent()) {
+            return session.get().getConfirmedUserId();
         }
 
         return null;

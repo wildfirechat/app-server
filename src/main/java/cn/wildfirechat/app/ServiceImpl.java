@@ -5,7 +5,7 @@ import cn.wildfirechat.app.jpa.Announcement;
 import cn.wildfirechat.app.jpa.AnnouncementRepository;
 import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.jpa.FavoriteRepository;
-import cn.wildfirechat.app.model.PCSession;
+import cn.wildfirechat.app.jpa.PCSession;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.app.shiro.AuthDataSource;
 import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
@@ -18,7 +18,6 @@ import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
 import cn.wildfirechat.sdk.*;
 import cn.wildfirechat.sdk.model.IMResult;
-import cn.wildfirechat.sdk.utilities.AdminHttpUtils;
 import com.aliyun.oss.*;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.google.gson.Gson;
@@ -42,8 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
-import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -63,7 +60,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
-import static cn.wildfirechat.app.model.PCSession.PCSessionStatus.*;
+import static cn.wildfirechat.app.jpa.PCSession.PCSessionStatus.*;
 
 @org.springframework.stereotype.Service
 public class ServiceImpl implements Service {
@@ -452,6 +449,7 @@ public class ServiceImpl implements Service {
             return RestResult.error(ERROR_SESSION_NOT_SCANED);
         } else if (session.getStatus() == Session_Scanned) {
             session.setStatus(Session_Pre_Verify);
+            authDataSource.saveSession(session);
             LoginResponse response = new LoginResponse();
             try {
                 IMResult<InputOutputUserInfo> result = UserAdmin.getUserByUserId(session.getConfirmedUserId());

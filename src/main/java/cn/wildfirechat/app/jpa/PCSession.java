@@ -1,7 +1,14 @@
-package cn.wildfirechat.app.model;
+package cn.wildfirechat.app.jpa;
 
 import cn.wildfirechat.app.pojo.SessionOutput;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "pc_session")
 public class PCSession {
     public interface PCSessionStatus {
         int Session_Created = 0;
@@ -11,6 +18,8 @@ public class PCSession {
         int Session_Canceled = 4;
     }
 
+    @Id
+    @Column(length = 128)
     private String token;
     private String clientId;
     private long createDt;
