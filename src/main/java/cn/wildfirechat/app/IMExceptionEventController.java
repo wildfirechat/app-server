@@ -53,7 +53,7 @@ public class IMExceptionEventController {
             while (true) {
                 try {
                     IMExceptionEvent event = events.take();
-                    sendTextMail(subjectPrefix + "  " + event.count + "次  " + event.msg, event.call_stack);
+                    sendTextMail(subjectPrefix + "  " + event.count + "次  " + event.msg, "call stack:" + event.call_stack);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
