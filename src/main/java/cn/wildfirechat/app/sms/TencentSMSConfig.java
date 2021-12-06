@@ -8,33 +8,41 @@ import org.springframework.context.annotation.PropertySource;
 @ConfigurationProperties(prefix="sms")
 @PropertySource(value = "file:config/tencent_sms.properties", encoding = "UTF-8")
 public class TencentSMSConfig {
-    int appid;
-    String appkey;
-    int templateId;
-    String sign;
-    String superCode;
+    public String secretId;
+    public String secretKey;
+    public String appId;
+    public String templateId;
+    public String sign;
 
-    public int getAppid() {
-        return appid;
+    public String getSecretId() {
+        return secretId;
     }
 
-    public void setAppid(int appid) {
-        this.appid = appid;
+    public void setSecretId(String secretId) {
+        this.secretId = secretId;
     }
 
-    public String getAppkey() {
-        return appkey;
+    public String getSecretKey() {
+        return secretKey;
     }
 
-    public void setAppkey(String appkey) {
-        this.appkey = appkey;
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
     }
 
-    public int getTemplateId() {
+    public String getAppId() {
+        return appId;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
+
+    public String getTemplateId() {
         return templateId;
     }
 
-    public void setTemplateId(int templateId) {
+    public void setTemplateId(String templateId) {
         this.templateId = templateId;
     }
 
@@ -44,13 +52,5 @@ public class TencentSMSConfig {
 
     public void setSign(String sign) {
         this.sign = sign;
-    }
-
-    public String getSuperCode() {
-        return superCode;
-    }
-
-    public void setSuperCode(String superCode) {
-        this.superCode = superCode;
     }
 }

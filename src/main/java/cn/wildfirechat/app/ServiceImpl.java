@@ -35,8 +35,7 @@ import io.minio.errors.MinioException;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.subject.Subject;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -207,7 +206,7 @@ public class ServiceImpl implements Service {
                 authDataSource.clearRecode(mobile);
                 return RestResult.error(restCode);
             }
-        } catch (JSONException e) {
+        } catch (Exception e) {
             // json解析错误
             e.printStackTrace();
             authDataSource.clearRecode(mobile);

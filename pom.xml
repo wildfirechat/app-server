@@ -120,9 +120,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.github.qcloudsms</groupId>
-			<artifactId>qcloudsms</artifactId>
-			<version>1.0.6</version>
+			<groupId>com.tencentcloudapi</groupId>
+			<artifactId>tencentcloud-sdk-java</artifactId>
+			<version>3.1.410</version>
 		</dependency>
 
 		<dependency>
@@ -188,6 +188,11 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.googlecode.json-simple</groupId>
+			<artifactId>json-simple</artifactId>
+			<version>1.1.1</version>
+		</dependency>
 	</dependencies>
 
 	<build>
