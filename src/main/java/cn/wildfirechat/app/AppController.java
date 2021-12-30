@@ -214,4 +214,10 @@ public class AppController {
     public Object getFavoriteItems(@RequestBody LoadFavoriteRequest request) {
         return mService.getFavoriteItems(request.id, request.count);
     }
+
+    @CrossOrigin
+    @PostMapping(value = "/group/members_for_portrait", produces = "application/json;charset=UTF-8")
+    public Object getGroupMembersForPortrait(@RequestBody GroupIdPojo groupIdPojo) {
+        return mService.getGroupMembersForPortrait(groupIdPojo.groupId);
+    }
 }

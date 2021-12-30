@@ -38,4 +38,5 @@ public interface Service {
     RestResult putFavoriteItem(FavoriteItem request);
     RestResult removeFavoriteItems(long id);
     RestResult getFavoriteItems(long id, int count);
+    RestResult getGroupMembersForPortrait(String groupId);
 }

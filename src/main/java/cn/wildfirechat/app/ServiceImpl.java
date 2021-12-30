@@ -54,6 +54,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1027,5 +1029,50 @@ public class ServiceImpl implements Service {
         response.items = favs;
         response.hasMore = favs.size() == count;
         return RestResult.ok(response);
+    }
+
+    @Override
+    public RestResult getGroupMembersForPortrait(String groupId) {
+        try {
+            IMResult<OutputGroupMemberList> groupMemberListIMResult = GroupAdmin.getGroupMembers(groupId);
+            if(groupMemberListIMResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
+                LOG.error("getGroupMembersForPortrait failure {},{}", groupMemberListIMResult.getErrorCode().getCode(), groupMemberListIMResult.getErrorCode().getMsg());
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+            List<PojoGroupMember> groupMembers = new ArrayList<>();
+            for (PojoGroupMember member:groupMemberListIMResult.getResult().getMembers()) {
+                if(member.getType() != 4)
+                    groupMembers.add(member);
+            }
+
+            if (groupMembers.size() > 9) {
+                groupMembers.sort((o1, o2) -> {
+                    if(o1.getType() == 2)
+                        return -1;
+                    if(o2.getType() == 2)
+                        return 1;
+                    if(o1.getType() == 1 && o2.getType() != 1)
+                        return -1;
+                    if(o2.getType() == 1 && o1.getType() != 1)
+                        return 1;
+                    return Long.compare(o1.getCreateDt(), o2.getCreateDt());
+                });
+                groupMembers = groupMembers.subList(0, 9);
+            }
+            List<UserIdPortraitPojo> mids = new ArrayList<>();
+            for (PojoGroupMember member:groupMembers) {
+                IMResult<InputOutputUserInfo> userInfoIMResult = UserAdmin.getUserByUserId(member.getMember_id());
+                if(userInfoIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                    mids.add(new UserIdPortraitPojo(member.getMember_id(), userInfoIMResult.result.getPortrait()));
+                } else {
+                    mids.add(new UserIdPortraitPojo(member.getMember_id(), ""));
+                }
+            }
+            return RestResult.ok(mids);
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("getGroupMembersForPortrait exception", e);
+            return RestResult.error(ERROR_SERVER_ERROR);
+        }
     }
 }
