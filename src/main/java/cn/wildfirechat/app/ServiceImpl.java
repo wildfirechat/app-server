@@ -21,6 +21,12 @@ import cn.wildfirechat.sdk.model.IMResult;
 import com.aliyun.oss.*;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.google.gson.Gson;
+import com.qcloud.cos.COSClient;
+import com.qcloud.cos.ClientConfig;
+import com.qcloud.cos.auth.BasicCOSCredentials;
+import com.qcloud.cos.auth.COSCredentials;
+import com.qcloud.cos.exception.CosClientException;
+import com.qcloud.cos.http.HttpProtocol;
 import com.qiniu.common.QiniuException;
 import com.qiniu.http.Response;
 import com.qiniu.storage.BucketManager;
@@ -51,6 +57,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -925,7 +932,40 @@ public class ServiceImpl implements Service {
                 e.printStackTrace();
                 return RestResult.error(ERROR_SERVER_ERROR);
             }
+        } else if(ossType == 4) {
+            //Todo 需要把文件上传到文件服务器。
+        } else if(ossType == 5) {
+            COSCredentials cred = new BasicCOSCredentials(ossAccessKey, ossSecretKey);
+            ClientConfig clientConfig = new ClientConfig();
+            String [] ss = ossUrl.split("\\.");
+            if(ss.length > 3) {
+                if(!ss[1].equals("accelerate")) {
+                    clientConfig.setRegion(new com.qcloud.cos.region.Region(ss[1]));
+                } else {
+                    clientConfig.setRegion(new com.qcloud.cos.region.Region("ap-shanghai"));
+                    try {
+                        URL u = new URL(ossUrl);
+                        clientConfig.setEndPointSuffix(u.getHost());
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                        return RestResult.error(ERROR_SERVER_ERROR);
+                    }
+                }
+            }
+
+            clientConfig.setHttpProtocol(HttpProtocol.https);
+            COSClient cosClient = new COSClient(cred, clientConfig);
+
+            try {
+                cosClient.putObject(bucket, fileName, localFile.getAbsoluteFile());
+            } catch (CosClientException e) {
+                e.printStackTrace();
+                return RestResult.error(ERROR_SERVER_ERROR);
+            } finally {
+                cosClient.shutdown();
+            }
         }
+
         UploadFileResponse response = new UploadFileResponse();
         response.url = url;
         return RestResult.ok(response);
@@ -999,6 +1039,46 @@ public class ServiceImpl implements Service {
                         MinioClient minioClient = new MinioClient(ossUrl, ossAccessKey, ossSecretKey);
                         minioClient.copyObject(ossFavoriteBucket, toKey, null, null, bucket, objectName, null, null);
                         request.url = ossFavoriteBucketDomain + "/" + toKey;
+                    } else if(ossType == 4) {
+                        //Todo 需要把收藏的文件保存为永久存储。
+                    } else if(ossType == 5) {
+                        COSCredentials cred = new BasicCOSCredentials(ossAccessKey, ossSecretKey);
+                        ClientConfig clientConfig = new ClientConfig();
+                        String [] ss = ossUrl.split("\\.");
+                        if(ss.length > 3) {
+                            if(!ss[1].equals("accelerate")) {
+                                clientConfig.setRegion(new com.qcloud.cos.region.Region(ss[1]));
+                            } else {
+                                clientConfig.setRegion(new com.qcloud.cos.region.Region("ap-shanghai"));
+                                try {
+                                    URL u = new URL(ossUrl);
+                                    clientConfig.setEndPointSuffix(u.getHost());
+                                } catch (MalformedURLException e) {
+                                    e.printStackTrace();
+                                    return RestResult.error(ERROR_SERVER_ERROR);
+                                }
+                            }
+                        }
+
+                        clientConfig.setHttpProtocol(HttpProtocol.https);
+                        COSClient cosClient = new COSClient(cred, clientConfig);
+
+                        path = path.substring(1);
+                        String objectName = path;
+                        String toKey = path;
+                        if (!toKey.startsWith(userId)) {
+                            toKey = userId + "-" + toKey;
+                        }
+
+                        try {
+                            cosClient.copyObject(bucket, objectName, ossFavoriteBucket, toKey);
+                            request.url = ossFavoriteBucketDomain + "/" + toKey;
+                        } catch (CosClientException e) {
+                            e.printStackTrace();
+                            return RestResult.error(ERROR_SERVER_ERROR);
+                        } finally {
+                            cosClient.shutdown();
+                        }
                     }
                 }
             } catch (Exception e) {
