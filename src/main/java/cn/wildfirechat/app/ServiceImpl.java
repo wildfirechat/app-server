@@ -245,6 +245,7 @@ public class ServiceImpl implements Service {
         if (subject.isAuthenticated()) {
             long timeout = subject.getSession().getTimeout();
             LOG.info("Login success " + timeout);
+            authDataSource.clearRecode(mobile);
         } else {
             token.clear();
             return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
@@ -342,6 +343,49 @@ public class ServiceImpl implements Service {
             LOG.error("Exception happens {}", e);
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
+    }
+
+    @Override
+    public RestResult sendDestroyCode() {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        try {
+            IMResult<InputOutputUserInfo> getUserResult = UserAdmin.getUserByUserId(userId);
+            if(getUserResult != null && getUserResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                String mobile = getUserResult.getResult().getMobile();
+                if(!StringUtils.isEmpty(mobile)) {
+                    return sendCode(mobile);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        }
+        return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
+    }
+
+    @Override
+    public RestResult destroy(HttpServletResponse response, String code) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        try {
+            IMResult<InputOutputUserInfo> getUserResult = UserAdmin.getUserByUserId(userId);
+            if(getUserResult != null && getUserResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                String mobile = getUserResult.getResult().getMobile();
+                if(!StringUtils.isEmpty(mobile)) {
+                    if(authDataSource.verifyCode(mobile, code) == SUCCESS) {
+                        UserAdmin.destroyUser(userId);
+                        authDataSource.clearRecode(mobile);
+                        subject.logout();
+                        return RestResult.ok(null);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        }
+        return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
     }
 
     private boolean isUsernameAvailable(String username) {

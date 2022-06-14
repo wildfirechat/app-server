@@ -12,6 +12,8 @@ public interface Service {
     RestResult sendCode(String mobile);
     RestResult login(HttpServletResponse response, String mobile, String code, String clientId, int platform);
 
+    RestResult sendDestroyCode();
+    RestResult destroy(HttpServletResponse response, String code);
 
     RestResult createPcSession(CreateSessionRequest request);
     RestResult loginWithSession(String token);

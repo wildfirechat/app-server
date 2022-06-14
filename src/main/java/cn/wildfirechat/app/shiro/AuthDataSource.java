@@ -61,7 +61,10 @@ public class AuthDataSource {
     }
 
     public void clearRecode(String mobile) {
-        recordRepository.deleteById(mobile);
+        try {
+            recordRepository.deleteById(mobile);
+        } catch (Exception e) {
+        }
     }
 
     public RestResult.RestCode verifyCode(String mobile, String code) {

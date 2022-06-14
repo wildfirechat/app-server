@@ -47,6 +47,15 @@ public class AppController {
         return mService.login(response, request.getMobile(), request.getCode(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform());
     }
 
+    @PostMapping(value = "/send_destroy_code", produces = "application/json;charset=UTF-8")
+    public Object sendDestroyCode() {
+        return mService.sendDestroyCode();
+    }
+
+    @PostMapping(value = "/destroy", produces = "application/json;charset=UTF-8")
+    public Object destroy(@RequestBody DestroyRequest code, HttpServletResponse response) {
+        return mService.destroy(response, code.getCode());
+    }
 
     /* PC扫码操作
     1, PC -> App     创建会话
