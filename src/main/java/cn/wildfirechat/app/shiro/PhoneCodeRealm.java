@@ -10,11 +10,18 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+
 @Service
 public class PhoneCodeRealm extends AuthorizingRealm {
 
     @Autowired
     AuthDataSource authDataSource;
+
+    @PostConstruct
+    void initRealm() {
+        setAuthenticationTokenClass(PhoneCodeToken.class);
+    }
 
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
@@ -28,11 +35,13 @@ public class PhoneCodeRealm extends AuthorizingRealm {
 
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authenticationToken) throws AuthenticationException {
-        String mobile = (String) authenticationToken.getPrincipal();
-        String code = new String((char[]) authenticationToken.getCredentials());
-        RestResult.RestCode restCode = authDataSource.verifyCode(mobile, code);
-        if (restCode == RestResult.RestCode.SUCCESS) {
-            return new SimpleAuthenticationInfo(mobile, code.getBytes(), getName());
+        if (authenticationToken instanceof PhoneCodeToken) {
+            String mobile = (String) authenticationToken.getPrincipal();
+            String code = (String)authenticationToken.getCredentials();
+            RestResult.RestCode restCode = authDataSource.verifyCode(mobile, code);
+            if (restCode == RestResult.RestCode.SUCCESS) {
+                return new SimpleAuthenticationInfo(mobile, code.getBytes(), getName());
+            }
         }
 
         throw new AuthenticationException("没发送验证码或者验证码过期");

@@ -19,7 +19,8 @@ public class RestResult {
         ERROR_INVALID_PARAMETER(15, "无效参数"),
         ERROR_NOT_EXIST(16, "对象不存在"),
         ERROR_USER_NAME_ALREADY_EXIST(17, "用户名已经存在"),
-        ERROR_SESSION_CANCELED(18, "会话已经取消");
+        ERROR_SESSION_CANCELED(18, "会话已经取消"),
+        ERROR_PASSWORD_INCORRECT(19, "密码错误");
         public int code;
         public String msg;
 

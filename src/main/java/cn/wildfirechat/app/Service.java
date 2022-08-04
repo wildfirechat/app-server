@@ -9,9 +9,12 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 
 public interface Service {
-    RestResult sendCode(String mobile);
-    RestResult login(HttpServletResponse response, String mobile, String code, String clientId, int platform);
-
+    RestResult sendLoginCode(String mobile);
+    RestResult sendResetCode(String mobile);
+    RestResult loginWithMobileCode(HttpServletResponse response, String mobile, String code, String clientId, int platform);
+    RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform);
+    RestResult changePassword(HttpServletResponse response, String oldPwd, String newPwd);
+    RestResult resetPassword(HttpServletResponse response, String mobile, String resetCode, String newPwd);
     RestResult sendDestroyCode();
     RestResult destroy(HttpServletResponse response, String code);
 

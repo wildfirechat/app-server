@@ -6,6 +6,7 @@ public class LoginResponse {
     private boolean register;
     private String userName;
     private String portrait;
+    private String resetCode;
 
     public String getUserId() {
         return userId;
@@ -45,5 +46,13 @@ public class LoginResponse {
 
     public void setPortrait(String portrait) {
         this.portrait = portrait;
+    }
+
+    public String getResetCode() {
+        return resetCode;
+    }
+
+    public void setResetCode(String resetCode) {
+        this.resetCode = resetCode;
     }
 }

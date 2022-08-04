@@ -1,13 +1,10 @@
 package cn.wildfirechat.app;
 
 
-import cn.wildfirechat.app.jpa.Announcement;
-import cn.wildfirechat.app.jpa.AnnouncementRepository;
-import cn.wildfirechat.app.jpa.FavoriteItem;
-import cn.wildfirechat.app.jpa.FavoriteRepository;
-import cn.wildfirechat.app.jpa.PCSession;
+import cn.wildfirechat.app.jpa.*;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.app.shiro.AuthDataSource;
+import cn.wildfirechat.app.shiro.PhoneCodeToken;
 import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
 import cn.wildfirechat.app.sms.SmsService;
 import cn.wildfirechat.app.tools.RateLimiter;
@@ -40,6 +37,7 @@ import io.minio.PutObjectOptions;
 import io.minio.errors.MinioException;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
+import org.apache.shiro.crypto.hash.Sha1Hash;
 import org.apache.shiro.subject.Subject;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
@@ -59,13 +57,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
 import static cn.wildfirechat.app.jpa.PCSession.PCSessionStatus.*;
@@ -85,6 +83,9 @@ public class ServiceImpl implements Service {
 
     @Autowired
     private FavoriteRepository favoriteRepository;
+
+    @Autowired
+    private UserPasswordRepository userPasswordRepository;
 
     @Value("${sms.super_code}")
     private String superCode;
@@ -189,7 +190,7 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult sendCode(String mobile) {
+    public RestResult sendLoginCode(String mobile) {
         String remoteIp = getIp();
         LOG.info("request send sms from {}", remoteIp);
 
@@ -224,10 +225,42 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult login(HttpServletResponse httpResponse, String mobile, String code, String clientId, int platform) {
+    public RestResult sendResetCode(String mobile) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        String remoteIp = getIp();
+        LOG.info("request send sms from {}", remoteIp);
+
+        //判断当前IP发送是否超频。
+        //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
+        if (!rateLimiter.isGranted(remoteIp)) {
+            return RestResult.result(ERROR_SEND_SMS_OVER_FREQUENCY.code, "IP " + remoteIp + " 请求短信超频", null);
+        }
+
+        try {
+            String code = Utils.getRandomCode(4);
+            RestResult.RestCode restCode = RestResult.RestCode.SUCCESS;//smsService.sendCode(mobile, code);
+            if (restCode == RestResult.RestCode.SUCCESS) {
+                Optional<UserPassword> optional = userPasswordRepository.findById(userId);
+                UserPassword up = optional.orElseGet(() -> new UserPassword(userId, null, null, code));
+                up.setResetCode(code);
+                userPasswordRepository.save(up);
+                return RestResult.ok(restCode);
+            } else {
+                return RestResult.error(restCode);
+            }
+        } catch (Exception e) {
+            // json解析错误
+            e.printStackTrace();
+        }
+        return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+    }
+
+    @Override
+    public RestResult loginWithMobileCode(HttpServletResponse httpResponse, String mobile, String code, String clientId, int platform) {
         Subject subject = SecurityUtils.getSubject();
         // 在认证提交前准备 token（令牌）
-        UsernamePasswordToken token = new UsernamePasswordToken(mobile, code);
+        PhoneCodeToken token = new PhoneCodeToken(mobile, code);
         // 执行认证登陆
         try {
             subject.login(token);
@@ -247,11 +280,147 @@ public class ServiceImpl implements Service {
             LOG.info("Login success " + timeout);
             authDataSource.clearRecode(mobile);
         } else {
-            token.clear();
             return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
         }
 
+        return onLoginSuccess(httpResponse, mobile, clientId, platform, true);
+    }
 
+    @Override
+    public RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform) {
+        try {
+            IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
+            if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
+                return RestResult.error(ERROR_NOT_EXIST);
+            }
+            if (userResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
+                return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+            }
+
+            Subject subject = SecurityUtils.getSubject();
+            // 在认证提交前准备 token（令牌）
+            UsernamePasswordToken token = new UsernamePasswordToken(userResult.getResult().getUserId(), password);
+            // 执行认证登陆
+            try {
+                subject.login(token);
+            } catch (UnknownAccountException uae) {
+                return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+            } catch (IncorrectCredentialsException ice) {
+                return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+            } catch (LockedAccountException lae) {
+                return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+            } catch (ExcessiveAttemptsException eae) {
+                return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+            } catch (AuthenticationException ae) {
+                return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+            }
+            if (subject.isAuthenticated()) {
+                long timeout = subject.getSession().getTimeout();
+                LOG.info("Login success " + timeout);
+                authDataSource.clearRecode(mobile);
+            } else {
+                return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        }
+
+        return onLoginSuccess(response, mobile, clientId, platform, false);
+    }
+
+    @Override
+    public RestResult changePassword(HttpServletResponse response, String oldPwd, String newPwd) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        Optional<UserPassword> optional = userPasswordRepository.findById(userId);
+        if (optional.isPresent()) {
+            try {
+                if(verifyPassword(optional.get(), oldPwd)) {
+                    changePassword(optional.get(), newPwd);
+                    return RestResult.ok(null);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            return RestResult.error(ERROR_NOT_EXIST);
+        }
+        return RestResult.error(ERROR_SERVER_ERROR);
+    }
+
+    @Override
+    public RestResult resetPassword(HttpServletResponse response, String mobile, String resetCode, String newPwd) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+
+        if (!StringUtils.isEmpty(mobile)) {
+            try {
+                IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
+                if (userResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
+                    return RestResult.error(ERROR_SERVER_ERROR);
+                }
+                if (StringUtils.isEmpty(userId)) {
+                    userId = userResult.getResult().getUserId();
+                } else {
+                    if(!userId.equals(userResult.getResult().getUserId())) {
+                        //错误。。。。
+                        LOG.error("reset password error, user is correct {}, {}", userId, userResult.getResult().getUserId());
+                        return RestResult.error(ERROR_SERVER_ERROR);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+        }
+
+        Optional<UserPassword> optional = userPasswordRepository.findById(userId);
+        if (optional.isPresent()) {
+            UserPassword up = optional.get();
+            if(resetCode.equals(up.getResetCode())) {
+                try {
+                    changePassword(up, newPwd);
+                    return RestResult.ok(null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return RestResult.error(ERROR_SERVER_ERROR);
+                }
+            } else {
+                return RestResult.error(ERROR_CODE_INCORRECT);
+            }
+        } else {
+            return RestResult.error(ERROR_NOT_EXIST);
+        }
+    }
+
+    private void changePassword(UserPassword up, String password) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance(Sha1Hash.ALGORITHM_NAME);
+        digest.reset();
+        String salt = UUID.randomUUID().toString();
+        digest.update(salt.getBytes(StandardCharsets.UTF_8));
+        byte[] hashed = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+        String hashedPwd = Base64.getEncoder().encodeToString(hashed);
+        up.setPassword(hashedPwd);
+        up.setSalt(salt);
+        userPasswordRepository.save(up);
+    }
+
+    private boolean verifyPassword(UserPassword up, String password) throws Exception {
+        String salt = up.getSalt();
+        MessageDigest digest = MessageDigest.getInstance(Sha1Hash.ALGORITHM_NAME);
+        if (salt != null) {
+            digest.reset();
+            digest.update(salt.getBytes(StandardCharsets.UTF_8));
+        }
+
+        byte[] hashed = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+        String hashedPwd = Base64.getEncoder().encodeToString(hashed);
+        return hashedPwd.equals(up.getPassword());
+    }
+
+    private RestResult onLoginSuccess(HttpServletResponse httpResponse, String mobile, String clientId, int platform, boolean withResetCode) {
+        Subject subject = SecurityUtils.getSubject();
         try {
             //使用电话号码查询用户信息。
             IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
@@ -316,6 +485,22 @@ public class ServiceImpl implements Service {
             response.setUserId(user.getUserId());
             response.setToken(tokenResult.getResult().getToken());
             response.setRegister(isNewUser);
+            response.setPortrait(user.getPortrait());
+            response.setUserName(user.getName());
+
+            if (withResetCode) {
+                String code = Utils.getRandomCode(4);
+                Optional<UserPassword> optional = userPasswordRepository.findById(user.getUserId());
+                UserPassword up;
+                if (optional.isPresent()) {
+                    up = optional.get();
+                } else {
+                    up = new UserPassword(user.getUserId(), null, null);
+                }
+                up.setResetCode(code);
+                userPasswordRepository.save(up);
+                response.setResetCode(code);
+            }
 
             if (isNewUser) {
                 if (!StringUtils.isEmpty(mIMConfig.welcome_for_new_user)) {
@@ -344,7 +529,6 @@ public class ServiceImpl implements Service {
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
     }
-
     @Override
     public RestResult sendDestroyCode() {
         Subject subject = SecurityUtils.getSubject();
@@ -354,7 +538,7 @@ public class ServiceImpl implements Service {
             if(getUserResult != null && getUserResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
                 String mobile = getUserResult.getResult().getMobile();
                 if(!StringUtils.isEmpty(mobile)) {
-                    return sendCode(mobile);
+                    return sendLoginCode(mobile);
                 }
             }
         } catch (Exception e) {

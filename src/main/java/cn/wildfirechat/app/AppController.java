@@ -3,7 +3,6 @@ package cn.wildfirechat.app;
 import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
-import cn.wildfirechat.pojos.UserOnlineStatus;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
 import org.h2.util.StringUtils;
@@ -12,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,13 +36,33 @@ public class AppController {
     移动端登录
      */
     @PostMapping(value = "/send_code", produces = "application/json;charset=UTF-8")
-    public Object sendCode(@RequestBody SendCodeRequest request) {
-        return mService.sendCode(request.getMobile());
+    public Object sendLoginCode(@RequestBody SendCodeRequest request) {
+        return mService.sendLoginCode(request.getMobile());
     }
 
     @PostMapping(value = "/login", produces = "application/json;charset=UTF-8")
-    public Object login(@RequestBody LoginRequest request, HttpServletResponse response) {
-        return mService.login(response, request.getMobile(), request.getCode(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform());
+    public Object loginWithMobileCode(@RequestBody PhoneCodeLoginRequest request, HttpServletResponse response) {
+        return mService.loginWithMobileCode(response, request.getMobile(), request.getCode(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform());
+    }
+
+    @PostMapping(value = "/login_pwd", produces = "application/json;charset=UTF-8")
+    public Object loginWithPassword(@RequestBody UserPasswordLoginRequest request, HttpServletResponse response) {
+        return mService.loginWithPassword(response, request.getMobile(), request.getPassword(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform());
+    }
+
+    @PostMapping(value = "/change_pwd", produces = "application/json;charset=UTF-8")
+    public Object changePassword(@RequestBody ChangePasswordRequest request, HttpServletResponse response) {
+        return mService.changePassword(response, request.getOldPassword(), request.getNewPassword());
+    }
+
+    @PostMapping(value = "/send_reset_code", produces = "application/json;charset=UTF-8")
+    public Object sendResetCode(@RequestBody SendCodeRequest request) {
+        return mService.sendResetCode(request.getMobile());
+    }
+
+    @PostMapping(value = "/reset_pwd", produces = "application/json;charset=UTF-8")
+    public Object resetPassword(@RequestBody ResetPasswordRequest request, HttpServletResponse response) {
+        return mService.resetPassword(response, request.getMobile(), request.getResetCode(), request.getNewPassword());
     }
 
     @PostMapping(value = "/send_destroy_code", produces = "application/json;charset=UTF-8")
