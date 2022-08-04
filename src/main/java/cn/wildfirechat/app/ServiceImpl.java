@@ -201,7 +201,7 @@ public class ServiceImpl implements Service {
         }
 
         try {
-            String code = Utils.getRandomCode(4);
+            String code = Utils.getRandomCode(6);
             RestResult.RestCode restCode = authDataSource.insertRecord(mobile, code);
 
             if (restCode != SUCCESS) {
@@ -231,6 +231,28 @@ public class ServiceImpl implements Service {
         String remoteIp = getIp();
         LOG.info("request send sms from {}", remoteIp);
 
+        if (StringUtils.isEmpty(userId)) {
+            if (StringUtils.isEmpty(mobile)) {
+                return RestResult.error(ERROR_INVALID_PARAMETER);
+            }
+        } else {
+            try {
+                IMResult<InputOutputUserInfo> outputUserInfoIMResult = UserAdmin.getUserByUserId(userId);
+                if (outputUserInfoIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                    mobile = outputUserInfoIMResult.getResult().getMobile();
+                } else {
+                    if (StringUtils.isEmpty(mobile)) {
+                        return RestResult.error(ERROR_NOT_EXIST);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (StringUtils.isEmpty(mobile)) {
+                    return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+                }
+            }
+        }
+
         //判断当前IP发送是否超频。
         //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
         if (!rateLimiter.isGranted(remoteIp)) {
@@ -238,12 +260,13 @@ public class ServiceImpl implements Service {
         }
 
         try {
-            String code = Utils.getRandomCode(4);
-            RestResult.RestCode restCode = RestResult.RestCode.SUCCESS;//smsService.sendCode(mobile, code);
+            String code = Utils.getRandomCode(6);
+            RestResult.RestCode restCode = smsService.sendCode(mobile, code);
             if (restCode == RestResult.RestCode.SUCCESS) {
                 Optional<UserPassword> optional = userPasswordRepository.findById(userId);
-                UserPassword up = optional.orElseGet(() -> new UserPassword(userId, null, null, code));
+                UserPassword up = optional.orElseGet(() -> new UserPassword(userId));
                 up.setResetCode(code);
+                up.setResetCodeTime(System.currentTimeMillis());
                 userPasswordRepository.save(up);
                 return RestResult.ok(restCode);
             } else {
@@ -296,7 +319,20 @@ public class ServiceImpl implements Service {
             if (userResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             }
-
+            Optional<UserPassword> optional = userPasswordRepository.findById(userResult.getResult().getUserId());
+            if (!optional.isPresent()) {
+                return RestResult.error(ERROR_NOT_EXIST);
+            }
+            UserPassword up = optional.get();
+            if (up.getTryCount() > 5) {
+                if (System.currentTimeMillis() - up.getLastTryTime() < 5 * 60 * 60 * 1000) {
+                    return RestResult.error(ERROR_FAILURE_TOO_MUCH_TIMES);
+                }
+                up.setTryCount(0);
+            }
+            up.setTryCount(up.getTryCount()+1);
+            up.setLastTryTime(System.currentTimeMillis());
+            userPasswordRepository.save(up);
             Subject subject = SecurityUtils.getSubject();
             // 在认证提交前准备 token（令牌）
             UsernamePasswordToken token = new UsernamePasswordToken(userResult.getResult().getUserId(), password);
@@ -317,7 +353,9 @@ public class ServiceImpl implements Service {
             if (subject.isAuthenticated()) {
                 long timeout = subject.getSession().getTimeout();
                 LOG.info("Login success " + timeout);
-                authDataSource.clearRecode(mobile);
+                up.setTryCount(0);
+                up.setLastTryTime(0);
+                userPasswordRepository.save(up);
             } else {
                 return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
             }
@@ -379,8 +417,13 @@ public class ServiceImpl implements Service {
         if (optional.isPresent()) {
             UserPassword up = optional.get();
             if(resetCode.equals(up.getResetCode())) {
+                if (System.currentTimeMillis() - up.getResetCodeTime() > 10 * 60 * 60 * 1000) {
+                    return RestResult.error(ERROR_CODE_EXPIRED);
+                }
                 try {
                     changePassword(up, newPwd);
+                    up.setResetCode(null);
+                    userPasswordRepository.save(up);
                     return RestResult.ok(null);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -489,7 +532,7 @@ public class ServiceImpl implements Service {
             response.setUserName(user.getName());
 
             if (withResetCode) {
-                String code = Utils.getRandomCode(4);
+                String code = Utils.getRandomCode(6);
                 Optional<UserPassword> optional = userPasswordRepository.findById(user.getUserId());
                 UserPassword up;
                 if (optional.isPresent()) {
@@ -498,6 +541,7 @@ public class ServiceImpl implements Service {
                     up = new UserPassword(user.getUserId(), null, null);
                 }
                 up.setResetCode(code);
+                up.setResetCodeTime(System.currentTimeMillis());
                 userPasswordRepository.save(up);
                 response.setResetCode(code);
             }

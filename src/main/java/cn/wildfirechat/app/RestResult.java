@@ -20,7 +20,8 @@ public class RestResult {
         ERROR_NOT_EXIST(16, "对象不存在"),
         ERROR_USER_NAME_ALREADY_EXIST(17, "用户名已经存在"),
         ERROR_SESSION_CANCELED(18, "会话已经取消"),
-        ERROR_PASSWORD_INCORRECT(19, "密码错误");
+        ERROR_PASSWORD_INCORRECT(19, "密码错误"),
+        ERROR_FAILURE_TOO_MUCH_TIMES(20, "密码错误次数太多，请等5分钟再试试");
         public int code;
         public String msg;
 

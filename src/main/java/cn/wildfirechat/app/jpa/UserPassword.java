@@ -18,20 +18,36 @@ public class UserPassword {
 
 	private String resetCode;
 
+	private long resetCodeTime;
+
+	private int tryCount;
+
+	private long lastTryTime;
+
 	public UserPassword() {
+	}
+
+	public UserPassword(String userId) {
+		this.userId = userId;
 	}
 
 	public UserPassword(String userId, String password, String salt) {
 		this.userId = userId;
 		this.password = password;
 		this.salt = salt;
+		this.resetCodeTime = 0;
+		this.tryCount = 0;
+		this.lastTryTime = 0;
 	}
 
-	public UserPassword(String userId, String password, String salt, String resetCode) {
+	public UserPassword(String userId, String password, String salt, String resetCode, long resetCodeTime) {
 		this.userId = userId;
 		this.password = password;
 		this.salt = salt;
 		this.resetCode = resetCode;
+		this.resetCodeTime = resetCodeTime;
+		this.tryCount = 0;
+		this.lastTryTime = 0;
 	}
 
 	public String getUserId() {
@@ -64,5 +80,29 @@ public class UserPassword {
 
 	public void setResetCode(String resetCode) {
 		this.resetCode = resetCode;
+	}
+
+	public long getResetCodeTime() {
+		return resetCodeTime;
+	}
+
+	public void setResetCodeTime(long resetCodeTime) {
+		this.resetCodeTime = resetCodeTime;
+	}
+
+	public int getTryCount() {
+		return tryCount;
+	}
+
+	public void setTryCount(int tryCount) {
+		this.tryCount = tryCount;
+	}
+
+	public long getLastTryTime() {
+		return lastTryTime;
+	}
+
+	public void setLastTryTime(long lastTryTime) {
+		this.lastTryTime = lastTryTime;
 	}
 }
