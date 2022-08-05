@@ -368,7 +368,7 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult changePassword(HttpServletResponse response, String oldPwd, String newPwd) {
+    public RestResult changePassword(String oldPwd, String newPwd) {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
         Optional<UserPassword> optional = userPasswordRepository.findById(userId);
@@ -388,7 +388,7 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult resetPassword(HttpServletResponse response, String mobile, String resetCode, String newPwd) {
+    public RestResult resetPassword(String mobile, String resetCode, String newPwd) {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
 

@@ -13,8 +13,8 @@ public interface Service {
     RestResult sendResetCode(String mobile);
     RestResult loginWithMobileCode(HttpServletResponse response, String mobile, String code, String clientId, int platform);
     RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform);
-    RestResult changePassword(HttpServletResponse response, String oldPwd, String newPwd);
-    RestResult resetPassword(HttpServletResponse response, String mobile, String resetCode, String newPwd);
+    RestResult changePassword(String oldPwd, String newPwd);
+    RestResult resetPassword(String mobile, String resetCode, String newPwd);
     RestResult sendDestroyCode();
     RestResult destroy(HttpServletResponse response, String code);
 

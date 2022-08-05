@@ -51,8 +51,8 @@ public class AppController {
     }
 
     @PostMapping(value = "/change_pwd", produces = "application/json;charset=UTF-8")
-    public Object changePassword(@RequestBody ChangePasswordRequest request, HttpServletResponse response) {
-        return mService.changePassword(response, request.getOldPassword(), request.getNewPassword());
+    public Object changePassword(@RequestBody ChangePasswordRequest request) {
+        return mService.changePassword(request.getOldPassword(), request.getNewPassword());
     }
 
     @PostMapping(value = "/send_reset_code", produces = "application/json;charset=UTF-8")
@@ -61,8 +61,8 @@ public class AppController {
     }
 
     @PostMapping(value = "/reset_pwd", produces = "application/json;charset=UTF-8")
-    public Object resetPassword(@RequestBody ResetPasswordRequest request, HttpServletResponse response) {
-        return mService.resetPassword(response, request.getMobile(), request.getResetCode(), request.getNewPassword());
+    public Object resetPassword(@RequestBody ResetPasswordRequest request) {
+        return mService.resetPassword(request.getMobile(), request.getResetCode(), request.getNewPassword());
     }
 
     @PostMapping(value = "/send_destroy_code", produces = "application/json;charset=UTF-8")
