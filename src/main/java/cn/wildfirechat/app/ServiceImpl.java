@@ -325,7 +325,7 @@ public class ServiceImpl implements Service {
             }
             UserPassword up = optional.get();
             if (up.getTryCount() > 5) {
-                if (System.currentTimeMillis() - up.getLastTryTime() < 5 * 60 * 60 * 1000) {
+                if (System.currentTimeMillis() - up.getLastTryTime() < 5 * 60 * 1000) {
                     return RestResult.error(ERROR_FAILURE_TOO_MUCH_TIMES);
                 }
                 up.setTryCount(0);
