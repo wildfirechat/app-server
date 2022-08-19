@@ -145,7 +145,7 @@ public class IMCallbackController {
     }
 
     @PostMapping(value = "/im_event/conference/member_publish")
-    public Object onConferenceMemberPublished(@RequestBody ConferenceLeaveEvent event) {
+    public Object onConferenceMemberPublished(@RequestBody ConferencePublishEvent event) {
         System.out.println("conference member published:" + event);
         return "ok";
     }
