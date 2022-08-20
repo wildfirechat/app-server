@@ -611,6 +611,7 @@ public class ServiceImpl implements Service {
                     if(authDataSource.verifyCode(mobile, code) == SUCCESS) {
                         UserAdmin.destroyUser(userId);
                         authDataSource.clearRecode(mobile);
+                        userPasswordRepository.deleteById(userId);
                         subject.logout();
                         return RestResult.ok(null);
                     }
