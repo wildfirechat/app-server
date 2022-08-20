@@ -27,6 +27,8 @@ public class IMConfig {
     String robot_friend_id;
     String robot_welcome;
 
+    String new_user_subscribe_channel_id;
+
     public String getAdmin_url() {
         return admin_url;
     }
@@ -81,5 +83,13 @@ public class IMConfig {
 
     public void setRobot_welcome(String robot_welcome) {
         this.robot_welcome = robot_welcome;
+    }
+
+    public String getNew_user_subscribe_channel_id() {
+        return new_user_subscribe_channel_id;
+    }
+
+    public void setNew_user_subscribe_channel_id(String new_user_subscribe_channel_id) {
+        this.new_user_subscribe_channel_id = new_user_subscribe_channel_id;
     }
 }

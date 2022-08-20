@@ -552,10 +552,17 @@ public class ServiceImpl implements Service {
                 }
 
                 if (mIMConfig.new_user_robot_friend && !StringUtils.isEmpty(mIMConfig.robot_friend_id)) {
-                    ;
                     RelationAdmin.setUserFriend(user.getUserId(), mIMConfig.robot_friend_id, true, null);
                     if (!StringUtils.isEmpty(mIMConfig.robot_welcome)) {
                         sendTextMessage(mIMConfig.robot_friend_id, user.getUserId(), mIMConfig.robot_welcome);
+                    }
+                }
+
+                if (!StringUtils.isEmpty(mIMConfig.new_user_subscribe_channel_id)) {
+                    try {
+                        GeneralAdmin.subscribeChannel(mIMConfig.getNew_user_subscribe_channel_id(), user.getUserId());
+                    } catch (Exception e) {
+
                     }
                 }
             } else {
