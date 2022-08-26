@@ -41,9 +41,6 @@ public class IMExceptionEventController {
     @Value("${spring.mail.to_lists}")
     private String toLists;
 
-    @Value("${spring.mail.subject_prefix}")
-    private String subjectPrefix;
-
     @Autowired
     private JavaMailSender mailSender;
 
@@ -53,7 +50,11 @@ public class IMExceptionEventController {
             while (true) {
                 try {
                     IMExceptionEvent event = events.take();
-                    sendTextMail(subjectPrefix + "  " + event.count + "次  " + event.msg, "call stack:" + event.call_stack);
+                    if (event.event_type == IMExceptionEvent.EventType.HEART_BEAT) {
+                        sendTextMail("恭喜您，您的服务已经连续24小时没有异常发生了", "恭喜您，您的服务已经连续24小时没有异常发生了");
+                    } else {
+                        sendTextMail("IM服务报警通知：节点" + event.node_id + "，发生" + event.count + "次  " + event.msg, "call stack:" + event.call_stack);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
