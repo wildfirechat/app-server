@@ -569,6 +569,16 @@ public class ServiceImpl implements Service {
                 if (!StringUtils.isEmpty(mIMConfig.welcome_for_back_user)) {
                     sendTextMessage("admin", user.getUserId(), mIMConfig.welcome_for_back_user);
                 }
+                if (!StringUtils.isEmpty(mIMConfig.back_user_subscribe_channel_id)) {
+                    try {
+                        IMResult<OutputBooleanValue> booleanValueIMResult = GeneralAdmin.isUserSubscribedChannel(user.getUserId(), mIMConfig.getBack_user_subscribe_channel_id());
+                        if (booleanValueIMResult != null && booleanValueIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS && !booleanValueIMResult.getResult().value) {
+                            GeneralAdmin.subscribeChannel(mIMConfig.back_user_subscribe_channel_id, user.getUserId());
+                        }
+                    } catch (Exception e) {
+
+                    }
+                }
             }
 
             Object sessionId = subject.getSession().getId();
