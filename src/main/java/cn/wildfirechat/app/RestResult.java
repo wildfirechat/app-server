@@ -7,7 +7,7 @@ public class RestResult {
         ERROR_SEND_SMS_OVER_FREQUENCY(3, "请求验证码太频繁"),
         ERROR_SERVER_ERROR(4, "服务器异常"),
         ERROR_CODE_EXPIRED(5, "验证码已过期"),
-        ERROR_CODE_INCORRECT(6, "验证码错误"),
+        ERROR_CODE_INCORRECT(6, "验证码或密码错误"),
         ERROR_SERVER_CONFIG_ERROR(7, "服务器配置错误"),
         ERROR_SESSION_EXPIRED(8, "会话不存在或已过期"),
         ERROR_SESSION_NOT_VERIFIED(9, "会话没有验证"),
