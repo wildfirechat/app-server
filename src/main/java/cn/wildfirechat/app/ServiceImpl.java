@@ -189,6 +189,20 @@ public class ServiceImpl implements Service {
         }
     }
 
+    private int getUserStatus(String mobile) {
+        try {
+            IMResult<InputOutputUserInfo> inputOutputUserInfoIMResult = UserAdmin.getUserByMobile(mobile);
+            if(inputOutputUserInfoIMResult != null && inputOutputUserInfoIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                IMResult<OutputUserStatus> outputUserStatusIMResult = UserAdmin.checkUserBlockStatus(inputOutputUserInfoIMResult.getResult().getUserId());
+                if(outputUserStatusIMResult != null && outputUserStatusIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                    return outputUserStatusIMResult.getResult().getStatus();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
     @Override
     public RestResult sendLoginCode(String mobile) {
         String remoteIp = getIp();
@@ -201,6 +215,13 @@ public class ServiceImpl implements Service {
         }
 
         try {
+            //检查用户是否被封禁
+            //https://docs.wildfirechat.cn/server/admin_api/user_api.html#查询用户状态
+            int userStatus = getUserStatus(mobile);
+            if(userStatus == 2) {
+                return RestResult.error(ERROR_USER_FORBIDDEN);
+            }
+
             String code = Utils.getRandomCode(6);
             RestResult.RestCode restCode = authDataSource.insertRecord(mobile, code);
 
@@ -257,6 +278,13 @@ public class ServiceImpl implements Service {
         //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
         if (!rateLimiter.isGranted(remoteIp)) {
             return RestResult.result(ERROR_SEND_SMS_OVER_FREQUENCY.code, "IP " + remoteIp + " 请求短信超频", null);
+        }
+
+        //检查用户是否被封禁
+        //https://docs.wildfirechat.cn/server/admin_api/user_api.html#查询用户状态
+        int userStatus = getUserStatus(mobile);
+        if(userStatus == 2) {
+            return RestResult.error(ERROR_USER_FORBIDDEN);
         }
 
         try {
@@ -333,6 +361,13 @@ public class ServiceImpl implements Service {
             up.setTryCount(up.getTryCount()+1);
             up.setLastTryTime(System.currentTimeMillis());
             userPasswordRepository.save(up);
+
+            //检查用户是否被封禁
+            int userStatus = getUserStatus(mobile);
+            if(userStatus == 2) {
+                return RestResult.error(ERROR_USER_FORBIDDEN);
+            }
+
             Subject subject = SecurityUtils.getSubject();
             // 在认证提交前准备 token（令牌）
             UsernamePasswordToken token = new UsernamePasswordToken(userResult.getResult().getUserId(), password);
