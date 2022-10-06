@@ -140,7 +140,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         }
 
         try {
-            IMResult<Void> result = ConferenceAdmin.createRoom(info.conferenceId, info.conferenceTitle, info.pin, 9, info.advance, 0, false, false);
+            IMResult<Void> result = ConferenceAdmin.createRoom(info.conferenceId, info.conferenceTitle, info.pin, 9, info.advance, 0, info.recording, false);
             if(result != null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
                 conferenceEntityRepository.save(convertConference(info));
                 favConference(info.conferenceId);
@@ -187,6 +187,39 @@ public class ConferenceServiceImpl implements ConferenceService {
     }
 
     @Override
+    public RestResult recordingConference(String conferenceId, boolean recording) {
+        Optional<ConferenceEntity> conferenceEntityOptional = conferenceEntityRepository.findById(conferenceId);
+        if(conferenceEntityOptional.isPresent()) {
+            Subject subject = SecurityUtils.getSubject();
+            String userId = (String) subject.getSession().getAttribute("userId");
+            ConferenceEntity entity = conferenceEntityOptional.get();
+            if(userId.equals(entity.owner)) {
+                if(entity.isRecording() == recording) {
+                    return RestResult.ok();
+                } else {
+                    entity.setRecording(recording);
+                    try {
+                        IMResult<Void> voidIMResult = ConferenceAdmin.enableRecording(entity.getId(), entity.isAdvance(), entity.recording);
+                        if(voidIMResult != null & voidIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                            conferenceEntityRepository.save(entity);
+                            return RestResult.ok();
+                        } else {
+                            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+                    }
+                }
+            } else {
+                return RestResult.error(RestResult.RestCode.ERROR_NO_RIGHT);
+            }
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
+        }
+    }
+
+    @Override
     public RestResult favConference(String conferenceId) {
         String userId = getUserId();
         UserConference userConference = new UserConference(userId, conferenceId);
@@ -217,6 +250,11 @@ public class ConferenceServiceImpl implements ConferenceService {
             info.advance = dto.isAdvance();
             info.allowSwitchMode = dto.isAllow_switch_mode();
             info.noJoinBeforeStart = dto.isNo_join_before_start();
+            info.recording = dto.isRecording();
+            String managers = dto.getManages();
+            if(!StringUtils.isEmpty(managers)) {
+                info.managers = Arrays.asList(managers.split(","));
+            }
             infos.add(info);
         }
         return RestResult.ok(infos);
@@ -244,6 +282,10 @@ public class ConferenceServiceImpl implements ConferenceService {
         entity.advance = info.advance;
         entity.allowSwitchMode = info.allowSwitchMode;
         entity.noJoinBeforeStart = info.noJoinBeforeStart;
+        entity.recording = info.recording;
+        if(info.managers != null && !info.managers.isEmpty()) {
+            entity.manages = String.join(",", info.managers);
+        }
         return entity;
     }
 
@@ -260,6 +302,10 @@ public class ConferenceServiceImpl implements ConferenceService {
         info.advance = entity.advance;
         info.allowSwitchMode = entity.allowSwitchMode;
         info.noJoinBeforeStart = entity.noJoinBeforeStart;
+        info.recording = entity.recording;
+        if(!StringUtils.isEmpty(info.managers)) {
+            info.managers = Arrays.asList(entity.manages.split(","));
+        }
         return info;
     }
 

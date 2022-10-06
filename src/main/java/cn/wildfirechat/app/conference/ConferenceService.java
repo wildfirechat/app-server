@@ -16,6 +16,7 @@ public interface ConferenceService {
     RestResult putConferenceInfo(ConferenceInfo info);
     RestResult createConference(ConferenceInfo info);
     RestResult destroyConference(String conferenceId);
+    RestResult recordingConference(String conferenceId, boolean recording);
     RestResult favConference(String conferenceId);
     RestResult unfavConference(String conferenceId);
     RestResult getFavConferences();

@@ -36,6 +36,10 @@ public class RestResult {
     private String message;
     private Object result;
 
+    public static RestResult ok() {
+        return new RestResult(RestCode.SUCCESS, null);
+    }
+
     public static RestResult ok(Object object) {
         return new RestResult(RestCode.SUCCESS, object);
     }

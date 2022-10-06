@@ -12,12 +12,14 @@ public class ConferenceEntity {
 	public String password;
 	public String pin;
 	public String owner;
+	public String manages;
 	public long startTime;
 	public long endTime;
 	public boolean audience;
 	public boolean advance;
 	public boolean allowSwitchMode;
 	public boolean noJoinBeforeStart;
+	public boolean recording;
 
 	public String getId() {
 		return id;
@@ -105,5 +107,21 @@ public class ConferenceEntity {
 
 	public void setNoJoinBeforeStart(boolean noJoinBeforeStart) {
 		this.noJoinBeforeStart = noJoinBeforeStart;
+	}
+
+	public boolean isRecording() {
+		return recording;
+	}
+
+	public void setRecording(boolean recording) {
+		this.recording = recording;
+	}
+
+	public String getManages() {
+		return manages;
+	}
+
+	public void setManages(String manages) {
+		this.manages = manages;
 	}
 }
