@@ -1,0 +1,3 @@
+rm -rf /usr/local/app-server
+rm -rf /usr/lib/systemd/system/app-server.service
+systemctl daemon-reload

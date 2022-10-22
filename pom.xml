@@ -233,6 +233,130 @@
 					<includeSystemScope>true</includeSystemScope>
 				</configuration>
 			</plugin>
+
+			<plugin>
+				<artifactId>jdeb</artifactId>
+				<groupId>org.vafer</groupId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>jdeb</goal>
+						</goals>
+						<configuration>
+							<controlDir>${project.basedir}/deb/control</controlDir>
+							<skipPOMs>false</skipPOMs>
+							<deb>${project.build.directory}/app-server-${project.version}.deb</deb>
+							<dataSet>
+								<data>
+									<src>${project.build.directory}/${project.name}-${project.version}.jar</src>
+									<type>file</type>
+									<mapper>
+										<type>perm</type>
+										<prefix>/usr/local/app-server</prefix>
+									</mapper>
+								</data>
+								<data>
+									<src>${project.basedir}/config</src>
+									<type>directory</type>
+									<mapper>
+										<type>perm</type>
+										<prefix>/usr/local/app-server/config</prefix>
+									</mapper>
+								</data>
+								<data>
+									<src>${project.basedir}/systemd/app-server.service</src>
+									<type>file</type>
+									<mapper>
+										<type>perm</type>
+										<prefix>/usr/lib/systemd/system</prefix>
+									</mapper>
+								</data>
+							</dataSet>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!--        RPM Plugin 开始-->
+			<!--        打包RPM 包需要本地有rpm命令才可以，linux和mac都可以安装rpm。如果是windows需要cygwin安装rpm才可以，如果不需要rpm包，可以把这个plugin注释掉-->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>rpm-maven-plugin</artifactId>
+				<version>2.2.0</version>
+				<executions>
+					<execution>
+						<id>generate-rpm</id>
+						<goals>
+							<goal>rpm</goal>
+						</goals>
+					</execution>
+				</executions>
+
+				<configuration>
+					<group>Applications/Chat</group>
+					<name>app-server</name>
+					<needarch>noarch</needarch>
+					<targetOS>linux</targetOS>
+					<prefix>/usr/local/app-server</prefix>
+					<defineStatements>
+						<defineStatement>_unpackaged_files_terminate_build 0</defineStatement>
+					</defineStatements>
+					<copyTo>
+						target/app-server-${project.version}.rpm
+					</copyTo>
+					<requires>
+						<require>java-1.8.0-openjdk-headless</require>
+					</requires>
+
+					<mappings>
+						<mapping>
+							<directory>/usr/local/app-server</directory>
+							<filemode>755</filemode>
+							<sources>
+								<source>
+									<location>${project.build.directory}/${project.name}-${project.version}.jar</location>
+								</source>
+							</sources>
+						</mapping>
+						<mapping>
+							<directory>/usr/local/app-server/config</directory>
+							<filemode>755</filemode>
+							<sources>
+								<source>
+									<location>${project.basedir}/config</location>
+								</source>
+							</sources>
+						</mapping>
+
+						<mapping>
+							<directory>/usr/lib/systemd/system</directory>
+							<filemode>644</filemode>
+							<username>root</username>
+							<groupname>root</groupname>
+							<directoryIncluded>false</directoryIncluded>
+							<sources>
+								<source>
+									<location>${project.basedir}/systemd/app-server.service</location>
+								</source>
+							</sources>
+						</mapping>
+					</mappings>
+					<postinstallScriptlet>
+						<script>
+							mv -f /usr/local/app-server/app-*.jar /usr/local/app-server/app-server.jar ; echo "Im server installed in /usr/local/app-server" ; systemctl daemon-reload
+						</script>
+					</postinstallScriptlet>
+					<postremoveScriptlet>
+						<script>
+							echo "Remove files..." ; cd /usr/local/app-server ; rm -rf * ; rm -rf /usr/lib/systemd/system/app-server.service ; systemctl daemon-reload
+						</script>
+					</postremoveScriptlet>
+				</configuration>
+			</plugin>
+			<!--            RPM Plugin 结束-->
+
 		</plugins>
 	</build>
 

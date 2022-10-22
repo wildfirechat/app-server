@@ -6,7 +6,7 @@
 mvn clean package
 ```
 
-然后编译镜像
+然后进入到docker目录编译镜像
 ```
 sudo docker build -t wildfire_app .
 ```
