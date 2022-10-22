@@ -29,7 +29,7 @@
 > 本工程为Demo工程，实际使用时需要把对应功能移植到您的应用服务中。如果需要直接使用，请按照后面的说明解决掉性能瓶颈问题。
 
 #### 编译
-由于```distribution/pom.xml```中使用了生成RPM包的plugin，所以需要本地安装有rpm。如果不需要RPM包，可以删除掉```distribution/pom.xml```文件中的RPM plugin。
+由于```pom.xml```中使用了生成RPM包的plugin，所以需要本地安装有rpm。如果不需要RPM包，可以删除掉```pom.xml```文件中的RPM plugin。
 
 在安装RPM后或者删除```pom.xml```文件中的RPM plugin后，执行下面命令：
 ```
