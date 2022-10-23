@@ -6,6 +6,7 @@ COPY ../config  /opt/app-server/config
 WORKDIR /opt/app-server
 
 VOLUME /opt/app-server/config
+VOLUME /opt/app-server/h2db
 
 EXPOSE 8888/tcp
 
