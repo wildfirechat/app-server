@@ -254,7 +254,7 @@
 									<type>file</type>
 									<mapper>
 										<type>perm</type>
-										<prefix>/usr/local/app-server</prefix>
+										<prefix>/opt/app-server</prefix>
 									</mapper>
 								</data>
 								<data>
@@ -262,7 +262,7 @@
 									<type>directory</type>
 									<mapper>
 										<type>perm</type>
-										<prefix>/usr/local/app-server/config</prefix>
+										<prefix>/opt/app-server/config</prefix>
 									</mapper>
 								</data>
 								<data>
@@ -299,7 +299,7 @@
 					<name>app-server</name>
 					<needarch>noarch</needarch>
 					<targetOS>linux</targetOS>
-					<prefix>/usr/local/app-server</prefix>
+					<prefix>/opt/app-server</prefix>
 					<defineStatements>
 						<defineStatement>_unpackaged_files_terminate_build 0</defineStatement>
 					</defineStatements>
@@ -312,7 +312,7 @@
 
 					<mappings>
 						<mapping>
-							<directory>/usr/local/app-server</directory>
+							<directory>/opt/app-server</directory>
 							<filemode>755</filemode>
 							<sources>
 								<source>
@@ -321,7 +321,7 @@
 							</sources>
 						</mapping>
 						<mapping>
-							<directory>/usr/local/app-server/config</directory>
+							<directory>/opt/app-server/config</directory>
 							<filemode>755</filemode>
 							<sources>
 								<source>
@@ -345,12 +345,12 @@
 					</mappings>
 					<postinstallScriptlet>
 						<script>
-							mv -f /usr/local/app-server/app-*.jar /usr/local/app-server/app-server.jar ; echo "Im server installed in /usr/local/app-server" ; systemctl daemon-reload
+							mv -f /opt/app-server/app-*.jar /opt/app-server/app-server.jar ; echo "Im server installed in /opt/app-server" ; systemctl daemon-reload
 						</script>
 					</postinstallScriptlet>
 					<postremoveScriptlet>
 						<script>
-							echo "Remove files..." ; cd /usr/local/app-server ; rm -rf * ; rm -rf /usr/lib/systemd/system/app-server.service ; systemctl daemon-reload
+							echo "Remove files..." ; cd /opt/app-server ; rm -rf * ; rm -rf /usr/lib/systemd/system/app-server.service ; systemctl daemon-reload
 						</script>
 					</postremoveScriptlet>
 				</configuration>

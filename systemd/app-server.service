@@ -5,7 +5,8 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-WorkingDirectory=/usr/local/app-server
+WorkingDirectory=/opt/app-server
+#ExecStart=/usr/bin/java -server -Xmx2G -Xms2G -jar app-server.jar 2>&1
 ExecStart=/usr/bin/java -server -jar app-server.jar 2>&1
 
 # Let systemd restart this service always

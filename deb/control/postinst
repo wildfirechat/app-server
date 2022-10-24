@@ -1,2 +1,2 @@
-mv -f /usr/local/app-server/app-*.jar /usr/local/app-server/app-server.jar
+mv -f /opt/app-server/app-*.jar /opt/app-server/app-server.jar
 systemctl daemon-reload
