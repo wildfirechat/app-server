@@ -143,7 +143,7 @@
 
 		<dependency>
 			<groupId>com.tencentcloudapi</groupId>
-			<artifactId>tencentcloud-sdk-java</artifactId>
+			<artifactId>tencentcloud-sdk-java-sms</artifactId>
 			<version>3.1.410</version>
 		</dependency>
 
@@ -206,21 +206,21 @@
 			<version>1.7.1</version>
 		</dependency>
 
-        <dependency>
-            <groupId>ws.schild</groupId>
-            <artifactId>jave-all-deps</artifactId>
-            <version>2.7.3</version>
-        </dependency>
+		<dependency>
+			<groupId>ws.schild</groupId>
+			<artifactId>jave-core</artifactId>
+			<version>2.7.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ws.schild</groupId>
+			<artifactId>jave-nativebin-linux64</artifactId>
+			<version>2.7.3</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>com.googlecode.json-simple</groupId>
-			<artifactId>json-simple</artifactId>
-			<version>1.1.1</version>
 		</dependency>
 	</dependencies>
 
