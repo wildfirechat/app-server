@@ -11,5 +11,5 @@ cp -af ../systemd ./
 cp -af ../release_note.md ./
 tar -czvf app-server-release-$1.tar.gz app-$1.jar config systemd release_note.md
 cp app-server-release-$1.tar.gz app-server-release-latest.tar.gz
-cp app-server-0.61.rpm app-server-latest.rpm
-cp app-server-0.61.deb app-server-latest.deb
+cp app-server-$1.rpm app-server-latest.rpm
+cp app-server-$1.deb app-server-latest.deb
