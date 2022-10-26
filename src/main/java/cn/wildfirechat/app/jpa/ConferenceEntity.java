@@ -20,6 +20,7 @@ public class ConferenceEntity {
 	public boolean allowSwitchMode;
 	public boolean noJoinBeforeStart;
 	public boolean recording;
+	public String focus;
 
 	public String getId() {
 		return id;
@@ -123,5 +124,13 @@ public class ConferenceEntity {
 
 	public void setManages(String manages) {
 		this.manages = manages;
+	}
+
+	public String getFocus() {
+		return focus;
+	}
+
+	public void setFocus(String focus) {
+		this.focus = focus;
 	}
 }

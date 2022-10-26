@@ -251,6 +251,7 @@ public class ConferenceServiceImpl implements ConferenceService {
             info.allowSwitchMode = dto.isAllow_switch_mode();
             info.noJoinBeforeStart = dto.isNo_join_before_start();
             info.recording = dto.isRecording();
+            info.focus = dto.getFocus();
             String managers = dto.getManages();
             if(!StringUtils.isEmpty(managers)) {
                 info.managers = Arrays.asList(managers.split(","));
@@ -283,6 +284,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         entity.allowSwitchMode = info.allowSwitchMode;
         entity.noJoinBeforeStart = info.noJoinBeforeStart;
         entity.recording = info.recording;
+        entity.focus = info.focus;
         if(info.managers != null && !info.managers.isEmpty()) {
             entity.manages = String.join(",", info.managers);
         }
@@ -303,6 +305,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         info.allowSwitchMode = entity.allowSwitchMode;
         info.noJoinBeforeStart = entity.noJoinBeforeStart;
         info.recording = entity.recording;
+        info.focus = entity.focus;
         if(!StringUtils.isEmpty(info.managers)) {
             info.managers = Arrays.asList(entity.manages.split(","));
         }

@@ -14,4 +14,5 @@ public interface ConferenceDTO {
     boolean isAllow_switch_mode();
     boolean isNo_join_before_start();
     boolean isRecording();
+    String getFocus();
 }

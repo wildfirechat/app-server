@@ -16,4 +16,5 @@ public class ConferenceInfo {
     public boolean allowSwitchMode;
     public boolean noJoinBeforeStart;
     public boolean recording;
+    public String focus;
 }
