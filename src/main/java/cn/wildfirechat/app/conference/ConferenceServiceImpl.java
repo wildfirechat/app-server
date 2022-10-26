@@ -220,6 +220,25 @@ public class ConferenceServiceImpl implements ConferenceService {
     }
 
     @Override
+    public RestResult focusConference(String conferenceId, String focusedUserId) {
+        Optional<ConferenceEntity> conferenceEntityOptional = conferenceEntityRepository.findById(conferenceId);
+        if(conferenceEntityOptional.isPresent()) {
+            Subject subject = SecurityUtils.getSubject();
+            String userId = (String) subject.getSession().getAttribute("userId");
+            ConferenceEntity entity = conferenceEntityOptional.get();
+            if(userId.equals(entity.owner)) {
+                entity.setFocus(focusedUserId);
+                conferenceEntityRepository.save(entity);
+            } else {
+                return RestResult.error(RestResult.RestCode.ERROR_NO_RIGHT);
+            }
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
+        }
+        return RestResult.error(RestResult.RestCode.SUCCESS);
+    }
+
+    @Override
     public RestResult favConference(String conferenceId) {
         String userId = getUserId();
         UserConference userConference = new UserConference(userId, conferenceId);

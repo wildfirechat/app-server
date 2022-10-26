@@ -58,6 +58,12 @@ public class ConferenceController {
     }
 
     @CrossOrigin
+    @PostMapping(value = "/conference/focus/{conferenceId}")
+    public Object focusConference(@PathVariable("conferenceId") String conferenceId, @RequestBody UserIdPojo request) throws IOException {
+        return mService.focusConference(conferenceId, request.userId);
+    }
+
+    @CrossOrigin
     @PostMapping(value = "/conference/fav/{conferenceId}")
     public Object favConference(@PathVariable("conferenceId") String conferenceId) throws IOException {
         return mService.favConference(conferenceId);
