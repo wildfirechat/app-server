@@ -29,12 +29,14 @@
 > 本工程为Demo工程，实际使用时需要把对应功能移植到您的应用服务中。如果需要直接使用，请按照后面的说明解决掉性能瓶颈问题。
 
 #### 编译
-由于```pom.xml```中使用了生成RPM包的plugin，所以需要本地安装有rpm。如果不需要RPM包，可以删除掉```pom.xml```文件中的RPM plugin。
-
-在安装RPM后或者删除```pom.xml```文件中的RPM plugin后，执行下面命令：
 ```
 mvn clean package
 ```
+
+## 打包RPM格式
+打包会生成Java包和deb安装包，如果需要rpm安装包，请在```pom.xml```中取消注释生成rpm包的plugin。另外还需要本地安装有rpm，在linux或者mac系统中很容易安装，在windows系统需要安装cygwin并安装rpm，具体信息请百度查询。
+
+修改之后运行编译命令```mvn clean package```，rpm包生成在```target```目录下。
 
 #### 短信资源
 应用使用的是腾讯云短信功能，需要申请到```appid/appkey/templateId```这三个参数，并配置到```tencent_sms.properties```中去。用户也可以自行更换为自己喜欢的短信提供商。在没有短信供应商的情况下，为了测试可以使用```superCode```，设置好后，客户端可以直接使用```superCode```进行登陆。上线时一定要注意删掉```superCode```。
