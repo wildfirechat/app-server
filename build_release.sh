@@ -8,6 +8,7 @@ mvn clean package
 cd target
 cp -af ../config ./
 cp -af ../systemd ./
+cp -af ../nginx ./
 cp -af ../release_note.md ./
 tar -czvf app-server-release-$1.tar.gz app-$1.jar config systemd release_note.md
 cp app-server-release-$1.tar.gz app-server-release-latest.tar.gz
