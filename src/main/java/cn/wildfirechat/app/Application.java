@@ -1,17 +1,25 @@
 package cn.wildfirechat.app;
 
+import cn.wildfirechat.app.jpa.PCSessionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.MultipartConfigFactory;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.unit.DataSize;
 
 import javax.servlet.MultipartConfigElement;
 
 @SpringBootApplication
 @ServletComponentScan
+@EnableScheduling
 public class Application {
+    @Autowired
+    private PCSessionRepository pcSessionRepository;
+
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
 	}
@@ -30,4 +38,10 @@ public class Application {
 		factory.setMaxRequestSize(DataSize.ofMegabytes(100));
 		return factory.createMultipartConfig();
 	}
+
+    @Scheduled(fixedRate = 60 * 60 * 1000)
+    public void clearPCSession(){
+        pcSessionRepository.deleteByCreateDtBefore(System.currentTimeMillis() - 60 * 60 * 1000);
+    }
+
 }
