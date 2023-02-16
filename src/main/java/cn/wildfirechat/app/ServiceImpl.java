@@ -342,14 +342,16 @@ public class ServiceImpl implements Service {
         try {
             IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
             if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
-                return RestResult.error(ERROR_NOT_EXIST);
+                //当用户不存在或者密码不存在时，返回密码错误。避免被攻击遍历登录获取用户名。
+                return RestResult.error(ERROR_CODE_INCORRECT);
             }
             if (userResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             }
             Optional<UserPassword> optional = userPasswordRepository.findById(userResult.getResult().getUserId());
             if (!optional.isPresent()) {
-                return RestResult.error(ERROR_NOT_EXIST);
+                //当用户不存在或者密码不存在时，返回密码错误。避免被攻击遍历登录获取用户名。
+                return RestResult.error(ERROR_CODE_INCORRECT);
             }
             UserPassword up = optional.get();
             if (up.getTryCount() > 5) {
