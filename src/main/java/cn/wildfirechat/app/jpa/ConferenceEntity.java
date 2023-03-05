@@ -21,6 +21,7 @@ public class ConferenceEntity {
 	public boolean noJoinBeforeStart;
 	public boolean recording;
 	public String focus;
+	public int maxParticipants;
 
 	public String getId() {
 		return id;
@@ -132,5 +133,13 @@ public class ConferenceEntity {
 
 	public void setFocus(String focus) {
 		this.focus = focus;
+	}
+
+	public int getMaxParticipants() {
+		return maxParticipants;
+	}
+
+	public void setMaxParticipants(int maxParticipants) {
+		this.maxParticipants = maxParticipants;
 	}
 }

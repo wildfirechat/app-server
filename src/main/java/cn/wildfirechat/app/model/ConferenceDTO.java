@@ -15,4 +15,5 @@ public interface ConferenceDTO {
     boolean isNo_join_before_start();
     boolean isRecording();
     String getFocus();
+    int getMax_participants();
 }

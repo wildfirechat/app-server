@@ -17,4 +17,5 @@ public class ConferenceInfo {
     public boolean noJoinBeforeStart;
     public boolean recording;
     public String focus;
+    public int maxParticipants;
 }

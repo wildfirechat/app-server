@@ -116,6 +116,10 @@ public class ConferenceServiceImpl implements ConferenceService {
             info.owner = userId;
         }
 
+        //如果没有指定最大参与者人数，默认指定为20
+        if(info.maxParticipants <= 0) {
+            info.maxParticipants = 20;
+        }
 
         if(StringUtils.isEmpty(info.conferenceId)) {
             /*
@@ -271,6 +275,7 @@ public class ConferenceServiceImpl implements ConferenceService {
             info.noJoinBeforeStart = dto.isNo_join_before_start();
             info.recording = dto.isRecording();
             info.focus = dto.getFocus();
+            info.maxParticipants = dto.getMax_participants();
             String managers = dto.getManages();
             if(!StringUtils.isEmpty(managers)) {
                 info.managers = Arrays.asList(managers.split(","));
@@ -304,6 +309,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         entity.noJoinBeforeStart = info.noJoinBeforeStart;
         entity.recording = info.recording;
         entity.focus = info.focus;
+        entity.maxParticipants = info.maxParticipants;
         if(info.managers != null && !info.managers.isEmpty()) {
             entity.manages = String.join(",", info.managers);
         }
@@ -325,6 +331,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         info.noJoinBeforeStart = entity.noJoinBeforeStart;
         info.recording = entity.recording;
         info.focus = entity.focus;
+        info.maxParticipants = entity.maxParticipants;
         if(!StringUtils.isEmpty(info.managers)) {
             info.managers = Arrays.asList(entity.manages.split(","));
         }
