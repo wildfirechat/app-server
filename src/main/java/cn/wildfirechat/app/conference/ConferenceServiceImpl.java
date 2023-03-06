@@ -144,7 +144,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         }
 
         try {
-            IMResult<Void> result = ConferenceAdmin.createRoom(info.conferenceId, info.conferenceTitle, info.pin, 9, info.advance, 0, info.recording, false);
+            IMResult<Void> result = ConferenceAdmin.createRoom(info.conferenceId, info.conferenceTitle, info.pin, info.maxParticipants, info.advance, 0, info.recording, false);
             if(result != null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
                 conferenceEntityRepository.save(convertConference(info));
                 favConference(info.conferenceId);
