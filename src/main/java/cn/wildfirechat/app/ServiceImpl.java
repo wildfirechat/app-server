@@ -554,7 +554,7 @@ public class ServiceImpl implements Service {
             //使用用户id获取token
             IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(user.getUserId(), clientId, platform);
             if (tokenResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
-                LOG.error("Get user failure {}", tokenResult.code);
+                LOG.error("Get user token failure {}", tokenResult.code);
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             }
 
@@ -836,7 +836,7 @@ public class ServiceImpl implements Service {
             //使用用户id获取token
             IMResult<OutputGetIMTokenData> tokenResult = UserAdmin.getUserToken(session.getConfirmedUserId(), session.getClientId(), session.getPlatform());
             if (tokenResult.getCode() != 0) {
-                LOG.error("Get user failure {}", tokenResult.code);
+                LOG.error("Get user token failure {}", tokenResult.code);
                 subject.logout();
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             }
