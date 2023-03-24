@@ -49,6 +49,15 @@ public class IMCallbackController {
     }
 
     /*
+      发送消息回调
+    */
+    @PostMapping(value = "/im_event/recall_message")
+    public Object onRecallMessage(@RequestBody OutputRecallMessageData event) {
+        System.out.println("recall message:" +event.getUserId());
+        return "ok";
+    }
+
+    /*
     物联网消息回调
      */
     @PostMapping(value = "/im_event/things/message")
