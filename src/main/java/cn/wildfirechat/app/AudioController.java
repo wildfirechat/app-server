@@ -67,6 +67,7 @@ public class AudioController {
                         .contentLength(mp3File.length())
                         .body(resource);
                 } catch (MalformedURLException e) {
+                    System.out.println(amrUrl);
                     e.printStackTrace();
                 } catch (EncoderException e) {
                     e.printStackTrace();
