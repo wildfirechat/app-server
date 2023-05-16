@@ -1127,7 +1127,7 @@ public class ServiceImpl implements Service {
         try {
             IMResult<SendMessageResult> imResult = MessageAdmin.sendMessage(userId, conversation, payload);
             if (imResult != null && imResult.getCode() == ErrorCode.ERROR_CODE_SUCCESS.code) {
-                return RestResult.ok(imResult);
+                return RestResult.ok(imResult.getResult());
             }
         } catch (Exception e) {
             e.printStackTrace();
