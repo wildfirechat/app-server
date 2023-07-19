@@ -453,10 +453,10 @@ public class ServiceImpl implements Service {
         Optional<UserPassword> optional = userPasswordRepository.findById(userId);
         if (optional.isPresent()) {
             UserPassword up = optional.get();
+            if (resetCode.equals(up.getResetCode()) && System.currentTimeMillis() - up.getResetCodeTime() > 10 * 60 * 60 * 1000){
+                return RestResult.error(ERROR_CODE_EXPIRED);
+            }
             if(resetCode.equals(up.getResetCode()) || (!StringUtils.isEmpty(superCode) && resetCode.equals(superCode))) {
-                if (System.currentTimeMillis() - up.getResetCodeTime() > 10 * 60 * 60 * 1000) {
-                    return RestResult.error(ERROR_CODE_EXPIRED);
-                }
                 try {
                     changePassword(up, newPwd);
                     up.setResetCode(null);
