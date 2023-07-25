@@ -48,7 +48,6 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/send_code", "anon");
         filterChainDefinitionMap.put("/login", "anon");
         filterChainDefinitionMap.put("/pc_session", "anon");
-        filterChainDefinitionMap.put("/amr2mp3", "anon");
 
         filterChainDefinitionMap.put("/login_pwd", "anon");
         filterChainDefinitionMap.put("/send_reset_code", "anon");
@@ -68,6 +67,9 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/get_group_announcement", "login");
         filterChainDefinitionMap.put("/things/add_device", "login");
         filterChainDefinitionMap.put("/things/list_device", "login");
+
+        filterChainDefinitionMap.put("/amr2mp3", "login");
+        filterChainDefinitionMap.put("/avatar/**", "login");
 
         //主要这行代码必须放在所有权限设置的最后，不然会导致所有 url 都被拦截 剩余的都需要认证
         filterChainDefinitionMap.put("/**", "login");
