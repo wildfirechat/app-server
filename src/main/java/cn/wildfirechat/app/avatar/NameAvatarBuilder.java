@@ -1,8 +1,6 @@
 package cn.wildfirechat.app.avatar;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -30,15 +28,16 @@ public class NameAvatarBuilder {
 
     public NameAvatarBuilder name(String drawName, String fullName) {
         this.fullName = fullName;
-        int x = templateWidth * 3 / 10;
-        int y = templateHeight * 2 / 3;
-        // templateG2D.translate(0, 100);
-        // g2.rotate(Math.PI / 3);
-        templateG2D.setFont(templateG2D.getFont().deriveFont(40f));
-        templateG2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-            RenderingHints.VALUE_ANTIALIAS_ON);
-        // templateG2D.setColor(Color.WHITE);
-        templateG2D.setColor(Color.decode("#FFFFFF"));
+        // Get the FontMetrics
+        Font font = templateG2D.getFont().deriveFont(40f);
+        FontMetrics metrics = templateG2D.getFontMetrics(font);
+        // Determine the X coordinate for the text
+        int x = (templateWidth - metrics.stringWidth(drawName)) / 2;
+        // Determine the Y coordinate for the text (note we add the ascent, as in java 2d 0 is top of the screen)
+        int y = ((templateHeight - metrics.getHeight()) / 2) + metrics.getAscent();
+        // Set the font
+        templateG2D.setFont(font);
+        // Draw the String
         templateG2D.drawString(drawName, x, y);
         return this;
     }

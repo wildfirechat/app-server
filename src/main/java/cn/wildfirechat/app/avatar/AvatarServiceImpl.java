@@ -75,7 +75,8 @@ public class AvatarServiceImpl implements AvatarService {
         if (!file.exists()) {
             String color = colors[Math.abs(name.hashCode() % len)];
             // 最后一个字符
-            file = new NameAvatarBuilder(color).name(name.substring(name.length() - 1), name).build();
+            String lastChar = name.substring(name.length() - 1).toUpperCase();
+            file = new NameAvatarBuilder(color).name(lastChar, name).build();
         }
         return file;
     }
