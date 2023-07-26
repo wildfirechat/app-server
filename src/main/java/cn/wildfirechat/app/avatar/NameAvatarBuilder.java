@@ -17,7 +17,6 @@ public class NameAvatarBuilder {
     private String fullName;
 
     public NameAvatarBuilder(String bgRGB) {
-        //            templateImage = ImageIO.read(new File("./avatar/headbg.jpg"));
         templateImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB);
         templateG2D = templateImage.createGraphics();
         templateWidth = templateImage.getWidth();
@@ -45,7 +44,7 @@ public class NameAvatarBuilder {
     public File build() {
         templateG2D.dispose();
         templateImage.flush();
-        File file = new File("./avatar/" + this.fullName.hashCode() + ".png");
+        File file = new File(AvatarServiceImpl.AVATAR_DIR, this.fullName.hashCode() + ".png");
         try {
             ImageIO.write(templateImage, "png", file);
         } catch (IOException e) {

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -20,6 +21,16 @@ import java.util.List;
 public class AvatarServiceImpl implements AvatarService {
     @Value("${avatar.bg.corlors}")
     String bgColors;
+
+    public static final String AVATAR_DIR = "./avatar";
+
+    @PostConstruct
+    public void init() {
+        File avatarDir = new File(AvatarServiceImpl.AVATAR_DIR);
+        if (!avatarDir.exists()) {
+            avatarDir.mkdirs();
+        }
+    }
 
     @Override
     public ResponseEntity<byte[]> avatar(String name) throws IOException {
@@ -51,7 +62,7 @@ public class AvatarServiceImpl implements AvatarService {
                 hashCode += info.getName().hashCode();
             }
         }
-        File file = new File("./avatar/" + hashCode + "-group.png");
+        File file = new File(AVATAR_DIR, hashCode + "-group.png");
         if (!file.exists()) {
             GroupAvatarUtil.getCombinationOfHead(paths, file);
         }
@@ -71,7 +82,7 @@ public class AvatarServiceImpl implements AvatarService {
         String[] colors = bgColors.split(",");
         int len = colors.length;
         int hashCode = name.hashCode();
-        File file = new File("./avatar/" + hashCode + ".png");
+        File file = new File(AVATAR_DIR, hashCode + ".png");
         if (!file.exists()) {
             String color = colors[Math.abs(name.hashCode() % len)];
             // 最后一个字符
