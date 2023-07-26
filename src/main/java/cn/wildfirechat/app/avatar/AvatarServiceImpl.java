@@ -16,6 +16,8 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 @Service
 public class AvatarServiceImpl implements AvatarService {
@@ -35,7 +37,7 @@ public class AvatarServiceImpl implements AvatarService {
     @Override
     public ResponseEntity<byte[]> avatar(String name) throws IOException {
         File file = nameAvatar(name);
-        if (file.exists()) {
+        if (file != null && file.exists()) {
             byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
             return ResponseEntity
                 .ok()
@@ -47,7 +49,7 @@ public class AvatarServiceImpl implements AvatarService {
     }
 
     @Override
-    public ResponseEntity<byte[]> groupAvatar(GroupAvatarRequest request) throws IOException, URISyntaxException {
+    public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(GroupAvatarRequest request) throws IOException, URISyntaxException {
         List<GroupAvatarRequest.GroupMemberInfo> infos = request.getMembers();
         List<URL> paths = new ArrayList<>();
         long hashCode = 0;
@@ -58,27 +60,45 @@ public class AvatarServiceImpl implements AvatarService {
                 hashCode += info.getAvatarUrl().hashCode();
             } else {
                 File file = nameAvatar(info.getName());
-                paths.add(file.toURI().toURL());
-                hashCode += info.getName().hashCode();
+                if (file != null && file.exists()) {
+                    paths.add(file.toURI().toURL());
+                    hashCode += info.getName().hashCode();
+                }
             }
         }
         File file = new File(AVATAR_DIR, hashCode + "-group.png");
         if (!file.exists()) {
-            GroupAvatarUtil.getCombinationOfHead(paths, file);
-        }
+            return CompletableFuture.supplyAsync(new Supplier<ResponseEntity<byte[]>>() {
+                @Override
+                public ResponseEntity<byte[]> get() {
+                    try {
+                        GroupAvatarUtil.getCombinationOfHead(paths, file);
+                        if (file.exists()) {
+                            byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
+                            return ResponseEntity.ok()
+                                .contentType(MediaType.IMAGE_PNG)
+                                .body(bytes);
+                        } else {
+                            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+                        }
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
-        if (file.exists()) {
-            byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
-            return ResponseEntity
-                .ok()
-                .contentType(MediaType.IMAGE_PNG)
-                .body(bytes);
+            });
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
+            return CompletableFuture.completedFuture(ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(bytes));
         }
     }
 
     private File nameAvatar(String name) {
+        if (StringUtils.isEmpty(name)) {
+            return null;
+        }
         String[] colors = bgColors.split(",");
         int len = colors.length;
         int hashCode = name.hashCode();

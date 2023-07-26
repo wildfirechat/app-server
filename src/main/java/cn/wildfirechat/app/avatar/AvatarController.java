@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping(value = "/avatar")
@@ -21,7 +22,7 @@ public class AvatarController {
     }
 
     @GetMapping("/group")
-    public ResponseEntity<byte[]> groupAvatar(@RequestParam("request") String request) throws IOException, URISyntaxException {
+    public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(@RequestParam("request") String request) throws IOException, URISyntaxException {
         ObjectMapper mapper = new ObjectMapper();
         GroupAvatarRequest groupAvatarRequest = mapper.readValue(request, GroupAvatarRequest.class);
         return avatarService.groupAvatar(groupAvatarRequest);
