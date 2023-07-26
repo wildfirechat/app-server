@@ -42,6 +42,7 @@ public class AvatarServiceImpl implements AvatarService {
             return ResponseEntity
                 .ok()
                 .contentType(MediaType.IMAGE_PNG)
+                .header("Cache-Control", "max-age=604800")
                 .body(bytes);
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -77,6 +78,7 @@ public class AvatarServiceImpl implements AvatarService {
                             byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
                             return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_PNG)
+                                .header("Cache-Control", "max-age=604800")
                                 .body(bytes);
                         } else {
                             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -91,6 +93,7 @@ public class AvatarServiceImpl implements AvatarService {
             byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
             return CompletableFuture.completedFuture(ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
+                .header("Cache-Control", "max-age=604800")
                 .body(bytes));
         }
     }
