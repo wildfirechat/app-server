@@ -1,9 +1,12 @@
 package cn.wildfirechat.app.avatar;
 
+import org.springframework.core.io.ClassPathResource;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 
@@ -15,6 +18,8 @@ public class NameAvatarBuilder {
     private int templateHeight;
 
     private String fullName;
+
+    private static volatile Font font;
 
     public NameAvatarBuilder(String bgRGB) {
         templateImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB);
@@ -28,7 +33,18 @@ public class NameAvatarBuilder {
     public NameAvatarBuilder name(String drawName, String fullName) {
         this.fullName = fullName;
         // Get the FontMetrics
-        Font font = templateG2D.getFont().deriveFont(40f);
+        // 加载自定义字体
+        if (font == null) {
+            try (InputStream inputStream = new ClassPathResource("fonts/simhei.ttf").getInputStream()) {
+                // 加载自定义字体
+                Font customFont = Font.createFont(Font.TRUETYPE_FONT, inputStream);
+                // 设置字体样式
+                font = customFont.deriveFont(Font.PLAIN, 40);
+            } catch (IOException | FontFormatException e) {
+                e.printStackTrace();
+            }
+        }
+
         FontMetrics metrics = templateG2D.getFontMetrics(font);
         // Determine the X coordinate for the text
         int x = (templateWidth - metrics.stringWidth(drawName)) / 2;

@@ -9,8 +9,10 @@ import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -147,12 +149,15 @@ public class GroupAvatarUtil {
      * @param bb       比例不对时是否需要补白
      */
     private static BufferedImage resize2(URL filePath, int height, int width,
-                                         boolean bb) throws URISyntaxException {
+                                         boolean bb) {
+        DataInputStream dis = null;
         try {
+            URLConnection urlConnection = filePath.openConnection();
+            urlConnection.setConnectTimeout(5 * 1000);
+            urlConnection.setReadTimeout(5 * 1000);
+            dis = new DataInputStream(urlConnection.getInputStream());
+
             double ratio = 0; // 缩放比例
-
-            DataInputStream dis = new DataInputStream(filePath.openStream());
-
             //File f = new File(dis);
             BufferedImage bi = ImageIO.read(dis);
             Image itemp = bi.getScaledInstance(width, height,
@@ -191,6 +196,15 @@ public class GroupAvatarUtil {
             return (BufferedImage) itemp;
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            if (dis != null) {
+                try {
+                    dis.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
         }
         return null;
     }

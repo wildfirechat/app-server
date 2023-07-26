@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -50,7 +52,7 @@ public class AvatarServiceImpl implements AvatarService {
     }
 
     @Override
-    public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(GroupAvatarRequest request) throws IOException, URISyntaxException {
+    public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(GroupAvatarRequest request) throws MalformedURLException {
         List<GroupAvatarRequest.GroupMemberInfo> infos = request.getMembers();
         List<URL> paths = new ArrayList<>();
         long hashCode = 0;
@@ -72,10 +74,12 @@ public class AvatarServiceImpl implements AvatarService {
             return CompletableFuture.supplyAsync(new Supplier<ResponseEntity<byte[]>>() {
                 @Override
                 public ResponseEntity<byte[]> get() {
+                    InputStream inputStream = null;
                     try {
                         GroupAvatarUtil.getCombinationOfHead(paths, file);
                         if (file.exists()) {
-                            byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
+                            inputStream = Files.newInputStream(file.toPath());
+                            byte[] bytes = StreamUtils.copyToByteArray(inputStream);
                             return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_PNG)
                                 .header("Cache-Control", "max-age=604800")
@@ -84,17 +88,33 @@ public class AvatarServiceImpl implements AvatarService {
                             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
                         }
                     } catch (IOException | URISyntaxException e) {
-                        throw new RuntimeException(e);
+                        e.printStackTrace();
+                    } finally {
+                        if (inputStream != null) {
+                            try {
+                                inputStream.close();
+                            } catch (IOException e) {
+                                // do nothing
+                            }
+                        }
                     }
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
                 }
 
             });
         } else {
-            byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
-            return CompletableFuture.completedFuture(ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_PNG)
-                .header("Cache-Control", "max-age=604800")
-                .body(bytes));
+            try (
+                InputStream inputStream = Files.newInputStream(file.toPath())
+            ) {
+                byte[] bytes = StreamUtils.copyToByteArray(inputStream);
+                return CompletableFuture.completedFuture(ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_PNG)
+                    .header("Cache-Control", "max-age=604800")
+                    .body(bytes));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
         }
     }
 
