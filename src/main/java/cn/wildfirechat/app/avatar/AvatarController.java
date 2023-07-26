@@ -1,7 +1,6 @@
 package cn.wildfirechat.app.avatar;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.openjsse.net.ssl.OpenJSSE;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
