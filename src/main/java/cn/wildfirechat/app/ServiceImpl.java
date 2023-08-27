@@ -93,6 +93,9 @@ public class ServiceImpl implements Service {
     @Value("${logs.user_logs_path}")
     private String userLogPath;
 
+    @Value("${im.admin_url}")
+    private String adminUrl;
+
     @Autowired
     private ShortUUIDGenerator userNameGenerator;
 
@@ -618,6 +621,7 @@ public class ServiceImpl implements Service {
                 }
             }
 
+            LOG.info("login with session success, userId {}, clientId {}, platform {}, adminUrl {}", user.getUserId(), clientId, platform, adminUrl);
             Object sessionId = subject.getSession().getId();
             httpResponse.setHeader("authToken", sessionId.toString());
             return RestResult.ok(response);
@@ -844,6 +848,7 @@ public class ServiceImpl implements Service {
             LoginResponse response = new LoginResponse();
             response.setUserId(session.getConfirmedUserId());
             response.setToken(tokenResult.getResult().getToken());
+            LOG.info("login with session success, userId {}, clientId {}, platform {}, adminUrl {}", session.getConfirmedUserId(), session.getClientId(), session.getPlatform(), adminUrl);
             return RestResult.ok(response);
         } catch (Exception e) {
             e.printStackTrace();
