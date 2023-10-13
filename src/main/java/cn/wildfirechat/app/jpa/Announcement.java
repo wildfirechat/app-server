@@ -11,6 +11,7 @@ public class Announcement {
 
 	private String author;
 
+	@Column(length = 2048)
 	private String announcement;
 
 	private long timestamp;

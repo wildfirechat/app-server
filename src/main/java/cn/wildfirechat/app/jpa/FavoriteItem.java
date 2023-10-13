@@ -15,7 +15,7 @@ public class FavoriteItem {
     @Nullable
     public Long messageUid;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", length = 64)
 	public String userId;
 
     @Column(name = "type")
