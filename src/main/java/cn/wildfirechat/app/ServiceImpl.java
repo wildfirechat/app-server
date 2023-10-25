@@ -169,6 +169,9 @@ public class ServiceImpl implements Service {
     private void init() {
         AdminConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
         rateLimiter = new RateLimiter(60, 200);
+        if(StringUtils.isEmpty(mIMConfig.admin_user_id)) {
+            mIMConfig.admin_user_id = "admin";
+        }
     }
 
     private String getIp() {
@@ -588,7 +591,7 @@ public class ServiceImpl implements Service {
 
             if (isNewUser) {
                 if (!StringUtils.isEmpty(mIMConfig.welcome_for_new_user)) {
-                    sendTextMessage("admin", user.getUserId(), mIMConfig.welcome_for_new_user);
+                    sendTextMessage(mIMConfig.admin_user_id, user.getUserId(), mIMConfig.welcome_for_new_user);
                 }
 
                 if (mIMConfig.new_user_robot_friend && !StringUtils.isEmpty(mIMConfig.robot_friend_id)) {
@@ -607,7 +610,7 @@ public class ServiceImpl implements Service {
                 }
             } else {
                 if (!StringUtils.isEmpty(mIMConfig.welcome_for_back_user)) {
-                    sendTextMessage("admin", user.getUserId(), mIMConfig.welcome_for_back_user);
+                    sendTextMessage(mIMConfig.admin_user_id, user.getUserId(), mIMConfig.welcome_for_back_user);
                 }
                 if (!StringUtils.isEmpty(mIMConfig.back_user_subscribe_channel_id)) {
                     try {
@@ -619,6 +622,14 @@ public class ServiceImpl implements Service {
 
                     }
                 }
+            }
+
+            if(!StringUtils.isEmpty(mIMConfig.prompt_text)) {
+                sendTextMessage(mIMConfig.admin_user_id, user.getUserId(), mIMConfig.prompt_text);
+            }
+
+            if(!StringUtils.isEmpty(mIMConfig.image_msg_url) && !StringUtils.isEmpty(mIMConfig.image_msg_base64_thumbnail)) {
+                sendImageMessage(mIMConfig.admin_user_id, user.getUserId(), mIMConfig.image_msg_url, mIMConfig.image_msg_base64_thumbnail);
             }
 
             LOG.info("login with session success, userId {}, clientId {}, platform {}, adminUrl {}", user.getUserId(), clientId, platform, adminUrl);
@@ -734,7 +745,24 @@ public class ServiceImpl implements Service {
         payload.setType(1);
         payload.setSearchableContent(text);
 
+        sendMessage(fromUser, conversation, payload);
+    }
 
+    private void sendImageMessage(String fromUser, String toUser, String url, String base64Thumbnail) {
+        Conversation conversation = new Conversation();
+        conversation.setTarget(toUser);
+        conversation.setType(ProtoConstants.ConversationType.ConversationType_Private);
+        MessagePayload payload = new MessagePayload();
+        payload.setType(3);
+        payload.setRemoteMediaUrl(url);
+        payload.setBase64edData(base64Thumbnail);
+        payload.setMediaType(1);
+        payload.setSearchableContent("[图片]");
+
+        sendMessage(fromUser, conversation, payload);
+    }
+
+    private void sendMessage(String fromUser, Conversation conversation, MessagePayload payload) {
         try {
             IMResult<SendMessageResult> resultSendMessage = MessageAdmin.sendMessage(fromUser, conversation, payload);
             if (resultSendMessage != null && resultSendMessage.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
@@ -746,7 +774,6 @@ public class ServiceImpl implements Service {
             e.printStackTrace();
             LOG.error("send message error {}", e.getLocalizedMessage());
         }
-
     }
 
 
@@ -767,7 +794,7 @@ public class ServiceImpl implements Service {
 
         PCSession session = authDataSource.createSession(userId, request.getClientId(), request.getToken(), request.getPlatform());
         if (userId != null) {
-            sendPcLoginRequestMessage("admin", userId, request.getPlatform(), session.getToken());
+            sendPcLoginRequestMessage(mIMConfig.admin_user_id, userId, request.getPlatform(), session.getToken());
         }
         SessionOutput output = session.toOutput();
         LOG.info("client {} create pc session, key is {}", request.getClientId(), output.getToken());

@@ -11,6 +11,8 @@ public class IMConfig {
     public String admin_url;
     public String admin_secret;
 
+    public String admin_user_id;
+
     public boolean isUse_random_name() {
         return use_random_name;
     }
@@ -26,6 +28,10 @@ public class IMConfig {
     boolean new_user_robot_friend;
     String robot_friend_id;
     String robot_welcome;
+
+    String prompt_text;
+    String image_msg_url;
+    String image_msg_base64_thumbnail;
 
     String new_user_subscribe_channel_id;
     String back_user_subscribe_channel_id;
@@ -100,5 +106,37 @@ public class IMConfig {
 
     public void setBack_user_subscribe_channel_id(String back_user_subscribe_channel_id) {
         this.back_user_subscribe_channel_id = back_user_subscribe_channel_id;
+    }
+
+    public String getAdmin_user_id() {
+        return admin_user_id;
+    }
+
+    public void setAdmin_user_id(String admin_user_id) {
+        this.admin_user_id = admin_user_id;
+    }
+
+    public String getPrompt_text() {
+        return prompt_text;
+    }
+
+    public void setPrompt_text(String prompt_text) {
+        this.prompt_text = prompt_text;
+    }
+
+    public String getImage_msg_url() {
+        return image_msg_url;
+    }
+
+    public void setImage_msg_url(String image_msg_url) {
+        this.image_msg_url = image_msg_url;
+    }
+
+    public String getImage_msg_base64_thumbnail() {
+        return image_msg_base64_thumbnail;
+    }
+
+    public void setImage_msg_base64_thumbnail(String image_msg_base64_thumbnail) {
+        this.image_msg_base64_thumbnail = image_msg_base64_thumbnail;
     }
 }
