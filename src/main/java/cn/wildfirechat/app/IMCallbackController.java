@@ -67,6 +67,15 @@ public class IMCallbackController {
     }
 
     /*
+    消息已读回调
+    */
+    @PostMapping(value = "/im_event/message_read")
+    public Object onMessageRead(@RequestBody OutputReadData event) {
+        System.out.println("message:" +event.user);
+        return "ok";
+    }
+
+    /*
     群组信息更新回调
      */
     @PostMapping(value = "/im_event/group/info")
