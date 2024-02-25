@@ -596,9 +596,9 @@ public class ServiceImpl implements Service {
 
                 if (mIMConfig.new_user_robot_friend && !StringUtils.isEmpty(mIMConfig.robot_friend_id)) {
                     RelationAdmin.setUserFriend(user.getUserId(), mIMConfig.robot_friend_id, true, null);
-                    if (!StringUtils.isEmpty(mIMConfig.robot_welcome)) {
-                        sendTextMessage(mIMConfig.robot_friend_id, user.getUserId(), mIMConfig.robot_welcome);
-                    }
+                }
+                if (!StringUtils.isEmpty(mIMConfig.robot_welcome)) {
+                    sendTextMessage(mIMConfig.robot_friend_id, user.getUserId(), mIMConfig.robot_welcome);
                 }
 
                 if (!StringUtils.isEmpty(mIMConfig.new_user_subscribe_channel_id)) {
@@ -611,6 +611,9 @@ public class ServiceImpl implements Service {
             } else {
                 if (!StringUtils.isEmpty(mIMConfig.welcome_for_back_user)) {
                     sendTextMessage(mIMConfig.admin_user_id, user.getUserId(), mIMConfig.welcome_for_back_user);
+                }
+                if (!StringUtils.isEmpty(mIMConfig.robot_welcome)) {
+                    sendTextMessage(mIMConfig.robot_friend_id, user.getUserId(), mIMConfig.robot_welcome);
                 }
                 if (!StringUtils.isEmpty(mIMConfig.back_user_subscribe_channel_id)) {
                     try {
