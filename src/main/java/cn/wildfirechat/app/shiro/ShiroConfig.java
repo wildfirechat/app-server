@@ -68,7 +68,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/things/add_device", "login");
         filterChainDefinitionMap.put("/things/list_device", "login");
 
-        filterChainDefinitionMap.put("/amr2mp3", "login");
+        filterChainDefinitionMap.put("/amr2mp3", "anon");
         filterChainDefinitionMap.put("/avatar/**", "anon");
 
         //主要这行代码必须放在所有权限设置的最后，不然会导致所有 url 都被拦截 剩余的都需要认证
