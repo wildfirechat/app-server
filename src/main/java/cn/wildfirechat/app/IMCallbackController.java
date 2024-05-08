@@ -2,6 +2,7 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.pojos.*;
 import com.google.gson.Gson;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,6 +13,8 @@ IM对应事件发生时，会回调到配置地址。需要注意IM服务单线�
  */
 @RestController()
 public class IMCallbackController {
+    @Autowired
+    private Service mService;
     /*
     用户在线状态回调
      */
@@ -45,6 +48,7 @@ public class IMCallbackController {
     @PostMapping(value = "/im_event/message")
     public Object onMessage(@RequestBody OutputMessageData event) {
         System.out.println("message:" +event.getMessageId());
+        mService.sendAntiFraudTip(event);
         return "ok";
     }
 

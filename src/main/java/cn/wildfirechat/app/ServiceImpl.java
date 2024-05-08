@@ -11,8 +11,10 @@ import cn.wildfirechat.app.tools.RateLimiter;
 import cn.wildfirechat.app.tools.ShortUUIDGenerator;
 import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
+import cn.wildfirechat.messagecontentbuilder.TextMessageContentBuilder;
 import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
+import cn.wildfirechat.proto.WFCMessage;
 import cn.wildfirechat.sdk.*;
 import cn.wildfirechat.sdk.model.IMResult;
 import com.aliyun.oss.*;
@@ -63,6 +65,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
@@ -164,6 +168,8 @@ public class ServiceImpl implements Service {
     private String ossTempPath;
 
     private ConcurrentHashMap<String, Boolean> supportPCQuickLoginUsers = new ConcurrentHashMap<>();
+
+    private ExecutorService executorService = Executors.newFixedThreadPool(1);
 
     @PostConstruct
     private void init() {
@@ -1515,6 +1521,49 @@ public class ServiceImpl implements Service {
             e.printStackTrace();
             LOG.error("getGroupMembersForPortrait exception", e);
             return RestResult.error(ERROR_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    public void sendAntiFraudTip(OutputMessageData event) {
+        if((event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Private || event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Group)
+                && event.getPayload().getType() > 0 && event.getPayload().getType() < 15
+                && !"cgc8c8VV".equals(event.getSender())
+                && !"uiuJuJcc".equals(event.getSender())
+                && !"GNMtGtZZ".equals(event.getSender())
+                && !"q0H7q7MM".equals(event.getSender())
+                && !"EPhwEwgg".equals(event.getSender())
+                && !"admin".equals(event.getSender())
+                && !"FireRobot".equals(event.getSender())
+                && !"UZUWUWuu".equals(event.getSender())) {
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        MessagePayload notifyPayload = new MessagePayload();
+                        notifyPayload.setType(90);
+                        notifyPayload.setContent("近期发现多起诈骗案件，包括不限于以下形式：投资、博彩、兼职刷单、模特、卖*、约*、谈感情、冒充客服、冒充公检法等方式骗取钱财。请您注意，在这个软件上谈钱的一定是骗子，请您坚决拒绝金钱来往!!!");
+                        MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                        notifyPayload.setContent("根据我们用户以往受骗经历，凡事不敢用微信而是要把受害人引导上非知名聊天上软件的，都是为了逃避微信的防诈措施。请您注意，在这个软件上涉及到财物的百分百是骗子，无一例外！！！");
+                        MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                        notifyPayload.setContent("重要的事情说三遍：本软件仅作为验证和测试野火IM使用，请勿用于其他目的。所有本软件的聊天记录都可以在后台审查，请勿在本软件中涉及到测试以外的内容。");
+                        MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                        notifyPayload.setContent("重要的事情说三遍：本软件仅作为验证和测试野火IM使用，请勿用于其他目的。所有本软件的聊天记录都可以在后台审查，请勿在本软件中涉及到测试以外的内容。");
+                        MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                        notifyPayload.setContent("重要的事情说三遍：本软件仅作为验证和测试野火IM使用，请勿用于其他目的。所有本软件的聊天记录都可以在后台审查，请勿在本软件中涉及到测试以外的内容。");
+                        MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                        notifyPayload.setContent("因为经常有诈骗分子利用野火做诈骗，所以不得已我们才不停提醒，请测试和验证的朋友们体谅🙏🙏🙏");
+                        MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
         }
     }
 }
