@@ -1524,18 +1524,53 @@ public class ServiceImpl implements Service {
         }
     }
 
+    private final static List<String> ignoreUser = Arrays.asList("cgc8c8VV", "uiuJuJcc", "GNMtGtZZ", "q0H7q7MM", "EPhwEwgg", "UZUWUWuu");
+    private final static List<String> ignoreAdmin = Arrays.asList("admin", "FireRobot");
+    private final static Map<String, Boolean> ignoreGroups = new ConcurrentHashMap<>();
+
     @Override
     public void sendAntiFraudTip(OutputMessageData event) {
-        if((event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Private || event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Group)
-                && event.getPayload().getType() > 0 && event.getPayload().getType() < 15
-                && !"cgc8c8VV".equals(event.getSender())
-                && !"uiuJuJcc".equals(event.getSender())
-                && !"GNMtGtZZ".equals(event.getSender())
-                && !"q0H7q7MM".equals(event.getSender())
-                && !"EPhwEwgg".equals(event.getSender())
-                && !"admin".equals(event.getSender())
-                && !"FireRobot".equals(event.getSender())
-                && !"UZUWUWuu".equals(event.getSender())) {
+        if (event.getConv().getType() != ProtoConstants.ConversationType.ConversationType_Private && event.getConv().getType() != ProtoConstants.ConversationType.ConversationType_Group) {
+            return;
+        }
+
+        if (ignoreUser.contains(event.getSender()) || ignoreAdmin.contains(event.getSender())) {
+            return;
+        }
+
+        if (event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Private && (ignoreUser.contains(event.getConv().getTarget()) || ignoreAdmin.contains(event.getConv().getTarget()))) {
+            return;
+        }
+
+        if (event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Group) {
+            if(ignoreGroups.containsKey(event.getConv().getTarget())) {
+                boolean ignore = ignoreGroups.get(event.getConv().getTarget());
+                if(ignore) {
+                    return;
+                }
+            } else {
+                try {
+                    boolean ignore = false;
+                    IMResult<OutputGroupMemberList> result = GroupAdmin.getGroupMembers(event.getConv().getTarget());
+                    if(result != null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                        for (PojoGroupMember member : result.getResult().getMembers()) {
+                            if(ignoreUser.contains(member.getMember_id())) {
+                                ignore = true;
+                                break;
+                            }
+                        }
+                    }
+                    ignoreGroups.put(event.getConv().getTarget(), ignore);
+                    if(ignore) {
+                        return;
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+        }
+
             executorService.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -1588,6 +1623,5 @@ public class ServiceImpl implements Service {
                     }
                 }
             });
-        }
     }
 }
