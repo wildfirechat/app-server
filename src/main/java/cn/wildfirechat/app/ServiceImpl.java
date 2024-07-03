@@ -174,7 +174,7 @@ public class ServiceImpl implements Service {
     @PostConstruct
     private void init() {
         AdminConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
-        rateLimiter = new RateLimiter(60, 200);
+        rateLimiter = new RateLimiter(600, 20);
         if(StringUtils.isEmpty(mIMConfig.admin_user_id)) {
             mIMConfig.admin_user_id = "admin";
         }
@@ -215,6 +215,61 @@ public class ServiceImpl implements Service {
         }
         return 0;
     }
+
+    private boolean isInternalIP(String ip) {
+        byte[] ipAddress = textToNumericFormatV4(ip);
+        if (ipAddress == null || ipAddress.length < 4) {
+            return false;
+        }
+
+        // 127.0.0.1
+        if (ipAddress[0] == (byte) 127 && ipAddress[1] == 0 && ipAddress[2] == 0 && ipAddress[3] == (byte) 1 ) {
+            return true;
+        }
+
+        // 10.x.x.x
+        if (ipAddress[0] == 10) {
+            return true;
+        }
+
+        // 172.16.x.x 到 172.31.x.x
+        if (ipAddress[0] == (byte) 172 && ipAddress[1] >= 16 && ipAddress[1] <= 31) {
+            return true;
+        }
+
+        // 192.168.x.x
+        if (ipAddress[0] == (byte) 192 && ipAddress[1] == (byte) 168) {
+            return true;
+        }
+
+        // 其他情况，不是内网IP
+        return false;
+    }
+
+    private byte[] textToNumericFormatV4(String ipStr) {
+        if (ipStr == null || ipStr.isEmpty() || ipStr.length() > 15) {
+            return null;
+        }
+
+        ipStr = ipStr.replaceAll("[^0-9\\.]", "");
+
+        String[] ipParts = ipStr.split("\\.");
+        if (ipParts.length != 4) {
+            return null;
+        }
+
+        byte[] ip = new byte[4];
+        try {
+            for (int i = 0; i < 4; i++) {
+                ip[i] = (byte) Integer.parseInt(ipParts[i]);
+            }
+        } catch (NumberFormatException e) {
+            return null;
+        }
+
+        return ip;
+    }
+
     @Override
     public RestResult sendLoginCode(String mobile) {
         String remoteIp = getIp();
@@ -222,7 +277,7 @@ public class ServiceImpl implements Service {
 
         //判断当前IP发送是否超频。
         //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
-        if (!rateLimiter.isGranted(remoteIp)) {
+        if (!isInternalIP(remoteIp) && !rateLimiter.isGranted(remoteIp)) {
             return RestResult.result(ERROR_SEND_SMS_OVER_FREQUENCY.code, "IP " + remoteIp + " 请求短信超频", null);
         }
 
@@ -288,7 +343,7 @@ public class ServiceImpl implements Service {
 
         //判断当前IP发送是否超频。
         //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
-        if (!rateLimiter.isGranted(remoteIp)) {
+        if (!isInternalIP(remoteIp) && !rateLimiter.isGranted(remoteIp)) {
             return RestResult.result(ERROR_SEND_SMS_OVER_FREQUENCY.code, "IP " + remoteIp + " 请求短信超频", null);
         }
 
