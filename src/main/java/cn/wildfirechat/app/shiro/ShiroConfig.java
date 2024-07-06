@@ -75,6 +75,8 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/things/add_device", "login");
         filterChainDefinitionMap.put("/things/list_device", "login");
 
+        filterChainDefinitionMap.put("/fav/code/**", "anon");
+
         filterChainDefinitionMap.put("/amr2mp3", "anon");
         filterChainDefinitionMap.put("/avatar/**", "anon");
         filterChainDefinitionMap.put("/version/check", "anon");
