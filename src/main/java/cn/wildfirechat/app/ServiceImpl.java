@@ -278,6 +278,7 @@ public class ServiceImpl implements Service {
         //判断当前IP发送是否超频。
         //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
         if (!isInternalIP(remoteIp) && !rateLimiter.isGranted(remoteIp)) {
+            LOG.error("remote ip {} request over frequency", remoteIp);
             return RestResult.result(ERROR_SEND_SMS_OVER_FREQUENCY.code, "IP " + remoteIp + " 请求短信超频", null);
         }
 
@@ -344,6 +345,7 @@ public class ServiceImpl implements Service {
         //判断当前IP发送是否超频。
         //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
         if (!isInternalIP(remoteIp) && !rateLimiter.isGranted(remoteIp)) {
+            LOG.error("remote ip {} request over frequency", remoteIp);
             return RestResult.result(ERROR_SEND_SMS_OVER_FREQUENCY.code, "IP " + remoteIp + " 请求短信超频", null);
         }
 
