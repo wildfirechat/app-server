@@ -124,6 +124,7 @@ public class IMCallbackController {
     消息审查示例。
 
     如果允许发送，返回状态码为200，内容为空；如果替换内容发送，返回状态码200，内容为替换过的payload内容。如果不允许发送，返回状态码403。
+    注意如果没有替换内容运行原消息发送，要返回空内容，不要返回原消息！！！
     */
     @PostMapping(value = "/message/censor")
     public Object censorMessage(@RequestBody OutputMessageData event) {
