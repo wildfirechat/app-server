@@ -74,7 +74,7 @@ public class AudioController {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
-                return ResponseEntity.status(404).build();
+                return ResponseEntity.status(500).build();
             }
         });
     }
