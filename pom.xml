@@ -209,33 +209,41 @@
 		<dependency>
 			<groupId>ws.schild</groupId>
 			<artifactId>jave-core</artifactId>
-			<version>2.7.3</version>
+			<version>3.5.0</version>
 		</dependency>
 
 		<dependency>
 			<groupId>ws.schild</groupId>
 			<artifactId>jave-nativebin-linux64</artifactId>
-			<version>2.7.3</version>
+			<version>3.5.0</version>
 		</dependency>
 
+        <dependency>
+            <groupId>ws.schild</groupId>
+            <artifactId>jave-nativebin-osxm1</artifactId>
+            <version>3.5.0</version>
+        </dependency>
+
+<!--        amr 转 mp3 支持更多系统及架构，需添加相关依赖，具体可参考：https://github.com/a-schild/jave2-->
 <!--		为了减少包的大小，ws.schild只打包目标架构的库。如果您使用非Linux，请把上面注释掉，然后下面打开自己平台-->
 
 <!--		<dependency>-->
 <!--			<groupId>ws.schild</groupId>-->
 <!--			<artifactId>jave-nativebin-win64</artifactId>-->
-<!--			<version>2.7.3</version>-->
+<!--			<version>3.5.0</version>-->
 <!--		</dependency>-->
 
 <!--		<dependency>-->
 <!--			<groupId>ws.schild</groupId>-->
 <!--			<artifactId>jave-nativebin-osx64</artifactId>-->
-<!--			<version>2.7.3</version>-->
+<!--			<version>3.5.0</version>-->
 <!--		</dependency>-->
 
+<!--        包含所有-->
 <!--		<dependency>-->
 <!--			<groupId>ws.schild</groupId>-->
 <!--			<artifactId>jave-all-deps</artifactId>-->
-<!--			<version>2.7.3</version>-->
+<!--			<version>3.5.0</version>-->
 <!--		</dependency>-->
 
 		<dependency>

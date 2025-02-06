@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ws.schild.jave.*;
+import ws.schild.jave.encode.AudioAttributes;
+import ws.schild.jave.encode.EncodingAttributes;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
@@ -89,7 +91,7 @@ public class AudioController {
 
         //Encoding attributes
         EncodingAttributes attrs = new EncodingAttributes();
-        attrs.setFormat("mp3");
+        attrs.setOutputFormat("mp3");
         attrs.setAudioAttributes(audio);
 
         //Encode
