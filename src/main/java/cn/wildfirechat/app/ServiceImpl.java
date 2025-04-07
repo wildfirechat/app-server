@@ -212,7 +212,7 @@ public class ServiceImpl implements Service {
     @Override
     public RestResult sendLoginCode(String mobile) {
         String remoteIp = getIp();
-        LOG.info("request send sms from {}", remoteIp);
+        LOG.info("request send sms from {} {}", mobile, remoteIp);
 
         //判断当前IP发送是否超频。
         //另外 cn.wildfirechat.app.shiro.AuthDataSource.Count 会对用户发送消息限频
