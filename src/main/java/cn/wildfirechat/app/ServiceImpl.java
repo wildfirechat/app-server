@@ -96,6 +96,9 @@ public class ServiceImpl implements Service {
     @Value("${im.admin_url}")
     private String adminUrl;
 
+    @Value("${wfc.default_user_password}")
+    private boolean defaultUserPwd;
+
     @Autowired
     private ShortUUIDGenerator userNameGenerator;
 
@@ -343,8 +346,13 @@ public class ServiceImpl implements Service {
         return onLoginSuccess(httpResponse, mobile, clientId, platform, true);
     }
 
+    private String getUserDefaultPassword(String mobile) {
+        return mobile.length()>6?mobile.substring(mobile.length()-6):mobile;
+    }
+
     @Override
     public RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform) {
+        boolean isUseDefaultPwd = false;
         try {
             IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
             if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
@@ -355,9 +363,23 @@ public class ServiceImpl implements Service {
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             }
             Optional<UserPassword> optional = userPasswordRepository.findById(userResult.getResult().getUserId());
+            String defaultPwd = getUserDefaultPassword(mobile);
             if (!optional.isPresent()) {
-                //当用户不存在或者密码不存在时，返回密码错误。避免被攻击遍历登录获取用户名。
-                return RestResult.error(ERROR_CODE_INCORRECT);
+                if (defaultUserPwd) {
+                    UserPassword up = new UserPassword(userResult.getResult().getUserId());
+                    up = changePassword(up, defaultPwd);
+                    optional = Optional.of(up);
+                    isUseDefaultPwd = true;
+                } else {
+                    //当用户不存在或者密码不存在时，返回密码错误。避免被攻击遍历登录获取用户名。
+                    return RestResult.error(ERROR_CODE_INCORRECT);
+                }
+            } else {
+                if (defaultUserPwd) {
+                    if (defaultPwd.equals(password)) {
+                        isUseDefaultPwd = true;
+                    }
+                }
             }
             UserPassword up = optional.get();
             if (up.getTryCount() > 5) {
@@ -407,7 +429,7 @@ public class ServiceImpl implements Service {
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
 
-        return onLoginSuccess(response, mobile, clientId, platform, false);
+        return onLoginSuccess(response, mobile, clientId, platform, isUseDefaultPwd);
     }
 
     @Override
@@ -480,7 +502,7 @@ public class ServiceImpl implements Service {
         }
     }
 
-    private void changePassword(UserPassword up, String password) throws Exception {
+    private UserPassword changePassword(UserPassword up, String password) throws Exception {
         MessageDigest digest = MessageDigest.getInstance(Sha1Hash.ALGORITHM_NAME);
         digest.reset();
         String salt = UUID.randomUUID().toString();
@@ -490,6 +512,7 @@ public class ServiceImpl implements Service {
         up.setPassword(hashedPwd);
         up.setSalt(salt);
         userPasswordRepository.save(up);
+        return up;
     }
 
     private boolean verifyPassword(UserPassword up, String password) throws Exception {
