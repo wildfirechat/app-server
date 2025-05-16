@@ -1065,7 +1065,7 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult saveUserLogs(String userId, MultipartFile file) {
-        File localFile = new File(userLogPath, userId + "_" + file.getOriginalFilename());
+        File localFile = new File(userLogPath, userId + "_" + Utils.getSafeFileName(file.getOriginalFilename()));
 
         try {
             file.transferTo(localFile);
@@ -1198,7 +1198,7 @@ public class ServiceImpl implements Service {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
         String uuid = new ShortUUIDGenerator().getUserName(userId);
-        String fileName = userId + "-" + System.currentTimeMillis() + "-" + uuid + "-" + file.getOriginalFilename();
+        String fileName = userId + "-" + System.currentTimeMillis() + "-" + uuid + "-" + Utils.getSafeFileName(file.getOriginalFilename());
         File localFile = new File(ossTempPath, fileName);
 
         try {
