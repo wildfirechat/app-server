@@ -63,7 +63,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
 import static cn.wildfirechat.app.jpa.PCSession.PCSessionStatus.*;
@@ -1524,13 +1523,13 @@ public class ServiceImpl implements Service {
                 });
                 groupMembers = groupMembers.subList(0, 9);
             }
-            List<UserIdPortraitPojo> mids = new ArrayList<>();
+            List<UserIdNamePortraitPojo> mids = new ArrayList<>();
             for (PojoGroupMember member:groupMembers) {
                 IMResult<InputOutputUserInfo> userInfoIMResult = UserAdmin.getUserByUserId(member.getMember_id());
                 if(userInfoIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
-                    mids.add(new UserIdPortraitPojo(member.getMember_id(), userInfoIMResult.result.getPortrait()));
+                    mids.add(new UserIdNamePortraitPojo(member.getMember_id(), userInfoIMResult.result.getDisplayName(), userInfoIMResult.result.getPortrait()));
                 } else {
-                    mids.add(new UserIdPortraitPojo(member.getMember_id(), ""));
+                    mids.add(new UserIdNamePortraitPojo(member.getMember_id(),"", ""));
                 }
             }
             return RestResult.ok(mids);
