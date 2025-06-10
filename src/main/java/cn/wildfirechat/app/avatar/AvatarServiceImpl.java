@@ -15,8 +15,11 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -51,8 +54,24 @@ public class AvatarServiceImpl implements AvatarService {
         }
     }
 
+    private void decodeBasedUrl(GroupAvatarRequest request) {
+        for (GroupAvatarRequest.GroupMemberInfo member : request.getMembers()) {
+            if(!StringUtils.isEmpty(member.getAvatarUrl())) {
+                try {
+                    byte[] bts = Base64.getDecoder().decode(member.getAvatarUrl());
+                    if(bts != null) {
+                        member.setAvatarUrl(new String(bts, StandardCharsets.UTF_8));
+                    }
+                } catch (Exception e) {
+
+                }
+            }
+        }
+    }
+
     @Override
     public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(GroupAvatarRequest request) throws MalformedURLException {
+        decodeBasedUrl(request);
         List<GroupAvatarRequest.GroupMemberInfo> infos = request.getMembers();
         List<URL> paths = new ArrayList<>();
         long hashCode = 0;
