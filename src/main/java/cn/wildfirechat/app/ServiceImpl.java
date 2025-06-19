@@ -584,6 +584,8 @@ public class ServiceImpl implements Service {
             if (tokenResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
                 LOG.error("Get user token failure {}", tokenResult.code);
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+            } else {
+                LOG.info("Get token success, userId: {}, server label: {}", user.getUserId(), tokenResult.getResult().getServerLabel());
             }
 
             subject.getSession().setAttribute("userId", user.getUserId());
