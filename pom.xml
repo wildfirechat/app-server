@@ -23,7 +23,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
 		<log4j2.version>2.17.2</log4j2.version>
-		<wfc.sdk.version>1.3.6</wfc.sdk.version>
+		<wfc.sdk.version>1.3.5</wfc.sdk.version>
 	</properties>
 
 	<dependencies>
@@ -59,7 +59,7 @@
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
-			<version>8.0.28</version>
+			<version>8.0.31</version>
 		</dependency>
 
 		<dependency>
@@ -71,34 +71,34 @@
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java</artifactId>
-			<version>2.5.0</version>
+			<version>3.25.5</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>${log4j2.version}</version>
+			<version>2.17.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>${log4j2.version}</version>
+			<version>2.17.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>${log4j2.version}</version>
+			<version>2.17.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-to-slf4j</artifactId>
-			<version>${log4j2.version}</version>
+			<version>2.17.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.7</version>
+			<version>2.14.0</version>
 		</dependency>
 
 		<dependency>
@@ -116,7 +116,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.7.5</version>
+			<version>1.7.34</version>
 		</dependency>
 
 
@@ -129,7 +129,7 @@
 		<dependency>
 			<groupId>uk.org.lidalia</groupId>
 			<artifactId>slf4j-test</artifactId>
-			<version>1.0.0-jdk6</version>
+			<version>1.0.1</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -144,7 +144,7 @@
 		<dependency>
 			<groupId>com.tencentcloudapi</groupId>
 			<artifactId>tencentcloud-sdk-java-sms</artifactId>
-			<version>3.1.410</version>
+			<version>3.1.774</version>
 		</dependency>
 
 		<dependency>
@@ -167,19 +167,19 @@
 		<dependency>
 			<groupId>com.aliyun</groupId>
 			<artifactId>aliyun-java-sdk-core</artifactId>
-			<version>4.1.0</version>
+			<version>4.7.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.qiniu</groupId>
 			<artifactId>qiniu-java-sdk</artifactId>
-			<version>7.3.0</version>
+			<version>7.12.0</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.aliyun.oss</groupId>
 			<artifactId>aliyun-sdk-oss</artifactId>
-			<version>3.10.2</version>
+			<version>3.16.3</version>
 		</dependency>
 
 		<dependency>
@@ -191,19 +191,19 @@
 		<dependency>
 			<groupId>com.qcloud</groupId>
 			<artifactId>cos_api</artifactId>
-			<version>5.6.28</version>
+			<version>5.6.240</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>25.1-jre</version>
+			<version>32.0.1-jre</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.shiro</groupId>
 			<artifactId>shiro-spring</artifactId>
-			<version>1.7.1</version>
+			<version>1.13.0</version>
 		</dependency>
 
 		<dependency>
