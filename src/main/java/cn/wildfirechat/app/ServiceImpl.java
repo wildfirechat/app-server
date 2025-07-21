@@ -11,7 +11,6 @@ import cn.wildfirechat.app.tools.RateLimiter;
 import cn.wildfirechat.app.tools.ShortUUIDGenerator;
 import cn.wildfirechat.app.tools.Utils;
 import cn.wildfirechat.common.ErrorCode;
-import cn.wildfirechat.messagecontentbuilder.TextMessageContentBuilder;
 import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
 import cn.wildfirechat.proto.WFCMessage;
