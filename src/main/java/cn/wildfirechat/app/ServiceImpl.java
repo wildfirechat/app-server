@@ -1161,7 +1161,7 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult sendMessage(SendMessageRequest request) {
+    public RestResult sendUserMessage(SendMessageRequest request) {
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
 
@@ -1184,7 +1184,7 @@ public class ServiceImpl implements Service {
         payload.setExtra(request.content_extra);
 
         try {
-            IMResult<SendMessageResult> imResult = MessageAdmin.sendMessage(userId, conversation, payload);
+            IMResult<SendMessageResult> imResult = MessageAdmin.sendMessage(userId, conversation, payload, null, true);
             if (imResult != null && imResult.getCode() == ErrorCode.ERROR_CODE_SUCCESS.code) {
                 return RestResult.ok(imResult.getResult());
             }

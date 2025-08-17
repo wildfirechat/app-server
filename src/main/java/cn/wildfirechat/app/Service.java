@@ -37,7 +37,7 @@ public interface Service {
     RestResult getDeviceList();
     RestResult delDevice(InputCreateDevice createDevice);
 
-    RestResult sendMessage(SendMessageRequest request);
+    RestResult sendUserMessage(SendMessageRequest request);
     RestResult uploadMedia(int mediaType, MultipartFile file);
 
     RestResult putFavoriteItem(FavoriteItem request);

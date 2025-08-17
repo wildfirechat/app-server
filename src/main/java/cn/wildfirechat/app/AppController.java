@@ -212,8 +212,8 @@ public class AppController {
     发送消息
      */
     @PostMapping(value = "/messages/send")
-    public Object sendMessage(@RequestBody SendMessageRequest sendMessageRequest) {
-        return mService.sendMessage(sendMessageRequest);
+    public Object sendUserMessage(@RequestBody SendMessageRequest sendMessageRequest) {
+        return mService.sendUserMessage(sendMessageRequest);
     }
 
     /*
