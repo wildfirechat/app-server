@@ -4,12 +4,11 @@ package cn.wildfirechat.app;
 import cn.wildfirechat.app.jpa.*;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.app.shiro.AuthDataSource;
+import cn.wildfirechat.app.shiro.LdapToken;
 import cn.wildfirechat.app.shiro.PhoneCodeToken;
 import cn.wildfirechat.app.shiro.TokenAuthenticationToken;
 import cn.wildfirechat.app.sms.SmsService;
-import cn.wildfirechat.app.tools.RateLimiter;
-import cn.wildfirechat.app.tools.ShortUUIDGenerator;
-import cn.wildfirechat.app.tools.Utils;
+import cn.wildfirechat.app.tools.*;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.pojos.*;
 import cn.wildfirechat.proto.ProtoConstants;
@@ -51,6 +50,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import javax.naming.NamingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -97,6 +97,21 @@ public class ServiceImpl implements Service {
 
     @Value("${wfc.default_user_password}")
     private boolean defaultUserPwd;
+
+    @Value("${ldap.enable}")
+    private boolean enableLdap;
+
+    @Value("${ldap.admin_dn}")
+    private String ADMIN_DN;
+
+    @Value("${ldap.admin_password}")
+    private String ADMIN_PWD;
+
+    @Value("${ldap.ldap_url}")
+    private String LDAP_URL;
+
+    @Value("${ldap.search_base}")
+    private String SEARCH_BASE;
 
     @Autowired
     private ShortUUIDGenerator userNameGenerator;
@@ -345,12 +360,56 @@ public class ServiceImpl implements Service {
         return onLoginSuccess(httpResponse, mobile, clientId, platform, true);
     }
 
+    public RestResult loginWithLdap(HttpServletResponse httpResponse, String mobile, String password, String clientId, int platform) {
+        List<LdapUser> users;
+        try {
+            users = LdapUtil.findUserByPhone(mobile, LDAP_URL, SEARCH_BASE, ADMIN_DN, ADMIN_PWD);
+        } catch (NamingException e) {
+            return RestResult.error(ERROR_SERVER_ERROR);
+        }
+
+        if(users.isEmpty()) {
+            return RestResult.error(ERROR_NOT_EXIST);
+        }
+        LdapUser user = users.get(0);
+        Subject subject = SecurityUtils.getSubject();
+        // 在认证提交前准备 token（令牌）
+        LdapToken token = new LdapToken(user.dn, password, LDAP_URL);
+        // 执行认证登陆
+        try {
+            subject.login(token);
+        } catch (UnknownAccountException uae) {
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        } catch (IncorrectCredentialsException ice) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (LockedAccountException lae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (ExcessiveAttemptsException eae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        } catch (AuthenticationException ae) {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        }
+        if (subject.isAuthenticated()) {
+            long timeout = subject.getSession().getTimeout();
+            LOG.info("Login success " + timeout);
+            authDataSource.clearRecode(mobile);
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
+        }
+
+        return onLoginSuccess(httpResponse, mobile, clientId, platform, false);
+    }
+
     private String getUserDefaultPassword(String mobile) {
         return mobile.length()>6?mobile.substring(mobile.length()-6):mobile;
     }
 
     @Override
     public RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform) {
+        if(enableLdap) {
+            return loginWithLdap(response, mobile, password, clientId, platform);
+        }
+        
         boolean isUseDefaultPwd = false;
         try {
             IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);

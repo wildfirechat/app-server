@@ -33,6 +33,9 @@ public class ShiroConfig {
     @Autowired
     private UserPasswordRealm userPasswordRealm;
 
+    @Autowired
+    private LdapRealm ldapRealm;
+
     @Value("${wfc.all_client_support_ssl}")
     private boolean All_Client_Support_SSL;
 
@@ -82,7 +85,7 @@ public class ShiroConfig {
     @Bean
     public SecurityManager securityManager() {
         DefaultWebSecurityManager defaultSecurityManager = new DefaultWebSecurityManager();
-        defaultSecurityManager.setRealms(Arrays.asList(phoneCodeRealm, scanCodeRealm, userPasswordRealm));
+        defaultSecurityManager.setRealms(Arrays.asList(phoneCodeRealm, scanCodeRealm, userPasswordRealm, ldapRealm));
         ShiroSessionManager sessionManager = new ShiroSessionManager();
         sessionManager.setGlobalSessionTimeout(Long.MAX_VALUE);
         sessionManager.setSessionDAO(dbSessionDao);
