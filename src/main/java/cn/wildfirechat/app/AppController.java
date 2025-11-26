@@ -91,7 +91,7 @@ public class AppController {
         LOG.info("receive login with session key {}", token);
         RestResult timeoutResult = RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         ResponseEntity<RestResult> timeoutResponseEntity = new ResponseEntity<>(timeoutResult, HttpStatus.OK);
-        int timeoutSecond = 60;
+        int timeoutSecond = 50;
         DeferredResult<ResponseEntity> deferredResult = new DeferredResult<>(timeoutSecond * 1000L, timeoutResponseEntity);
         CompletableFuture.runAsync(() -> {
             try {
