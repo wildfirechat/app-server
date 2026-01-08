@@ -35,19 +35,31 @@ public class AppController {
     /*
     移动端登录
      */
+    // 生成滑动验证码
+    @PostMapping(value = "/slide_verify/generate", produces = "application/json;charset=UTF-8")
+    public Object generateSlideVerify() {
+        return mService.generateSlideVerify();
+    }
+
+    // 验证滑动验证码
+    @PostMapping(value = "/slide_verify/verify", produces = "application/json;charset=UTF-8")
+    public Object verifySlide(@RequestBody SlideVerifyRequest request) {
+        return mService.verifySlide(request.getToken(), request.getX());
+    }
+
     @PostMapping(value = "/send_code", produces = "application/json;charset=UTF-8")
-    public Object sendLoginCode(@RequestBody SendCodeRequest request) {
-        return mService.sendLoginCode(request.getMobile());
+    public Object sendLoginCode(@RequestBody SendCodeRequestWithSlideVerify request) {
+        return mService.sendLoginCode(request.getMobile(), request.getSlideVerifyToken());
     }
 
     @PostMapping(value = "/login", produces = "application/json;charset=UTF-8")
-    public Object loginWithMobileCode(@RequestBody PhoneCodeLoginRequest request, HttpServletResponse response) {
-        return mService.loginWithMobileCode(response, request.getMobile(), request.getCode(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform());
+    public Object loginWithMobileCode(@RequestBody PhoneCodeLoginRequestWithSlideVerify request, HttpServletResponse response) {
+        return mService.loginWithMobileCode(response, request.getMobile(), request.getCode(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform(), request.getSlideVerifyToken());
     }
 
     @PostMapping(value = "/login_pwd", produces = "application/json;charset=UTF-8")
-    public Object loginWithPassword(@RequestBody UserPasswordLoginRequest request, HttpServletResponse response) {
-        return mService.loginWithPassword(response, request.getMobile(), request.getPassword(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform());
+    public Object loginWithPassword(@RequestBody UserPasswordLoginRequestWithSlideVerify request, HttpServletResponse response) {
+        return mService.loginWithPassword(response, request.getMobile(), request.getPassword(), request.getClientId(), request.getPlatform() == null ? 0 : request.getPlatform(), request.getSlideVerifyToken());
     }
 
     @PostMapping(value = "/change_pwd", produces = "application/json;charset=UTF-8")
@@ -57,7 +69,7 @@ public class AppController {
 
     @PostMapping(value = "/send_reset_code", produces = "application/json;charset=UTF-8")
     public Object sendResetCode(@RequestBody SendCodeRequest request) {
-        return mService.sendResetCode(request.getMobile());
+        return mService.sendResetCode(request.getMobile(), request.getSlideVerifyToken());
     }
 
     @PostMapping(value = "/reset_pwd", produces = "application/json;charset=UTF-8")
@@ -66,8 +78,8 @@ public class AppController {
     }
 
     @PostMapping(value = "/send_destroy_code", produces = "application/json;charset=UTF-8")
-    public Object sendDestroyCode() {
-        return mService.sendDestroyCode();
+    public Object sendDestroyCode(@RequestBody SendDestroyCodeRequest request) {
+        return mService.sendDestroyCode(request.getSlideVerifyToken());
     }
 
     @PostMapping(value = "/destroy", produces = "application/json;charset=UTF-8")

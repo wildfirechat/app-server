@@ -61,6 +61,11 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/im_event/**", "anon");
         filterChainDefinitionMap.put("/im_exception_event/**", "anon");
         filterChainDefinitionMap.put("/message/censor", "anon");
+
+        // 滑动验证接口 - 匿名访问
+        filterChainDefinitionMap.put("/slide_verify/generate", "anon");
+        filterChainDefinitionMap.put("/slide_verify/verify", "anon");
+
         filterChainDefinitionMap.put("/", "anon");
 
         filterChainDefinitionMap.put("/confirm_pc", "login");

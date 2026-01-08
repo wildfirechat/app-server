@@ -10,12 +10,17 @@ import javax.servlet.http.HttpServletResponse;
 
 public interface Service {
     RestResult sendLoginCode(String mobile);
+    RestResult sendLoginCode(String mobile, String slideVerifyToken);
     RestResult sendResetCode(String mobile);
+    RestResult sendResetCode(String mobile, String slideVerifyToken);
     RestResult loginWithMobileCode(HttpServletResponse response, String mobile, String code, String clientId, int platform);
+    RestResult loginWithMobileCode(HttpServletResponse response, String mobile, String code, String clientId, int platform, String slideVerifyToken);
     RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform);
+    RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform, String slideVerifyToken);
     RestResult changePassword(String oldPwd, String newPwd);
     RestResult resetPassword(String mobile, String resetCode, String newPwd);
     RestResult sendDestroyCode();
+    RestResult sendDestroyCode(String slideVerifyToken);
     RestResult destroy(HttpServletResponse response, String code);
 
     RestResult createPcSession(CreateSessionRequest request);
@@ -32,6 +37,9 @@ public interface Service {
     RestResult getGroupAnnouncement(String groupId);
 
     RestResult saveUserLogs(String userId, MultipartFile file);
+
+    RestResult generateSlideVerify();
+    RestResult verifySlide(String token, int x);
 
     RestResult addDevice(InputCreateDevice createDevice);
     RestResult getDeviceList();

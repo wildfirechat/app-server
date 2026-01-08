@@ -1,6 +1,6 @@
 package cn.wildfirechat.app.pojo;
 
-public class SendCodeRequest {
+public class SendCodeRequestWithSlideVerify {
     private String mobile;
     private String slideVerifyToken;
 
