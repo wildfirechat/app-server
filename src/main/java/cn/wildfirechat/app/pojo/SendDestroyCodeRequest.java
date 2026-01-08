@@ -1,16 +1,7 @@
 package cn.wildfirechat.app.pojo;
 
-public class SendCodeRequest {
-    private String mobile;
+public class SendDestroyCodeRequest {
     private String slideVerifyToken;
-
-    public String getMobile() {
-        return mobile;
-    }
-
-    public void setMobile(String mobile) {
-        this.mobile = mobile;
-    }
 
     public String getSlideVerifyToken() {
         return slideVerifyToken;

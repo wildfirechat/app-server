@@ -91,6 +91,12 @@ public class ServiceImpl implements Service {
     @Autowired
     private UserPasswordRepository userPasswordRepository;
 
+    @Autowired
+    private cn.wildfirechat.app.slide.SlideVerifyService slideVerifyService;
+
+    @Value("${slide.verify.force:false}")
+    private boolean forceSlideVerify;
+
     @Value("${sms.super_code}")
     private String superCode;
 
@@ -275,6 +281,29 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult sendLoginCode(String mobile) {
+        return sendLoginCode(mobile, null);
+    }
+
+    @Override
+    public RestResult sendLoginCode(String mobile, String slideVerifyToken) {
+        // 验证滑动验证码
+        if (forceSlideVerify) {
+            // 强制模式：必须提供token且验证通过
+            if (slideVerifyToken == null || slideVerifyToken.isEmpty()) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+            if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+        } else {
+            // 可选模式：如果提供了token就验证
+            if (slideVerifyToken != null && !slideVerifyToken.isEmpty()) {
+                if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                    return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+                }
+            }
+        }
+
         String remoteIp = getIp();
         LOG.info("request send sms from {} {}", mobile, remoteIp);
 
@@ -317,7 +346,51 @@ public class ServiceImpl implements Service {
     }
 
     @Override
+    public RestResult generateSlideVerify() {
+        try {
+            Map<String, Object> result = slideVerifyService.generateSlideVerify();
+            return RestResult.ok(result);
+        } catch (Exception e) {
+            LOG.error("生成滑动验证码失败", e);
+            return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    public RestResult verifySlide(String token, int x) {
+        boolean success = slideVerifyService.verifySlide(token, x);
+        if (success) {
+            return RestResult.ok();
+        } else {
+            return RestResult.error(RestResult.RestCode.ERROR_SLIDE_VERIFY_NOT_PASS);
+        }
+    }
+
+    @Override
     public RestResult sendResetCode(String mobile) {
+        return sendResetCode(mobile, null);
+    }
+
+    @Override
+    public RestResult sendResetCode(String mobile, String slideVerifyToken) {
+        // 验证滑动验证码
+        if (forceSlideVerify) {
+            // 强制模式：必须提供token且验证通过
+            if (slideVerifyToken == null || slideVerifyToken.isEmpty()) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+            if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+        } else {
+            // 可选模式：如果提供了token就验证
+            if (slideVerifyToken != null && !slideVerifyToken.isEmpty()) {
+                if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                    return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+                }
+            }
+        }
+
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
         String remoteIp = getIp();
@@ -381,6 +454,29 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult loginWithMobileCode(HttpServletResponse httpResponse, String mobile, String code, String clientId, int platform) {
+        return loginWithMobileCode(httpResponse, mobile, code, clientId, platform, null);
+    }
+
+    @Override
+    public RestResult loginWithMobileCode(HttpServletResponse httpResponse, String mobile, String code, String clientId, int platform, String slideVerifyToken) {
+        // 验证滑动验证码
+        if (forceSlideVerify) {
+            // 强制模式：必须提供token且验证通过
+            if (slideVerifyToken == null || slideVerifyToken.isEmpty()) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+            if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+        } else {
+            // 可选模式：如果提供了token就验证
+            if (slideVerifyToken != null && !slideVerifyToken.isEmpty()) {
+                if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                    return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+                }
+            }
+        }
+
         Subject subject = SecurityUtils.getSubject();
         // 在认证提交前准备 token（令牌）
         PhoneCodeToken token = new PhoneCodeToken(mobile, code);
@@ -415,6 +511,29 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform) {
+        return loginWithPassword(response, mobile, password, clientId, platform, null);
+    }
+
+    @Override
+    public RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform, String slideVerifyToken) {
+        // 验证滑动验证码
+        if (forceSlideVerify) {
+            // 强制模式：必须提供token且验证通过
+            if (slideVerifyToken == null || slideVerifyToken.isEmpty()) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+            if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+        } else {
+            // 可选模式：如果提供了token就验证
+            if (slideVerifyToken != null && !slideVerifyToken.isEmpty()) {
+                if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                    return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+                }
+            }
+        }
+
         boolean isUseDefaultPwd = false;
         try {
             IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
@@ -733,6 +852,29 @@ public class ServiceImpl implements Service {
     }
     @Override
     public RestResult sendDestroyCode() {
+        return sendDestroyCode(null);
+    }
+
+    @Override
+    public RestResult sendDestroyCode(String slideVerifyToken) {
+        // 验证滑动验证码
+        if (forceSlideVerify) {
+            // 强制模式：必须提供token且验证通过
+            if (slideVerifyToken == null || slideVerifyToken.isEmpty()) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+            if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+        } else {
+            // 可选模式：如果提供了token就验证
+            if (slideVerifyToken != null && !slideVerifyToken.isEmpty()) {
+                if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                    return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+                }
+            }
+        }
+
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
         try {
