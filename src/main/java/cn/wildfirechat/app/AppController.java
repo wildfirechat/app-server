@@ -64,7 +64,7 @@ public class AppController {
 
     @PostMapping(value = "/change_pwd", produces = "application/json;charset=UTF-8")
     public Object changePassword(@RequestBody ChangePasswordRequest request) {
-        return mService.changePassword(request.getOldPassword(), request.getNewPassword());
+        return mService.changePassword(request.getOldPassword(), request.getNewPassword(), request.getSlideVerifyToken());
     }
 
     @PostMapping(value = "/send_reset_code", produces = "application/json;charset=UTF-8")

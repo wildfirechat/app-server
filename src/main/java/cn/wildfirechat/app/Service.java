@@ -11,13 +11,10 @@ import javax.servlet.http.HttpServletResponse;
 public interface Service {
     RestResult sendLoginCode(String mobile);
     RestResult sendLoginCode(String mobile, String slideVerifyToken);
-    RestResult sendResetCode(String mobile);
     RestResult sendResetCode(String mobile, String slideVerifyToken);
-    RestResult loginWithMobileCode(HttpServletResponse response, String mobile, String code, String clientId, int platform);
     RestResult loginWithMobileCode(HttpServletResponse response, String mobile, String code, String clientId, int platform, String slideVerifyToken);
-    RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform);
     RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform, String slideVerifyToken);
-    RestResult changePassword(String oldPwd, String newPwd);
+    RestResult changePassword(String oldPwd, String newPwd, String slideVerifyToken);
     RestResult resetPassword(String mobile, String resetCode, String newPwd);
     RestResult sendDestroyCode();
     RestResult sendDestroyCode(String slideVerifyToken);

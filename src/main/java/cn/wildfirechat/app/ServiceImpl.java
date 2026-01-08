@@ -319,11 +319,6 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult sendResetCode(String mobile) {
-        return sendResetCode(mobile, null);
-    }
-
-    @Override
     public RestResult sendResetCode(String mobile, String slideVerifyToken) {
         // 验证滑动验证码
         if (forceSlideVerify) {
@@ -401,11 +396,6 @@ public class ServiceImpl implements Service {
             e.printStackTrace();
         }
         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
-    }
-
-    @Override
-    public RestResult loginWithMobileCode(HttpServletResponse httpResponse, String mobile, String code, String clientId, int platform) {
-        return loginWithMobileCode(httpResponse, mobile, code, clientId, platform, null);
     }
 
     @Override
@@ -498,11 +488,6 @@ public class ServiceImpl implements Service {
 
     private String getUserDefaultPassword(String mobile) {
         return mobile.length()>6?mobile.substring(mobile.length()-6):mobile;
-    }
-
-    @Override
-    public RestResult loginWithPassword(HttpServletResponse response, String mobile, String password, String clientId, int platform) {
-        return loginWithPassword(response, mobile, password, clientId, platform, null);
     }
 
     @Override
@@ -610,7 +595,25 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public RestResult changePassword(String oldPwd, String newPwd) {
+    public RestResult changePassword(String oldPwd, String newPwd, String slideVerifyToken) {
+        // 验证滑动验证码
+        if (forceSlideVerify) {
+            // 强制模式：必须提供token且验证通过
+            if (slideVerifyToken == null || slideVerifyToken.isEmpty()) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+            if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+            }
+        } else {
+            // 非强制模式：如果提供了token，则必须验证通过
+            if (slideVerifyToken != null && !slideVerifyToken.isEmpty()) {
+                if (!slideVerifyService.isVerified(slideVerifyToken)) {
+                    return RestResult.error(ERROR_SLIDE_VERIFY_NOT_PASS);
+                }
+            }
+        }
+
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
         Optional<UserPassword> optional = userPasswordRepository.findById(userId);

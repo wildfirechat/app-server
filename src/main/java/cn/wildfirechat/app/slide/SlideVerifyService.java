@@ -30,7 +30,7 @@ public class SlideVerifyService {
     private static final int VERIFY_TIMEOUT = 300; // 5分钟
 
     // 验证误差范围（像素）
-    private static final int TOLERANCE = 5;
+    private static final int TOLERANCE = 10;
 
     // 图片尺寸
     private static final int IMAGE_WIDTH = 300;
@@ -117,13 +117,14 @@ public class SlideVerifyService {
         }
 
         // 验证位置是否在误差范围内
-        boolean success = Math.abs(data.x - userX) <= TOLERANCE;
+        int difference = Math.abs(data.x - userX);
+        boolean success = difference <= TOLERANCE;
 
         if (success) {
             data.verified = true;
-            LOG.info("滑动验证成功，token: {}, 正确位置: {}, 用户位置: {}", token, data.x, userX);
+            LOG.info("滑动验证成功，token: {}, 正确位置: {}, 用户位置: {}, 差值: {}", token, data.x, userX, difference);
         } else {
-            LOG.warn("滑动验证失败，token: {}, 正确位置: {}, 用户位置: {}", token, data.x, userX);
+            LOG.warn("滑动验证失败，token: {}, 正确位置: {}, 用户位置: {}, 差值: {}, 容差: {}", token, data.x, userX, difference, TOLERANCE);
             verifyCache.remove(token); // 验证失败则移除token
         }
 
@@ -282,6 +283,7 @@ public class SlideVerifyService {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(image, "png", baos);
         byte[] imageBytes = baos.toByteArray();
+        // 返回带前缀的 data URI
         return "data:image/png;base64," + Base64.getEncoder().encodeToString(imageBytes);
     }
 }
