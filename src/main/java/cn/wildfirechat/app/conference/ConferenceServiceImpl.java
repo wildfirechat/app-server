@@ -174,7 +174,7 @@ public class ConferenceServiceImpl implements ConferenceService {
             conferenceEntityRepository.deleteById(conferenceId);
         } else {
             try {
-                IMResult<PojoConferenceInfoList> conferenceInfoListIMResult = ConferenceAdmin.listConferences();
+                IMResult<PojoConferenceInfoList> conferenceInfoListIMResult = ConferenceAdmin.listConferences(1000, 0);
                 if(conferenceInfoListIMResult != null && conferenceInfoListIMResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
                     for (PojoConferenceInfo info : conferenceInfoListIMResult.getResult().conferenceInfoList) {
                         if(info.roomId.equals(conferenceId)) {
