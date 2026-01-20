@@ -340,7 +340,7 @@
 <!--						</mapping>-->
 <!--						<mapping>-->
 <!--							<directory>/opt/app-server/config</directory>-->
-<!--							<filemode>755</filemode>-->
+<!--							<filemode>644</filemode>-->
 <!--							<sources>-->
 <!--								<source>-->
 <!--									<location>${project.basedir}/config</location>-->
