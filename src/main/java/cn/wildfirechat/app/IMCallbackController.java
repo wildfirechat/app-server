@@ -1,6 +1,9 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.pojos.*;
+import cn.wildfirechat.pojos.moments.CommentPojo;
+import cn.wildfirechat.pojos.moments.FeedPojo;
+import cn.wildfirechat.pojos.moments.IdPojo;
 import com.google.gson.Gson;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -172,6 +175,30 @@ public class IMCallbackController {
     @PostMapping(value = "/im_event/conference/member_unpublish")
     public Object onConferenceMemberUnpublished(@RequestBody ConferenceUnpublishEvent event) {
         System.out.println("conference member unpublished:" + event);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/moments_feed")
+    public Object onMomentsFeed(@RequestBody FeedPojo event) {
+        System.out.println("feed posted:" + event.sender + ", " + event.feedId + ", " + event.text);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/moments_feed_recall")
+    public Object onMomentsFeedRecall(@RequestBody IdPojo event) {
+        System.out.println("recall feed:" + event.id);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/moments_comment")
+    public Object onMomentsComment(@RequestBody CommentPojo event) {
+        System.out.println("feed posted:" + event.sender + ", " + event.commentId + ", " + event.feedId + ", " + event.text);
+        return "ok";
+    }
+
+    @PostMapping(value = "/im_event/moments_comment_recall")
+    public Object onMomentsCommentRecall(@RequestBody IdPojo event) {
+        System.out.println("recall comment:" + event.id + "," + event.id2);
         return "ok";
     }
 }
