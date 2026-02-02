@@ -1750,7 +1750,7 @@ public class ServiceImpl implements Service {
     }
 
     private final static List<String> ignoreUser = Arrays.asList("cgc8c8VV", "uiuJuJcc", "GNMtGtZZ", "q0H7q7MM", "EPhwEwgg", "UZUWUWuu");
-    private final static List<String> ignoreAdmin = Arrays.asList("admin", "FireRobot");
+    private final static List<String> ignoreAdmin = Arrays.asList("admin", "FireRobot", "robotfather");
     private final static Map<String, Boolean> ignoreGroups = new ConcurrentHashMap<>();
 
     @Override
@@ -1760,6 +1760,10 @@ public class ServiceImpl implements Service {
         }
 
         if (ignoreUser.contains(event.getSender()) || ignoreAdmin.contains(event.getSender())) {
+            return;
+        }
+
+        if(event.getSender().startsWith("robot_")) {
             return;
         }
 
