@@ -1763,7 +1763,7 @@ public class ServiceImpl implements Service {
             return;
         }
 
-        if(event.getSender().startsWith("robot_")) {
+        if(event.getSender().startsWith("robot_") || (event.getConv().getType() == 0 && event.getConv().getTarget().startsWith("robot_"))) {
             return;
         }
 
