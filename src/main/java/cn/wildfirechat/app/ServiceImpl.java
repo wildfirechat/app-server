@@ -712,7 +712,7 @@ public class ServiceImpl implements Service {
         Subject subject = SecurityUtils.getSubject();
         try {
             //使用电话号码查询用户信息。
-            IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
+            IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile, true);
 
             //如果用户信息不存在，创建用户
             InputOutputUserInfo user;
@@ -751,13 +751,21 @@ public class ServiceImpl implements Service {
                     LOG.info("Create user failure {}", userIdResult.code);
                     return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
                 }
-
-
             } else if (userResult.getCode() != 0) {
                 LOG.error("Get user failure {}", userResult.code);
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             } else {
                 user = userResult.getResult();
+                if(user.getDeleted() > 0) {
+                    user.setDeleted(0);
+                    IMResult<OutputCreateUser> userIdResult = UserAdmin.createUser(user);
+                    if (userIdResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                        isNewUser = true;
+                    } else {
+                        LOG.info("Create user failure {}", userIdResult.code);
+                        return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+                    }
+                }
             }
 
             //使用用户id获取token
