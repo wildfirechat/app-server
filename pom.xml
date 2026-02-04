@@ -62,6 +62,24 @@
 			<version>8.0.28</version>
 		</dependency>
 
+		<!-- 达梦数据库 JDBC 驱动 -->
+		<dependency>
+			<groupId>com.dameng</groupId>
+			<artifactId>dameng8</artifactId>
+			<version>8.2.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/lib/DmJdbcDriver18.jar</systemPath>
+		</dependency>
+
+		<!-- Hibernate 达梦方言 -->
+		<dependency>
+			<groupId>com.dameng</groupId>
+			<artifactId>DmDialect-for-hibernate5.3</artifactId>
+			<version>8.2.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/lib/DmDialect-for-hibernate5.3.jar</systemPath>
+		</dependency>
+
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
