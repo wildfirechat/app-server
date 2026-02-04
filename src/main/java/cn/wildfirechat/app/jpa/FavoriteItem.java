@@ -39,7 +39,8 @@ public class FavoriteItem {
     @Column(name = "sender")
 	public String sender;
 
-	@Column(name="title",columnDefinition="LONGTEXT")
+	@Lob
+	@Column(name="title")
 	public String title;
 
 	@Column(name="url",length = 1024)
@@ -48,7 +49,8 @@ public class FavoriteItem {
 	@Column(name = "thumb_url",length = 1024)
 	public String thumbUrl;
 
-	@Column(name="data",columnDefinition="LONGTEXT")
+	@Lob
+	@Column(name="data")
 	public String data;
 
 }
