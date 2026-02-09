@@ -1,6 +1,7 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.jpa.PCSessionRepository;
+import cn.wildfirechat.app.jpa.SlideVerifyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,6 +20,9 @@ import javax.servlet.MultipartConfigElement;
 public class Application {
     @Autowired
     private PCSessionRepository pcSessionRepository;
+
+    @Autowired
+    private SlideVerifyRepository slideVerifyRepository;
 
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
@@ -42,6 +46,11 @@ public class Application {
     @Scheduled(fixedRate = 60 * 60 * 1000)
     public void clearPCSession(){
         pcSessionRepository.deleteByCreateDtBefore(System.currentTimeMillis() - 60 * 60 * 1000);
+    }
+
+    @Scheduled(fixedRate = 60 * 60 * 1000)
+    public void cleanExpiredSlideVerify(){
+        slideVerifyRepository.deleteExpired(java.time.Instant.now().minusSeconds(300));
     }
 
 }

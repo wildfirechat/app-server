@@ -1,14 +1,14 @@
 package cn.wildfirechat.app.slide;
 
+import cn.wildfirechat.app.jpa.SlideVerify;
+import cn.wildfirechat.app.jpa.SlideVerifyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.PathIterator;
-import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -17,14 +17,13 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SlideVerifyService {
     private static final Logger LOG = LoggerFactory.getLogger(SlideVerifyService.class);
 
-    // 存储验证码信息：token -> 验证数据
-    private final ConcurrentHashMap<String, VerifyData> verifyCache = new ConcurrentHashMap<>();
+    @Autowired
+    private SlideVerifyRepository slideVerifyRepository;
 
     // 验证码有效时间（秒）
     private static final int VERIFY_TIMEOUT = 300; // 5分钟
@@ -37,23 +36,6 @@ public class SlideVerifyService {
     private static final int IMAGE_HEIGHT = 150;
     private static final int SLIDER_WIDTH = 50;
     private static final int SLIDER_HEIGHT = 50;
-
-    // 验证数据类
-    private static class VerifyData {
-        int x;  // 正确的x坐标
-        long timestamp; // 生成时间戳
-        boolean verified; // 是否已验证
-
-        VerifyData(int x) {
-            this.x = x;
-            this.timestamp = System.currentTimeMillis();
-            this.verified = false;
-        }
-
-        boolean isExpired() {
-            return System.currentTimeMillis() - timestamp > VERIFY_TIMEOUT * 1000;
-        }
-    }
 
     /**
      * 生成滑动验证码
@@ -68,8 +50,9 @@ public class SlideVerifyService {
 
         LOG.info("生成滑动验证码: token={}, x={}, y={}", token, x, y);
 
-        // 存储验证数据
-        verifyCache.put(token, new VerifyData(x));
+        // 保存验证数据到数据库
+        SlideVerify slideVerify = new SlideVerify(token, x, System.currentTimeMillis());
+        slideVerifyRepository.save(slideVerify);
 
         try {
             // 生成背景图（带缺口）
@@ -89,7 +72,7 @@ public class SlideVerifyService {
             return result;
         } catch (Exception e) {
             LOG.error("生成滑动验证码失败", e);
-            verifyCache.remove(token);
+            slideVerifyRepository.delete(slideVerify);
             throw new RuntimeException("生成滑动验证码失败");
         }
     }
@@ -98,34 +81,35 @@ public class SlideVerifyService {
      * 验证滑动位置
      */
     public boolean verifySlide(String token, int userX) {
-        VerifyData data = verifyCache.get(token);
+        SlideVerify data = slideVerifyRepository.findByToken(token).orElse(null);
 
         if (data == null) {
             LOG.warn("验证token不存在: {}", token);
             return false;
         }
 
-        if (data.isExpired()) {
+        if (data.isExpired(VERIFY_TIMEOUT)) {
             LOG.warn("验证token已过期: {}", token);
-            verifyCache.remove(token);
+            slideVerifyRepository.delete(data);
             return false;
         }
 
-        if (data.verified) {
+        if (data.isVerified()) {
             LOG.warn("验证token已使用: {}", token);
             return false;
         }
 
         // 验证位置是否在误差范围内
-        int difference = Math.abs(data.x - userX);
+        int difference = Math.abs(data.getX() - userX);
         boolean success = difference <= TOLERANCE;
 
         if (success) {
-            data.verified = true;
-            LOG.info("滑动验证成功，token: {}, 正确位置: {}, 用户位置: {}, 差值: {}", token, data.x, userX, difference);
+            data.setVerified(true);
+            slideVerifyRepository.save(data);
+            LOG.info("滑动验证成功，token: {}, 正确位置: {}, 用户位置: {}, 差值: {}", token, data.getX(), userX, difference);
         } else {
-            LOG.warn("滑动验证失败，token: {}, 正确位置: {}, 用户位置: {}, 差值: {}, 容差: {}", token, data.x, userX, difference, TOLERANCE);
-            verifyCache.remove(token); // 验证失败则移除token
+            LOG.warn("滑动验证失败，token: {}, 正确位置: {}, 用户位置: {}, 差值: {}, 容差: {}", token, data.getX(), userX, difference, TOLERANCE);
+            slideVerifyRepository.delete(data); // 验证失败则删除记录
         }
 
         return success;
@@ -135,15 +119,15 @@ public class SlideVerifyService {
      * 检查token是否已验证（一次性使用）
      */
     public boolean isVerified(String token) {
-        VerifyData data = verifyCache.get(token);
-        if (data == null || data.isExpired()) {
+        SlideVerify data = slideVerifyRepository.findByToken(token).orElse(null);
+        if (data == null || data.isExpired(VERIFY_TIMEOUT)) {
             return false;
         }
 
         // token已验证通过，立即删除，确保只能使用一次
-        if (data.verified) {
+        if (data.isVerified()) {
             LOG.info("验证token已使用，删除token: {}", token);
-            verifyCache.remove(token);
+            slideVerifyRepository.delete(data);
             return true;
         }
 
@@ -154,7 +138,8 @@ public class SlideVerifyService {
      * 清理过期的验证数据
      */
     public void cleanExpiredData() {
-        verifyCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        java.time.Instant cutoff = java.time.Instant.now().minusSeconds(VERIFY_TIMEOUT);
+        slideVerifyRepository.deleteExpired(cutoff);
     }
 
     /**
