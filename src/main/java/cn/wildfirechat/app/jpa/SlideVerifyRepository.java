@@ -6,7 +6,6 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
 import java.util.Optional;
 
 @Repository
@@ -15,6 +14,6 @@ public interface SlideVerifyRepository extends CrudRepository<SlideVerify, Strin
     Optional<SlideVerify> findByToken(String token);
 
     @Modifying
-    @Query("DELETE FROM SlideVerify s WHERE s.timestamp < : cutoff")
-    int deleteExpired(@Param("cutoff") Instant cutoff);
+    @Query("DELETE FROM SlideVerify s WHERE s.timestamp < :cutoff")
+    int deleteExpired(@Param("cutoff") long cutoff);
 }

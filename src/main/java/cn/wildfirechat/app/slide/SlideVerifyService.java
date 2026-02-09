@@ -138,7 +138,7 @@ public class SlideVerifyService {
      * 清理过期的验证数据
      */
     public void cleanExpiredData() {
-        java.time.Instant cutoff = java.time.Instant.now().minusSeconds(VERIFY_TIMEOUT);
+        long cutoff = System.currentTimeMillis() - VERIFY_TIMEOUT * 1000L;
         slideVerifyRepository.deleteExpired(cutoff);
     }
 
