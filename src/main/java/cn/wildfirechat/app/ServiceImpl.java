@@ -1856,5 +1856,117 @@ public class ServiceImpl implements Service {
                     }
                 }
             });
+        }
+    }
+
+    @Override
+    public RestResult updateReaction(long messageUid, String emoji, String userId) {
+        try {
+            // 1. 获取消息
+            IMResult<OutputMessageData> messageResult = MessageAdmin.getMessage(messageUid);
+            if (messageResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
+                LOG.error("getMessage failure: {}, {}", messageResult.getErrorCode().getCode(), messageResult.getErrorCode().getMsg());
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+
+            OutputMessageData messageData = messageResult.getResult();
+            
+            // 2. 解析 content 中的 reactions
+            List<Map<String, Object>> reactions = new ArrayList<>();
+            String content = messageData.getPayload().getContent();
+            
+            if (content != null && !content.isEmpty()) {
+                try {
+                    Gson gson = new Gson();
+                    Map<String, Object> contentMap = gson.fromJson(content, Map.class);
+                    if (contentMap != null && contentMap.containsKey("r")) {
+                        reactions = (List<Map<String, Object>>) contentMap.get("r");
+                    }
+                } catch (Exception e) {
+                    LOG.warn("Parse content reactions error: {}", e.getMessage());
+                }
+            }
+
+            // 3. 查找是否已存在该表情
+            Map<String, Object> targetReaction = null;
+            for (Map<String, Object> reaction : reactions) {
+                if (emoji.equals(reaction.get("e"))) {
+                    targetReaction = reaction;
+                    break;
+                }
+            }
+
+            // 4. 处理添加或删除
+            if (targetReaction != null) {
+                // 已存在，获取用户列表
+                List<String> users = (List<String>) targetReaction.get("u");
+                if (users == null) {
+                    users = new ArrayList<>();
+                    targetReaction.put("u", users);
+                }
+                
+                if (users.contains(userId)) {
+                    // 用户已存在，删除（取消反应）
+                    users.remove(userId);
+                    // 如果用户列表为空，删除整个表情项
+                    if (users.isEmpty()) {
+                        reactions.remove(targetReaction);
+                    }
+                } else {
+                    // 用户不存在，添加
+                    users.add(userId);
+                }
+            } else {
+                // 不存在，新建表情项
+                Map<String, Object> newReaction = new HashMap<>();
+                newReaction.put("e", emoji);
+                List<String> users = new ArrayList<>();
+                users.add(userId);
+                newReaction.put("u", users);
+                reactions.add(newReaction);
+            }
+
+            // 5. 构建新的 content
+            Map<String, Object> newContentMap = new HashMap<>();
+            if (content != null && !content.isEmpty()) {
+                try {
+                    Gson gson = new Gson();
+                    newContentMap = gson.fromJson(content, Map.class);
+                } catch (Exception e) {
+                    LOG.warn("Parse content error: {}", e.getMessage());
+                }
+            }
+            newContentMap.put("r", reactions);
+
+            // 6. 更新消息
+            Gson gson = new Gson();
+            String newContent = gson.toJson(newContentMap);
+            messageData.getPayload().setContent(newContent);
+
+            // 调用 IM SDK 更新消息
+            IMResult<Void> updateResult = MessageAdmin.updateMessageContent(userId, messageUid, messageData.getPayload(), false);
+            if (updateResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
+                LOG.error("updateMessage failure: {}, {}", updateResult.getErrorCode().getCode(), updateResult.getErrorCode().getMsg());
+                return RestResult.error(ERROR_SERVER_ERROR);
+            }
+
+            // 7. 返回更新后的 reactions（转换为长 key 格式方便前端使用）
+            List<Map<String, Object>> resultReactions = new ArrayList<>();
+            for (Map<String, Object> reaction : reactions) {
+                Map<String, Object> resultReaction = new HashMap<>();
+                resultReaction.put("emoji", reaction.get("e"));
+                resultReaction.put("users", reaction.get("u"));
+                resultReactions.add(resultReaction);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("reactions", resultReactions);
+            return RestResult.ok(result);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("updateReaction exception", e);
+            return RestResult.error(ERROR_SERVER_ERROR);
+        }
     }
 }
