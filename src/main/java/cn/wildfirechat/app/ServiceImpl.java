@@ -1857,7 +1857,6 @@ public class ServiceImpl implements Service {
                 }
             });
         }
-    }
 
     @Override
     public RestResult updateReaction(long messageUid, String emoji, String userId) {
@@ -1870,11 +1869,11 @@ public class ServiceImpl implements Service {
             }
 
             OutputMessageData messageData = messageResult.getResult();
-            
+
             // 2. 解析 content 中的 reactions
             List<Map<String, Object>> reactions = new ArrayList<>();
             String content = messageData.getPayload().getContent();
-            
+
             if (content != null && !content.isEmpty()) {
                 try {
                     Gson gson = new Gson();
@@ -1904,7 +1903,7 @@ public class ServiceImpl implements Service {
                     users = new ArrayList<>();
                     targetReaction.put("u", users);
                 }
-                
+
                 if (users.contains(userId)) {
                     // 用户已存在，删除（取消反应）
                     users.remove(userId);
@@ -1958,7 +1957,7 @@ public class ServiceImpl implements Service {
                 resultReaction.put("users", reaction.get("u"));
                 resultReactions.add(resultReaction);
             }
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("reactions", resultReactions);
             return RestResult.ok(result);
