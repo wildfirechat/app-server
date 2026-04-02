@@ -49,4 +49,6 @@ public interface Service {
     RestResult removeFavoriteItems(long id);
     RestResult getFavoriteItems(long id, int count);
     RestResult getGroupMembersForPortrait(String groupId);
+
+    RestResult updateReaction(long messageUid, String emoji, String userId);
 }

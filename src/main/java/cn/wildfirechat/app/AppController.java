@@ -259,4 +259,12 @@ public class AppController {
     public Object getGroupMembersForPortrait(@RequestBody GroupIdPojo groupIdPojo) {
         return mService.getGroupMembersForPortrait(groupIdPojo.groupId);
     }
+
+    @CrossOrigin
+    @PostMapping(value = "/messages/update_reaction", produces = "application/json;charset=UTF-8")
+    public Object updateReaction(@RequestBody UpdateReactionRequest request) {
+        Subject subject = SecurityUtils.getSubject();
+        String userId = (String) subject.getSession().getAttribute("userId");
+        return mService.updateReaction(request.getMessageUid(), request.getEmoji(), userId);
+    }
 }
