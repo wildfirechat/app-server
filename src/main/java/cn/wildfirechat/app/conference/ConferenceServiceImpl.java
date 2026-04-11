@@ -231,6 +231,10 @@ public class ConferenceServiceImpl implements ConferenceService {
             long actualEndTime = System.currentTimeMillis() / 1000;
             // 记录会议结束，更新使用时长
             endConferenceAndUpdateUsage(conferenceId, actualEndTime);
+
+            // 删除该会议的所有收藏记录
+            userConferenceRepository.deleteByConferenceId(conferenceId);
+            LOG.info("已删除会议的收藏记录: conferenceId={}", conferenceId);
             
             conferenceEntityRepository.deleteById(conferenceId);
             LOG.info("会议已从数据库删除: conferenceId={}", conferenceId);

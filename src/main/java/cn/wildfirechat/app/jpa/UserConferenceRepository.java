@@ -17,6 +17,11 @@ public interface UserConferenceRepository extends PagingAndSortingRepository<Use
     @Query(value = "delete from user_conference where user_id = ?1 and conference_id = ?2", nativeQuery = true)
     void deleteByUserIdAndConferenceId(String userId, String conferenceId);
 
+    @Transactional
+    @Modifying
+    @Query(value = "delete from user_conference where conference_id = ?1", nativeQuery = true)
+    void deleteByConferenceId(String conferenceId);
+
     @Query(value = "select c.* from user_conference uc, conference c where uc.user_id = ?1 and uc.conference_id = c.id and (c.end_time = 0 or c.end_time > ?2) order by id desc", nativeQuery = true)
     List<ConferenceDTO> findByUserId(String userId, long now);
 

@@ -2,6 +2,7 @@ package cn.wildfirechat.app.conference;
 
 import cn.wildfirechat.app.jpa.ConferenceEntity;
 import cn.wildfirechat.app.jpa.ConferenceEntityRepository;
+import cn.wildfirechat.app.jpa.UserConferenceRepository;
 import cn.wildfirechat.common.ErrorCode;
 import cn.wildfirechat.sdk.ConferenceAdmin;
 import cn.wildfirechat.sdk.model.IMResult;
@@ -23,6 +24,9 @@ public class ConferenceCleanupService {
 
     @Autowired
     private ConferenceServiceImpl conferenceServiceImpl;
+
+    @Autowired
+    private UserConferenceRepository userConferenceRepository;
 
     /**
      * 每5分钟检查一次过期会议，并调用SDK销毁
@@ -53,6 +57,10 @@ public class ConferenceCleanupService {
                 
                 // 记录会议结束并更新使用量（使用计划的endTime作为实际结束时间）
                 conferenceServiceImpl.endConferenceAndUpdateUsage(conference.id, conference.endTime);
+
+                // 删除该会议的所有收藏记录
+                userConferenceRepository.deleteByConferenceId(conference.id);
+                LOG.info("已删除会议的收藏记录: {}", conference.id);
                 
                 // 从数据库删除会议记录
                 conferenceEntityRepository.delete(conference);
