@@ -22,4 +22,10 @@ public interface ConferenceService {
     RestResult unfavConference(String conferenceId);
     RestResult getFavConferences();
     RestResult isFavConference(String conferenceId);
+    
+    /**
+     * 查询当前用户的会议额度
+     * @return 额度信息（包含总额度、已使用、剩余额度）
+     */
+    RestResult getMyConferenceQuota();
 }

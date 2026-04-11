@@ -17,9 +17,14 @@ import org.apache.shiro.subject.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +33,6 @@ import java.util.Optional;
 @org.springframework.stereotype.Service
 public class ConferenceServiceImpl implements ConferenceService {
     private static final Logger LOG = LoggerFactory.getLogger(ConferenceServiceImpl.class);
-
 
     @Autowired
     private IMConfig mIMConfig;
@@ -41,6 +45,18 @@ public class ConferenceServiceImpl implements ConferenceService {
 
     @Autowired
     private UserConferenceRepository userConferenceRepository;
+
+    @Autowired
+    private UserConferenceQuotaRepository userConferenceQuotaRepository;
+
+    @Autowired
+    private UserQuotaUsageRepository userQuotaUsageRepository;
+
+    @Autowired
+    private ConferenceRecordRepository conferenceRecordRepository;
+
+    @Value("${conference.default_quota_minutes:0}")
+    private int defaultQuotaMinutes;
 
     @PostConstruct
     private void init() {
@@ -116,9 +132,32 @@ public class ConferenceServiceImpl implements ConferenceService {
             info.owner = userId;
         }
 
+        //如果开始时间小于当前时间，改成当前时间
+        if(info.startTime < System.currentTimeMillis()/1000) {
+            info.startTime = System.currentTimeMillis()/1000;
+        }
+
         //如果没有指定最大参与者人数，默认指定为20
         if(info.maxParticipants <= 0) {
             info.maxParticipants = 20;
+        }
+
+        // 检查配额（仅当会议有结束时间时）
+        if (info.endTime > 0) {
+            // 计算计划时长，calculateDurationMinutes 内部会处理开始时间
+            int plannedMinutes = calculateDurationMinutes(info.startTime, info.endTime);
+            LOG.info("用户 {} 创建会议，计划时长 {} 分钟（原始开始时间: {}, 结束时间: {}）", 
+                userId, plannedMinutes, info.startTime, info.endTime);
+            QuotaCheckResult checkResult = checkUserQuota(userId, plannedMinutes);
+            if (!checkResult.isEnough()) {
+                LOG.warn("用户 {} 会议额度不足，需要 {} 分钟，剩余 {} 分钟", 
+                    userId, plannedMinutes, checkResult.getRemaining());
+                return RestResult.error(RestResult.RestCode.ERROR_CONFERENCE_QUOTA_EXCEEDED);
+            }
+            LOG.info("用户 {} 配额检查通过，计划使用 {} 分钟，剩余 {} 分钟", 
+                userId, plannedMinutes, checkResult.getRemaining());
+        } else {
+            LOG.info("用户 {} 创建永久会议（无结束时间），跳过配额检查", userId);
         }
 
         if(StringUtils.isEmpty(info.conferenceId)) {
@@ -147,44 +186,69 @@ public class ConferenceServiceImpl implements ConferenceService {
             IMResult<Void> result = ConferenceAdmin.createRoom(info.conferenceId, info.conferenceTitle, info.pin, info.maxParticipants, info.advance, 0, info.recording, false);
             if(result != null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
                 conferenceEntityRepository.save(convertConference(info));
+                LOG.info("会议创建成功: conferenceId={}, owner={}, title={}", 
+                    info.conferenceId, userId, info.conferenceTitle);
+                
+                // 创建会议记录（仅当会议有结束时间时）
+                if (info.endTime > 0) {
+                    createConferenceRecord(info);
+                }
+                
                 favConference(info.conferenceId);
                 return RestResult.ok(info.conferenceId);
+            } else {
+                LOG.error("创建会议失败: conferenceId={}, errorCode={}, errorMsg={}", 
+                    info.conferenceId, 
+                    result != null ? result.getErrorCode().code : "null",
+                    result != null ? result.getErrorCode().msg : "null result");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("创建会议异常: conferenceId={}", info.conferenceId, e);
         }
         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
     }
 
     @Override
+    @Transactional
     public RestResult destroyConference(String conferenceId) {
         String userId = getUserId();
+        LOG.info("用户 {} 请求销毁会议: {}", userId, conferenceId);
         Optional<ConferenceEntity> conferenceEntityOptional = conferenceEntityRepository.findById(conferenceId);
         if(conferenceEntityOptional.isPresent()) {
             ConferenceEntity entity = conferenceEntityOptional.get();
             if(!userId.equals(entity.owner)) {
+                LOG.warn("用户 {} 无权销毁会议 {}，会议所有者是 {}", userId, conferenceId, entity.owner);
                 return RestResult.error(RestResult.RestCode.ERROR_NO_RIGHT);
             }
 
             try {
                 ConferenceAdmin.destroy(entity.id, entity.advance);
+                LOG.info("SDK销毁会议成功: conferenceId={}", conferenceId);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("SDK销毁会议失败: conferenceId={}", conferenceId, e);
             }
+            
+            long actualEndTime = System.currentTimeMillis() / 1000;
+            // 记录会议结束，更新使用时长
+            endConferenceAndUpdateUsage(conferenceId, actualEndTime);
+            
             conferenceEntityRepository.deleteById(conferenceId);
+            LOG.info("会议已从数据库删除: conferenceId={}", conferenceId);
         } else {
+            LOG.warn("销毁会议时未找到会议记录: conferenceId={}", conferenceId);
             try {
                 IMResult<PojoConferenceInfoList> conferenceInfoListIMResult = ConferenceAdmin.listConferences(1000, 0);
                 if(conferenceInfoListIMResult != null && conferenceInfoListIMResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
                     for (PojoConferenceInfo info : conferenceInfoListIMResult.getResult().conferenceInfoList) {
                         if(info.roomId.equals(conferenceId)) {
                             ConferenceAdmin.destroy(info.roomId, info.advance);
+                            LOG.info("通过列表找到并销毁会议: conferenceId={}", conferenceId);
                             break;
                         }
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("销毁会议异常: conferenceId={}", conferenceId, e);
             }
         }
         return RestResult.ok(null);
@@ -294,6 +358,214 @@ public class ConferenceServiceImpl implements ConferenceService {
         return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
     }
 
+    @Override
+    public RestResult getMyConferenceQuota() {
+        String userId = getUserId();
+        String currentYearMonth = getCurrentYearMonth();
+        LOG.info("用户 {} 查询会议额度，年月: {}", userId, currentYearMonth);
+        
+        ConferenceQuotaResponse response = new ConferenceQuotaResponse();
+        response.setYearMonth(currentYearMonth);
+        
+        // 获取用户配额
+        Optional<UserConferenceQuota> quotaOptional = userConferenceQuotaRepository.findByUserId(userId);
+        int totalQuota;
+        String quotaSource;
+        if (quotaOptional.isPresent()) {
+            totalQuota = quotaOptional.get().getTotalMinutes();
+            quotaSource = "用户自定义配额";
+        } else {
+            totalQuota = defaultQuotaMinutes;
+            quotaSource = "默认配额";
+        }
+        
+        response.setTotalQuota(totalQuota);
+        
+        // 配额为0表示不限制
+        if (totalQuota == 0) {
+            response.setUnlimited(true);
+            response.setUsedMinutes(0);
+            response.setRemainingMinutes(0);
+            LOG.info("用户 {} 查询额度结果: 来源={}, 无限制", userId, quotaSource);
+        } else {
+            response.setUnlimited(false);
+            
+            // 查询当月已使用额度
+            Optional<UserQuotaUsage> usageOptional = userQuotaUsageRepository.findByUserIdAndYearMonth(userId, currentYearMonth);
+            int usedMinutes = usageOptional.map(UserQuotaUsage::getUsedMinutes).orElse(0);
+            int remaining = totalQuota - usedMinutes;
+            
+            response.setUsedMinutes(usedMinutes);
+            response.setRemainingMinutes(remaining);
+            
+            LOG.info("用户 {} 查询额度结果: 来源={}, 总额度={}分钟, 已使用={}分钟, 剩余={}分钟", 
+                userId, quotaSource, totalQuota, usedMinutes, remaining);
+        }
+        
+        return RestResult.ok(response);
+    }
+
+    /**
+     * 检查用户配额是否充足
+     * 配额不分月份，但使用量按月统计
+     */
+    private QuotaCheckResult checkUserQuota(String userId, int needMinutes) {
+        // 获取用户配额（优先查用户自定义配额，没有则使用默认配置）
+        Optional<UserConferenceQuota> quotaOptional = userConferenceQuotaRepository.findByUserId(userId);
+        
+        int totalQuota;
+        String quotaSource;
+        if (quotaOptional.isPresent()) {
+            totalQuota = quotaOptional.get().getTotalMinutes();
+            quotaSource = "用户自定义配额";
+        } else {
+            totalQuota = defaultQuotaMinutes;
+            quotaSource = "默认配额";
+        }
+        
+        LOG.debug("用户 {} 配额检查: 来源={}, 总额度={}分钟, 需要={}分钟", 
+            userId, quotaSource, totalQuota, needMinutes);
+        
+        // 默认配额为0表示不限制
+        if (totalQuota == 0) {
+            LOG.debug("用户 {} 使用默认配额0，不限制会议时长", userId);
+            return new QuotaCheckResult(true, 0, 0);
+        }
+        
+        // 查询当月已使用额度
+        String currentYearMonth = getCurrentYearMonth();
+        Optional<UserQuotaUsage> usageOptional = userQuotaUsageRepository.findByUserIdAndYearMonth(userId, currentYearMonth);
+        int usedMinutes = usageOptional.map(UserQuotaUsage::getUsedMinutes).orElse(0);
+        
+        // 检查是否足够
+        boolean enough = (usedMinutes + needMinutes) <= totalQuota;
+        int remaining = totalQuota - usedMinutes;
+        
+        LOG.debug("用户 {} 配额详情: 年月={}, 总额度={}, 已使用={}, 需要={}, 剩余={}, 结果={}", 
+            userId, currentYearMonth, totalQuota, usedMinutes, needMinutes, remaining, 
+            enough ? "通过" : "不足");
+        
+        return new QuotaCheckResult(enough, remaining, totalQuota);
+    }
+
+    /**
+     * 创建会议记录
+     */
+    private void createConferenceRecord(ConferenceInfo info) {
+        try {
+            ConferenceRecord record = new ConferenceRecord();
+            record.setConferenceId(info.conferenceId);
+            record.setOwner(info.owner);
+
+            long actualStartTime = info.startTime;
+            record.setStartTime(actualStartTime);
+            record.setEndTime(info.endTime);
+            // 使用 actualStartTime 计算计划时长，确保与配额检查时一致
+            record.setPlannedDuration(calculateDurationMinutes(actualStartTime, info.endTime));
+            record.setActualDuration(0);
+            record.setStatus(ConferenceRecord.Status.ONGOING.getValue());
+            record.setYearMonth(getCurrentYearMonth());
+            
+            conferenceRecordRepository.save(record);
+            LOG.info("创建会议记录: conferenceId={}, owner={}, startTime={}, plannedDuration={}分钟", 
+                info.conferenceId, info.owner, actualStartTime, record.getPlannedDuration());
+        } catch (Exception e) {
+            LOG.error("创建会议记录失败: conferenceId={}", info.conferenceId, e);
+        }
+    }
+
+    /**
+     * 结束会议并更新使用量
+     */
+    @Transactional
+    public void endConferenceAndUpdateUsage(String conferenceId, long actualEndTime) {
+        try {
+            Optional<ConferenceRecord> recordOptional = conferenceRecordRepository.findByConferenceId(conferenceId);
+            if (!recordOptional.isPresent()) {
+                LOG.warn("未找到会议记录: conferenceId={}", conferenceId);
+                return;
+            }
+            
+            ConferenceRecord record = recordOptional.get();
+            if (record.getStatus() == ConferenceRecord.Status.ENDED.getValue()) {
+                LOG.warn("会议已结束，跳过重复处理: conferenceId={}", conferenceId);
+                return;
+            }
+            
+            // 如果开始时间为0，使用当前时间作为开始时间（兼容老数据）
+            long startTime = record.getStartTime();
+            if (startTime <= 0) {
+                startTime = actualEndTime; // 如果开始时间为0，结束时间作为开始时间，时长为0
+                LOG.warn("会议记录开始时间为0，使用结束时间作为开始时间: conferenceId={}", conferenceId);
+            }
+            
+            // 计算实际时长（分钟）
+            int actualDuration = calculateDurationMinutes(startTime, actualEndTime);
+            
+            // 更新会议记录
+            record.setActualDuration(actualDuration);
+            record.setEndTime(actualEndTime);
+            record.setStatus(ConferenceRecord.Status.ENDED.getValue());
+            conferenceRecordRepository.save(record);
+            
+            // 更新用户使用量
+            updateQuotaUsage(record.getOwner(), record.getYearMonth(), actualDuration);
+            
+            LOG.info("会议结束并更新使用量: conferenceId={}, owner={}, startTime={}, endTime={}, actualDuration={}分钟", 
+                conferenceId, record.getOwner(), startTime, actualEndTime, actualDuration);
+                
+        } catch (Exception e) {
+            LOG.error("结束会议并更新使用量失败: conferenceId={}", conferenceId, e);
+        }
+    }
+
+    /**
+     * 更新用户配额使用量
+     */
+    @Transactional
+    public void updateQuotaUsage(String userId, String yearMonth, int minutes) {
+        if (minutes <= 0) {
+            LOG.debug("更新使用量跳过: 用户={}, 时长={} 分钟（小于等于0）", userId, minutes);
+            return;
+        }
+        
+        Optional<UserQuotaUsage> usageOptional = userQuotaUsageRepository.findByUserIdAndYearMonth(userId, yearMonth);
+        if (usageOptional.isPresent()) {
+            UserQuotaUsage usage = usageOptional.get();
+            int oldMinutes = usage.getUsedMinutes();
+            usage.setUsedMinutes(oldMinutes + minutes);
+            userQuotaUsageRepository.save(usage);
+            LOG.info("更新用户使用量: 用户={}, 年月={}, 新增 {} 分钟, 原使用 {} 分钟, 现使用 {} 分钟", 
+                userId, yearMonth, minutes, oldMinutes, usage.getUsedMinutes());
+        } else {
+            UserQuotaUsage usage = new UserQuotaUsage(userId, yearMonth, minutes);
+            userQuotaUsageRepository.save(usage);
+            LOG.info("创建用户使用量记录: 用户={}, 年月={}, 使用 {} 分钟", 
+                userId, yearMonth, minutes);
+        }
+    }
+
+    /**
+     * 计算时长（分钟）
+     */
+    private int calculateDurationMinutes(long startTime, long endTime) {
+        long durationSeconds = endTime - startTime;
+        if (durationSeconds <= 0) {
+            return 0;
+        }
+        // 转换为分钟，向上取整
+        return (int) ((durationSeconds + 59) / 60);
+    }
+
+    /**
+     * 获取当前年月 (yyyyMM格式)
+     */
+    private String getCurrentYearMonth() {
+        return Instant.now()
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("yyyyMM"));
+    }
+
     private ConferenceEntity convertConference(ConferenceInfo info) {
         ConferenceEntity entity = new ConferenceEntity();
         entity.id = info.conferenceId;
@@ -341,5 +613,32 @@ public class ConferenceServiceImpl implements ConferenceService {
     private String getUserId() {
         Subject subject = SecurityUtils.getSubject();
         return (String) subject.getSession().getAttribute("userId");
+    }
+
+    /**
+     * 配额检查结果
+     */
+    private static class QuotaCheckResult {
+        private final boolean enough;
+        private final int remaining;
+        private final int total;
+
+        public QuotaCheckResult(boolean enough, int remaining, int total) {
+            this.enough = enough;
+            this.remaining = remaining;
+            this.total = total;
+        }
+
+        public boolean isEnough() {
+            return enough;
+        }
+
+        public int getRemaining() {
+            return remaining;
+        }
+
+        public int getTotal() {
+            return total;
+        }
     }
 }

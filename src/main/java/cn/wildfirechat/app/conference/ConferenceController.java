@@ -86,4 +86,10 @@ public class ConferenceController {
     public Object getFavConferences() throws IOException {
         return mService.getFavConferences();
     }
+
+    @CrossOrigin
+    @PostMapping(value = "/conference/quota")
+    public Object getMyConferenceQuota() throws IOException {
+        return mService.getMyConferenceQuota();
+    }
 }
