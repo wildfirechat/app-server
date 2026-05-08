@@ -18,4 +18,5 @@ public class ConferenceInfo {
     public boolean recording;
     public String focus;
     public int maxParticipants;
+    public String phoneNumber;
 }

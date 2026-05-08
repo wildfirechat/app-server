@@ -58,6 +58,9 @@ public class ConferenceServiceImpl implements ConferenceService {
     @Value("${conference.default_quota_minutes:0}")
     private int defaultQuotaMinutes;
 
+    @Value("${conference.phone_number:}")
+    private String conferencePhoneNumber;
+
     @PostConstruct
     private void init() {
         AdminConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
@@ -95,7 +98,9 @@ public class ConferenceServiceImpl implements ConferenceService {
             String userId = (String) subject.getSession().getAttribute("userId");
             ConferenceEntity entity = conferenceEntityOptional.get();
             if(StringUtils.isEmpty(entity.password) || entity.password.equals(password) || userId.equals(entity.owner)) {
-                return RestResult.ok(convertConference(entity));
+                ConferenceInfo info = convertConference(entity);
+                info.phoneNumber = conferencePhoneNumber;
+                return RestResult.ok(info);
             }
         }
 
@@ -344,6 +349,7 @@ public class ConferenceServiceImpl implements ConferenceService {
             info.recording = dto.isRecording();
             info.focus = dto.getFocus();
             info.maxParticipants = dto.getMax_participants();
+            info.phoneNumber = conferencePhoneNumber;
             String managers = dto.getManages();
             if(!StringUtils.isEmpty(managers)) {
                 info.managers = Arrays.asList(managers.split(","));
@@ -608,6 +614,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         info.recording = entity.recording;
         info.focus = entity.focus;
         info.maxParticipants = entity.maxParticipants;
+        info.phoneNumber = conferencePhoneNumber;
         if(!StringUtils.isEmpty(info.managers)) {
             info.managers = Arrays.asList(entity.manages.split(","));
         }
