@@ -40,12 +40,14 @@ public class AvatarServiceImpl implements AvatarService {
     public ResponseEntity<byte[]> avatar(String name) throws IOException {
         File file = nameAvatar(name);
         if (file != null && file.exists()) {
-            byte[] bytes = StreamUtils.copyToByteArray(Files.newInputStream(file.toPath()));
-            return ResponseEntity
-                .ok()
-                .contentType(MediaType.IMAGE_PNG)
-                .header("Cache-Control", "max-age=604800")
-                .body(bytes);
+            try (InputStream is = Files.newInputStream(file.toPath())) {
+                byte[] bytes = StreamUtils.copyToByteArray(is);
+                return ResponseEntity
+                    .ok()
+                    .contentType(MediaType.IMAGE_PNG)
+                    .header("Cache-Control", "max-age=604800")
+                    .body(bytes);
+            }
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
