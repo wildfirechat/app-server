@@ -38,7 +38,7 @@ import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.crypto.hash.Sha1Hash;
 import org.apache.shiro.subject.Subject;
-import org.json.simple.JSONObject;
+import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -993,9 +993,9 @@ public class ServiceImpl implements Service {
 
         payload.setExpireDuration(60 * 1000);
         payload.setPersistFlag(ProtoConstants.PersistFlag.Not_Persist);
-        JSONObject data = new JSONObject();
-        data.put("p", platform);
-        data.put("t", token);
+        JsonObject data = new JsonObject();
+        data.addProperty("p", platform);
+        data.addProperty("t", token);
         payload.setBase64edData(Base64Utils.encodeToString(data.toString().getBytes()));
 
         try {
