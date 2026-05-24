@@ -259,4 +259,12 @@ public class AppController {
     public Object getGroupMembersForPortrait(@RequestBody GroupIdPojo groupIdPojo) {
         return mService.getGroupMembersForPortrait(groupIdPojo.groupId);
     }
+
+    @CrossOrigin
+    @GetMapping(value = "/version/check", produces = "application/json;charset=UTF-8")
+    public Object checkVersion(@RequestParam("platform") int platform,
+                               @RequestParam("currentVersion") String currentVersion,
+                               @RequestParam(value = "buildNumber", required = false, defaultValue = "0") int buildNumber) {
+        return mService.checkVersion(platform, currentVersion, buildNumber);
+    }
 }

@@ -49,4 +49,6 @@ public interface Service {
     RestResult removeFavoriteItems(long id);
     RestResult getFavoriteItems(long id, int count);
     RestResult getGroupMembersForPortrait(String groupId);
+
+    RestResult checkVersion(int platform, String currentVersion, int buildNumber);
 }

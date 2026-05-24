@@ -1789,4 +1789,77 @@ public class ServiceImpl implements Service {
             return RestResult.error(ERROR_SERVER_ERROR);
         }
     }
+
+    @Autowired
+    private VersionConfigService versionConfigService;
+
+    @Override
+    public RestResult checkVersion(int platform, String currentVersion, int buildNumber) {
+        String platformKey;
+        if (platform == 1 || platform == 8) {
+            platformKey = "ios";
+        } else if (platform == 2 || platform == 9) {
+            platformKey = "android";
+        } else if (platform == 10) {
+            platformKey = "harmony";
+        } else {
+            return RestResult.error(ERROR_INVALID_PARAMETER);
+        }
+
+        VersionCheckResponse config = versionConfigService.getVersionInfo(platformKey);
+        if (config == null) {
+            return RestResult.error(ERROR_SERVER_CONFIG_ERROR);
+        }
+
+        VersionCheckResponse result = new VersionCheckResponse();
+        result.setLatestVersion(config.getLatestVersion());
+        result.setBuildNumber(config.getBuildNumber());
+        result.setMinVersion(config.getMinVersion());
+        result.setTitle(config.getTitle());
+        result.setMessage(config.getMessage());
+        result.setDownloadUrl(config.getDownloadUrl());
+        result.setRedirectUrl(config.getRedirectUrl());
+        result.setHarmonyUrl(config.getHarmonyUrl());
+
+        boolean needUpdate;
+        if (buildNumber > 0 && config.getBuildNumber() > 0) {
+            needUpdate = buildNumber < config.getBuildNumber();
+        } else {
+            needUpdate = compareVersion(currentVersion, config.getLatestVersion()) < 0;
+        }
+
+        boolean forceUpdate = config.isForceUpdate();
+        if (!forceUpdate && !currentVersion.isEmpty() && !config.getMinVersion().isEmpty()) {
+            forceUpdate = compareVersion(currentVersion, config.getMinVersion()) < 0;
+        }
+
+        result.setNeedUpdate(needUpdate);
+        result.setForceUpdate(forceUpdate);
+
+        return RestResult.ok(result);
+    }
+
+    private int compareVersion(String v1, String v2) {
+        if (v1 == null || v1.isEmpty()) return -1;
+        if (v2 == null || v2.isEmpty()) return 1;
+        String[] parts1 = v1.split("\\.");
+        String[] parts2 = v2.split("\\.");
+        int len = Math.max(parts1.length, parts2.length);
+        for (int i = 0; i < len; i++) {
+            int n1 = i < parts1.length ? parseInt(parts1[i]) : 0;
+            int n2 = i < parts2.length ? parseInt(parts2[i]) : 0;
+            if (n1 != n2) {
+                return n1 < n2 ? -1 : 1;
+            }
+        }
+        return 0;
+    }
+
+    private int parseInt(String s) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
 }
