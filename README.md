@@ -26,6 +26,7 @@
 2. PC端扫码登录的功能.
 3. 群公告的获取和更新功能.
 4. 客户端上传日志功能.
+5. 客户端版本更新检查功能，支持Android/iOS/鸿蒙三端.
 > 本工程为Demo工程，实际使用时需要把对应功能移植到您的应用服务中。如果需要直接使用，请按照后面的说明解决掉性能瓶颈问题。
 
 #### 编译
@@ -42,8 +43,13 @@ mvn clean package
 应用使用的是腾讯云短信功能，需要申请到```appid/appkey/templateId```这三个参数，并配置到```tencent_sms.properties```中去。用户也可以自行更换为自己喜欢的短信提供商。在没有短信供应商的情况下，为了测试可以使用```superCode```，设置好后，客户端可以直接使用```superCode```进行登陆。上线时一定要注意删掉```superCode```。
 
 #### 修改配置
-本演示服务有4个配置文件在工程的```config```目录下，分别是```application.properties```, ```im.properties```, ```aliyun_sms.properties```和```tencent_sms.properties```。请正确配置放到jar包所在的目录下的```config```目录下。
+本演示服务有5个配置文件在工程的```config```目录下，分别是```application.properties```, ```im.properties```, ```aliyun_sms.properties```, ```tencent_sms.properties```和```version.properties```。请正确配置放到jar包所在的目录下的```config```目录下。
 > ```application.properties```配置中的```sms.verdor```决定是使用那个短信服务商，1为腾讯短信，2为阿里云短信
+
+#### 版本更新配置
+在 `config/version.properties` 中配置 Android/iOS/鸿蒙三端的版本更新信息，服务每30秒自动检测文件修改并重新加载。客户端启动后自动调用 `/version/check` 接口检测版本，支持普通更新和强制更新两种策略。
+
+详细配置说明、字段释义和常见问题请参考 **[version_update.md](./version_update.md)**。
 
 #### 运行
 在```target```目录找到```app-XXXX.jar```，把jar包和放置配置文件的```config```目录放到一起，然后执行下面命令：

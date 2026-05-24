@@ -280,4 +280,12 @@ public class AppController {
         String userId = (String) subject.getSession().getAttribute("userId");
         return mService.updateReaction(request.getMessageUid(), request.getEmoji(), userId);
     }
+
+    @CrossOrigin
+    @GetMapping(value = "/version/check", produces = "application/json;charset=UTF-8")
+    public Object checkVersion(@RequestParam("platform") int platform,
+                               @RequestParam("currentVersion") String currentVersion,
+                               @RequestParam(value = "buildNumber", required = false, defaultValue = "0") int buildNumber) {
+        return mService.checkVersion(platform, currentVersion, buildNumber);
+    }
 }

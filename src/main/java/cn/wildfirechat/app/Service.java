@@ -51,6 +51,7 @@ public interface Service {
     RestResult getFavoriteItems(long id, int count);
     RestResult getGroupMembersForPortrait(String groupId);
     void sendAntiFraudTip(OutputMessageData event);
-
     RestResult updateReaction(long messageUid, String emoji, String userId);
+
+    RestResult checkVersion(int platform, String currentVersion, int buildNumber);
 }
