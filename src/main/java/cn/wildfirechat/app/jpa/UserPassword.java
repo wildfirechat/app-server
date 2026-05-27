@@ -24,14 +24,16 @@ public class UserPassword {
 
 	private long lastTryTime;
 
-	/** 密码最后一次更新时间（毫秒时间戳），0 表示从未设置过密码或历史数据无记录 */
-	private long passwordUpdateTime;
+	/** 密码最后一次更新时间（毫秒时间戳），0 或 null 表示从未设置过密码或历史数据无记录 */
+	private Long passwordUpdateTime;
 
 	public UserPassword() {
+		this.passwordUpdateTime = 0L;
 	}
 
 	public UserPassword(String userId) {
 		this.userId = userId;
+		this.passwordUpdateTime = 0L;
 	}
 
 	public UserPassword(String userId, String password, String salt) {
@@ -41,6 +43,7 @@ public class UserPassword {
 		this.resetCodeTime = 0;
 		this.tryCount = 0;
 		this.lastTryTime = 0;
+		this.passwordUpdateTime = 0L;
 	}
 
 	public UserPassword(String userId, String password, String salt, String resetCode, long resetCodeTime) {
@@ -51,6 +54,7 @@ public class UserPassword {
 		this.resetCodeTime = resetCodeTime;
 		this.tryCount = 0;
 		this.lastTryTime = 0;
+		this.passwordUpdateTime = 0L;
 	}
 
 	public String getUserId() {
@@ -110,7 +114,7 @@ public class UserPassword {
 	}
 
 	public long getPasswordUpdateTime() {
-		return passwordUpdateTime;
+		return passwordUpdateTime == null ? 0L : passwordUpdateTime;
 	}
 
 	public void setPasswordUpdateTime(long passwordUpdateTime) {

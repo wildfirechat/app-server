@@ -19,6 +19,7 @@ public class UserPasswordTest {
         assertEquals(0, userPassword.getTryCount());
         assertEquals(0L, userPassword.getResetCodeTime());
         assertEquals(0L, userPassword.getLastTryTime());
+        assertEquals(0L, userPassword.getPasswordUpdateTime());
     }
 
     @Test
@@ -33,6 +34,7 @@ public class UserPasswordTest {
         assertEquals(userId, userPassword.getUserId());
         assertNull(userPassword.getPassword());
         assertEquals(0, userPassword.getTryCount());
+        assertEquals(0L, userPassword.getPasswordUpdateTime());
     }
 
     @Test
@@ -54,6 +56,7 @@ public class UserPasswordTest {
         assertEquals(resetCode, userPassword.getResetCode());
         assertEquals(resetCodeTime, userPassword.getResetCodeTime());
         assertEquals(0, userPassword.getTryCount());
+        assertEquals(0L, userPassword.getPasswordUpdateTime());
     }
 
     @Test
@@ -69,6 +72,7 @@ public class UserPasswordTest {
         userPassword.setResetCodeTime(1234567890L);
         userPassword.setTryCount(5);
         userPassword.setLastTryTime(9876543210L);
+        userPassword.setPasswordUpdateTime(1111111111L);
 
         // Then
         assertEquals("user456", userPassword.getUserId());
@@ -78,6 +82,7 @@ public class UserPasswordTest {
         assertEquals(1234567890L, userPassword.getResetCodeTime());
         assertEquals(5, userPassword.getTryCount());
         assertEquals(9876543210L, userPassword.getLastTryTime());
+        assertEquals(1111111111L, userPassword.getPasswordUpdateTime());
     }
 
     @Test
@@ -85,6 +90,7 @@ public class UserPasswordTest {
         // Given
         UserPassword userPassword = new UserPassword("user", "pass", "salt");
         assertEquals(0, userPassword.getTryCount());
+        assertEquals(0L, userPassword.getPasswordUpdateTime());
 
         // When - increment from constructor default (0)
         userPassword.setTryCount(userPassword.getTryCount() + 1);
