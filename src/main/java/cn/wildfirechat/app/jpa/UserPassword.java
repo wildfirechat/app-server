@@ -24,6 +24,9 @@ public class UserPassword {
 
 	private long lastTryTime;
 
+	/** 密码最后一次更新时间（毫秒时间戳），0 表示从未设置过密码或历史数据无记录 */
+	private long passwordUpdateTime;
+
 	public UserPassword() {
 	}
 
@@ -104,5 +107,13 @@ public class UserPassword {
 
 	public void setLastTryTime(long lastTryTime) {
 		this.lastTryTime = lastTryTime;
+	}
+
+	public long getPasswordUpdateTime() {
+		return passwordUpdateTime;
+	}
+
+	public void setPasswordUpdateTime(long passwordUpdateTime) {
+		this.passwordUpdateTime = passwordUpdateTime;
 	}
 }

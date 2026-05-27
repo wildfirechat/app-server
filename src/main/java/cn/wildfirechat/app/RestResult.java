@@ -24,7 +24,9 @@ public class RestResult {
         ERROR_FAILURE_TOO_MUCH_TIMES(20, "密码错误次数太多，请等5分钟再试试"),
         ERROR_USER_FORBIDDEN(21, "用户被封禁"),
         ERROR_SLIDE_VERIFY_NOT_PASS(22, "滑动验证未通过"),
-        ERROR_CONFERENCE_QUOTA_EXCEEDED(23, "会议额度已用完");
+        ERROR_CONFERENCE_QUOTA_EXCEEDED(23, "会议额度已用完"),
+        ERROR_WEAK_PASSWORD(24, "密码强度不够，请设置更复杂的密码"),
+        ERROR_PASSWORD_EXPIRED(25, "密码已过期，请重置密码");
         public int code;
         public String msg;
 

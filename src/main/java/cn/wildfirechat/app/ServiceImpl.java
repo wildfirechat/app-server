@@ -89,6 +89,15 @@ public class ServiceImpl implements Service {
     @Autowired
     private cn.wildfirechat.app.slide.SlideVerifyService slideVerifyService;
 
+    @Autowired
+    private cn.wildfirechat.app.tools.WeakPasswordChecker weakPasswordChecker;
+
+    @Value("${password.expiry.enable:false}")
+    private boolean passwordExpiryEnable;
+
+    @Value("${password.expiry.days:90}")
+    private int passwordExpiryDays;
+
     @Value("${slide.verify.force:false}")
     private boolean forceSlideVerify;
 
@@ -615,6 +624,15 @@ public class ServiceImpl implements Service {
                 up.setTryCount(0);
                 up.setLastTryTime(0);
                 userPasswordRepository.save(up);
+
+                // 检查密码是否已过期
+                if (passwordExpiryEnable && passwordExpiryDays > 0) {
+                    long updateTime = up.getPasswordUpdateTime();
+                    // updateTime 为 0 表示历史数据未记录更新时间，视为已过期
+                    if (updateTime == 0 || System.currentTimeMillis() - updateTime > (long) passwordExpiryDays * 24 * 60 * 60 * 1000) {
+                        return RestResult.error(ERROR_PASSWORD_EXPIRED);
+                    }
+                }
             } else {
                 return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
             }
@@ -648,6 +666,9 @@ public class ServiceImpl implements Service {
 
         Subject subject = SecurityUtils.getSubject();
         String userId = (String) subject.getSession().getAttribute("userId");
+        if (weakPasswordChecker.isWeakPassword(newPwd)) {
+            return RestResult.error(ERROR_WEAK_PASSWORD);
+        }
         Optional<UserPassword> optional = userPasswordRepository.findById(userId);
         if (optional.isPresent()) {
             try {
@@ -697,6 +718,9 @@ public class ServiceImpl implements Service {
                 return RestResult.error(ERROR_CODE_EXPIRED);
             }
             if(resetCode.equals(up.getResetCode()) || (!StringUtils.isEmpty(superCode) && resetCode.equals(superCode))) {
+                if (weakPasswordChecker.isWeakPassword(newPwd)) {
+                    return RestResult.error(ERROR_WEAK_PASSWORD);
+                }
                 try {
                     changePassword(up, newPwd);
                     up.setResetCode(null);
@@ -723,6 +747,7 @@ public class ServiceImpl implements Service {
         String hashedPwd = Base64.getEncoder().encodeToString(hashed);
         up.setPassword(hashedPwd);
         up.setSalt(salt);
+        up.setPasswordUpdateTime(System.currentTimeMillis());
         userPasswordRepository.save(up);
         return up;
     }
