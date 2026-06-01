@@ -203,11 +203,7 @@ public class ServiceImpl implements Service {
 
     @PostConstruct
     private void init() {
-        AdminConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
         rateLimiter = new RateLimiter(60, 200);
-        if(StringUtils.isEmpty(mIMConfig.admin_user_id)) {
-            mIMConfig.admin_user_id = "admin";
-        }
     }
 
     private String getIp() {
@@ -241,7 +237,7 @@ public class ServiceImpl implements Service {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return 0;
     }
@@ -318,7 +314,7 @@ public class ServiceImpl implements Service {
             }
         } catch (Exception e) {
             // json解析错误
-            e.printStackTrace();
+            LOG.error("Exception", e);
             authDataSource.clearRecode(mobile);
         }
         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
@@ -385,7 +381,7 @@ public class ServiceImpl implements Service {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
                 if (StringUtils.isEmpty(mobile)) {
                     return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
                 }
@@ -434,7 +430,7 @@ public class ServiceImpl implements Service {
             }
         } catch (Exception e) {
             // json解析错误
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
     }
@@ -641,7 +637,7 @@ public class ServiceImpl implements Service {
                 return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
 
@@ -681,7 +677,7 @@ public class ServiceImpl implements Service {
                     return RestResult.ok(null);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
             }
         } else {
             return RestResult.error(ERROR_NOT_EXIST);
@@ -710,7 +706,7 @@ public class ServiceImpl implements Service {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             }
         }
@@ -731,7 +727,7 @@ public class ServiceImpl implements Service {
                     userPasswordRepository.save(up);
                     return RestResult.ok(null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOG.error("Exception", e);
                     return RestResult.error(ERROR_SERVER_ERROR);
                 }
             } else {
@@ -918,8 +914,7 @@ public class ServiceImpl implements Service {
             httpResponse.setHeader("authToken", sessionId.toString());
             return RestResult.ok(response);
         } catch (Exception e) {
-            e.printStackTrace();
-            LOG.error("Exception happens {}", e);
+            LOG.error("Exception happens", e);
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
     }
@@ -959,7 +954,7 @@ public class ServiceImpl implements Service {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
         return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
@@ -984,7 +979,7 @@ public class ServiceImpl implements Service {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
         return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
@@ -997,7 +992,7 @@ public class ServiceImpl implements Service {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return false;
     }
@@ -1035,8 +1030,7 @@ public class ServiceImpl implements Service {
                 LOG.error("send message error {}", resultSendMessage != null ? resultSendMessage.getErrorCode().code : "unknown");
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            LOG.error("send message error {}", e.getLocalizedMessage());
+            LOG.error("send message error", e);
         }
 
     }
@@ -1075,8 +1069,7 @@ public class ServiceImpl implements Service {
                 LOG.error("send message error {}", resultSendMessage != null ? resultSendMessage.getErrorCode().code : "unknown");
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            LOG.error("send message error {}", e.getLocalizedMessage());
+            LOG.error("send message error", e);
         }
     }
 
@@ -1128,7 +1121,7 @@ public class ServiceImpl implements Service {
                     response.setPortrait(result.getResult().getPortrait());
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
             }
             return RestResult.result(ERROR_SESSION_NOT_VERIFIED, response);
         } else if (session.getStatus() == Session_Pre_Verify) {
@@ -1182,7 +1175,7 @@ public class ServiceImpl implements Service {
             LOG.info("login with session success, userId {}, clientId {}, platform {}, adminUrl {}", session.getConfirmedUserId(), session.getClientId(), session.getPlatform(), adminUrl);
             return RestResult.ok(response);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
             subject.logout();
             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
         }
@@ -1251,7 +1244,7 @@ public class ServiceImpl implements Service {
                 return RestResult.error(ERROR_SERVER_ERROR);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
             return RestResult.error(ERROR_SERVER_ERROR);
         }
     }
@@ -1300,7 +1293,7 @@ public class ServiceImpl implements Service {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
             }
             if (!isGroupMember) {
                 return RestResult.error(ERROR_NO_RIGHT);
@@ -1324,7 +1317,7 @@ public class ServiceImpl implements Service {
                     return RestResult.error(ERROR_SERVER_ERROR);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
                 LOG.error("send message error {}", e.getLocalizedMessage());
                 return RestResult.error(ERROR_SERVER_ERROR);
             }
@@ -1354,7 +1347,7 @@ public class ServiceImpl implements Service {
         try {
             file.transferTo(localFile);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
             return RestResult.error(ERROR_SERVER_ERROR);
         }
 
@@ -1383,7 +1376,7 @@ public class ServiceImpl implements Service {
                 return RestResult.ok(result.getResult());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return RestResult.error(ERROR_SERVER_ERROR);
     }
@@ -1398,7 +1391,7 @@ public class ServiceImpl implements Service {
                 return RestResult.ok(imResult.getResult().getDevices());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return RestResult.error(ERROR_SERVER_ERROR);
     }
@@ -1438,7 +1431,7 @@ public class ServiceImpl implements Service {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return RestResult.error(ERROR_SERVER_ERROR);
     }
@@ -1472,7 +1465,7 @@ public class ServiceImpl implements Service {
                 return RestResult.ok(imResult.getResult());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return RestResult.error(ERROR_SERVER_ERROR);
     }
@@ -1488,7 +1481,7 @@ public class ServiceImpl implements Service {
         try {
             file.transferTo(localFile);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
             return RestResult.error(ERROR_SERVER_ERROR);
         }
         /*
@@ -1554,13 +1547,13 @@ public class ServiceImpl implements Service {
                 Response response = uploadManager.put(localFilePath, key, upToken);
                 //解析上传成功的结果
                 DefaultPutRet putRet = new Gson().fromJson(response.bodyString(), DefaultPutRet.class);
-                System.out.println(putRet.key);
-                System.out.println(putRet.hash);
+                LOG.info("{}", putRet.key);
+                LOG.info("{}", putRet.hash);
             } catch (QiniuException ex) {
                 Response r = ex.response;
-                System.err.println(r.toString());
+                LOG.error("{}", r.toString());
                 try {
-                    System.err.println(r.bodyString());
+                    LOG.error("{}", r.bodyString());
                 } catch (QiniuException ex2) {
                     //ignore
                 }
@@ -1577,7 +1570,7 @@ public class ServiceImpl implements Service {
             try {
                 ossClient.putObject(putObjectRequest);
             } catch (OSSException | ClientException e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             }
             // 关闭OSSClient。
@@ -1592,13 +1585,13 @@ public class ServiceImpl implements Service {
 //                minioClient.putObject("asiatrip",fileName, localFile.getAbsolutePath(), new PutObjectOptions(PutObjectOptions.MAX_OBJECT_SIZE, PutObjectOptions.MIN_MULTIPART_SIZE));
                 minioClient.putObject(bucket, fileName, localFile.getAbsolutePath(), new PutObjectOptions(file.getSize(), 0));
             } catch (MinioException e) {
-                System.out.println("Error occurred: " + e);
+                LOG.error("Error occurred: ", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             } catch (NoSuchAlgorithmException | IOException | InvalidKeyException e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             }
         } else if(ossType == 4) {
@@ -1616,7 +1609,7 @@ public class ServiceImpl implements Service {
                         URL u = new URL(ossUrl);
                         clientConfig.setEndPointSuffix(u.getHost());
                     } catch (MalformedURLException e) {
-                        e.printStackTrace();
+                        LOG.error("Exception", e);
                         return RestResult.error(ERROR_SERVER_ERROR);
                     }
                 }
@@ -1628,7 +1621,7 @@ public class ServiceImpl implements Service {
             try {
                 cosClient.putObject(bucket, fileName, localFile.getAbsoluteFile());
             } catch (CosClientException e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             } finally {
                 cosClient.shutdown();
@@ -1723,7 +1716,7 @@ public class ServiceImpl implements Service {
                                     URL u = new URL(ossUrl);
                                     clientConfig.setEndPointSuffix(u.getHost());
                                 } catch (MalformedURLException e) {
-                                    e.printStackTrace();
+                                    LOG.error("Exception", e);
                                     return RestResult.error(ERROR_SERVER_ERROR);
                                 }
                             }
@@ -1743,7 +1736,7 @@ public class ServiceImpl implements Service {
                             cosClient.copyObject(bucket, objectName, ossFavoriteBucket, toKey);
                             request.url = ossFavoriteBucketDomain + "/" + toKey;
                         } catch (CosClientException e) {
-                            e.printStackTrace();
+                            LOG.error("Exception", e);
                             return RestResult.error(ERROR_SERVER_ERROR);
                         } finally {
                             cosClient.shutdown();
@@ -1751,7 +1744,7 @@ public class ServiceImpl implements Service {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Exception", e);
             }
         }
 
@@ -1819,7 +1812,6 @@ public class ServiceImpl implements Service {
             }
             return RestResult.ok(mids);
         } catch (Exception e) {
-            e.printStackTrace();
             LOG.error("getGroupMembersForPortrait exception", e);
             return RestResult.error(ERROR_SERVER_ERROR);
         }

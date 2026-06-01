@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="LOG_PATH">./logs</Property>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <RollingRandomAccessFile name="RollingFile" immediateFlush="true"
+                                 fileName="${LOG_PATH}/app-server.log"
+                                 filePattern="${LOG_PATH}/app-server-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30">
+                <Delete basePath="${LOG_PATH}" maxDepth="1">
+                    <IfFileName glob="app-server-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+<!--            如果要输出控制台日志，打开这里-->
+<!--            <AppenderRef ref="Console"/>-->
+            <AppenderRef ref="RollingFile"/>
+        </Root>
+
+        <!-- 降低 Spring 框架的日志级别，避免输出过多 -->
+        <Logger name="org.springframework" level="warn"/>
+        <Logger name="org.apache" level="warn"/>
+        <Logger name="org.hibernate" level="warn"/>
+    </Loggers>
+</Configuration>

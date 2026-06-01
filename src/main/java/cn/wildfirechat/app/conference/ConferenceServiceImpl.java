@@ -35,9 +35,6 @@ public class ConferenceServiceImpl implements ConferenceService {
     private static final Logger LOG = LoggerFactory.getLogger(ConferenceServiceImpl.class);
 
     @Autowired
-    private IMConfig mIMConfig;
-
-    @Autowired
     private ConferenceEntityRepository conferenceEntityRepository;
 
     @Autowired
@@ -60,11 +57,6 @@ public class ConferenceServiceImpl implements ConferenceService {
 
     @Value("${conference.phone_number:}")
     private String conferencePhoneNumber;
-
-    @PostConstruct
-    private void init() {
-        AdminConfig.initAdmin(mIMConfig.admin_url, mIMConfig.admin_secret);
-    }
 
     @Override
     public RestResult getUserConferenceId(String userId) {
@@ -284,7 +276,7 @@ public class ConferenceServiceImpl implements ConferenceService {
                             return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        LOG.error("Exception", e);
                         return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
                     }
                 }

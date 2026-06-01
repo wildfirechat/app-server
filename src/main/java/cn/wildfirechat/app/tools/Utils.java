@@ -1,5 +1,8 @@
 package cn.wildfirechat.app.tools;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.file.Paths;
 import java.util.Random;
 import java.util.UUID;
@@ -7,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     public static String getRandomCode(int length) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
@@ -39,7 +43,7 @@ public class Utils {
             }
         } catch (Exception e) {
             // 处理解析异常
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
         return UUID.randomUUID().toString();
     }
@@ -47,7 +51,7 @@ public class Utils {
     public static void main(String[] args) {
         String filename1 = "/aa../../../hello.txt";
         String filename2 = "..\\..\\1.txt";
-        System.out.println(getSafeFileName(filename1));
-        System.out.println(getSafeFileName(filename2));
+        LOG.info("{}", getSafeFileName(filename1));
+        LOG.info("{}", getSafeFileName(filename2));
     }
 }

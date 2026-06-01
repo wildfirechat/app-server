@@ -35,10 +35,11 @@ public class ConferenceCleanupService {
     @Transactional
     public void cleanupExpiredConferences() {
         long currentTime = System.currentTimeMillis() / 1000; // 转换为秒
-        LOG.info("开始检查过期会议，当前时间: {} 秒", currentTime);
 
         List<ConferenceEntity> expiredConferences = conferenceEntityRepository.findExpiredConferences(currentTime);
-        LOG.info("发现 {} 个过期会议", expiredConferences.size());
+        if(!expiredConferences.isEmpty()) {
+            LOG.info("发现 {} 个过期会议", expiredConferences.size());
+        }
 
         for (ConferenceEntity conference : expiredConferences) {
             try {
@@ -71,6 +72,8 @@ public class ConferenceCleanupService {
             }
         }
 
-        LOG.info("过期会议清理完成，共处理 {} 个会议", expiredConferences.size());
+        if(!expiredConferences.isEmpty()) {
+            LOG.info("过期会议清理完成，共处理 {} 个会议", expiredConferences.size());
+        }
     }
 }

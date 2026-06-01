@@ -1,6 +1,9 @@
 package cn.wildfirechat.app.tools;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -10,6 +13,7 @@ import java.util.Map;
  * capacity * 1000是为了更精确, 漏水的小洞更小^~^
  */
 public class RateLimiter {
+    private static final Logger LOG = LoggerFactory.getLogger(RateLimiter.class);
     private static final int DEFAULT_LIMIT_TIME_SECOND = 5;
     private static final int DEFAULT_LIMIT_COUNT = 100;
     private static final long expire = 2 * 60 * 60 * 1000;
@@ -86,35 +90,35 @@ public class RateLimiter {
         long start = System.currentTimeMillis();
         for (int i = 0; i < 53; i++) {
             if (!limiter.isGranted("test")) {
-                System.out.println("1 too frequency " + i);
+                LOG.info("1 too frequency {}", i);
             }
         }
         Thread.sleep(1 * 1000);
-        System.out.println("sleep 1 s");
+        LOG.info("sleep 1 s");
         for (int i = 0; i < 53; i++) {
             if (!limiter.isGranted("test")) {
-                System.out.println("2 too frequency " + i);
+                LOG.info("2 too frequency {}", i);
             }
         }
 
         Thread.sleep(5 * 1000);
-        System.out.println("sleep 5 s");
+        LOG.info("sleep 5 s");
         for (int i = 0; i < 53; i++) {
             if (!limiter.isGranted("test")) {
-                System.out.println("3 too frequency " + i);
+                LOG.info("3 too frequency {}", i);
             }
         }
 
         Thread.sleep(5 * 1000);
-        System.out.println("sleep 5 s");
+        LOG.info("sleep 5 s");
         long second = System.currentTimeMillis();
         for (int i = 0; i < 100; i++) {
             if (!limiter.isGranted("test")) {
-                System.out.println("4 too frequency " + i);
+                LOG.info("4 too frequency {}", i);
             }
             Thread.sleep(50);
         }
-        System.out.println("second: " + (System.currentTimeMillis() - second));
-        System.out.println("end: " + (System.currentTimeMillis() - start));
+        LOG.info("second: {}", (System.currentTimeMillis() - second));
+        LOG.info("end: {}", (System.currentTimeMillis() - start));
     }
 }

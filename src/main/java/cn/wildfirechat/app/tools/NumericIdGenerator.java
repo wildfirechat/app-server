@@ -1,10 +1,14 @@
 package cn.wildfirechat.app.tools;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class NumericIdGenerator {
+    private static final Logger LOG = LoggerFactory.getLogger(NumericIdGenerator.class);
     public static String getId(List<Integer> firstNumber, List<Integer> firstExceptNumber, int idLength) {
         List<Integer> numbers = new ArrayList<>();
         if(firstNumber != null && !firstNumber.isEmpty()) {
@@ -38,7 +42,7 @@ public class NumericIdGenerator {
     public static void main(String[] args) {
         for (int i = 0; i < 100; i++) {
             String id = getId(null, Arrays.asList(0), 6);
-            System.out.println(id);
+            LOG.info("{}", id);
         }
     }
 }

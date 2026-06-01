@@ -138,13 +138,13 @@ public class SmsServiceImpl implements SmsService {
             SendSmsResponse res = client.SendSms(req);
 
             // 输出json格式的字符串回包
-            System.out.println(SendSmsResponse.toJsonString(res));
+            LOG.info(SendSmsResponse.toJsonString(res));
 
             // 也可以取出单个值，你可以通过官网接口文档或跳转到response对象的定义处查看返回字段的定义
-            System.out.println(res.getRequestId());
+            LOG.info("{}", res.getRequestId());
             return RestResult.RestCode.SUCCESS;
         } catch (TencentCloudSDKException e) {
-            e.printStackTrace();
+            LOG.error("TencentCloudSDKException", e);
         }
         return RestResult.RestCode.ERROR_SERVER_ERROR;
     }
@@ -165,21 +165,21 @@ public class SmsServiceImpl implements SmsService {
         request.putQueryParameter("TemplateParam", templateparam);
         try {
             CommonResponse response = client.getCommonResponse(request);
-            System.out.println(response.getData());
+            LOG.info("{}", response.getData());
             if (response.getData() != null) {
                 AliyunCommonResponse aliyunCommonResponse = new Gson().fromJson(response.getData(), AliyunCommonResponse.class);
                 if (aliyunCommonResponse != null) {
                     if (aliyunCommonResponse.Code.equalsIgnoreCase("OK")) {
                         return RestResult.RestCode.SUCCESS;
                     } else {
-                        System.out.println("Send aliyun sms failure with message:" + aliyunCommonResponse.Message);
+                        LOG.error("Send aliyun sms failure with message:{}", aliyunCommonResponse.Message);
                     }
                 }
             }
         } catch (ServerException e) {
-            e.printStackTrace();
+            LOG.error("ServerException", e);
         } catch (ClientException e) {
-            e.printStackTrace();
+            LOG.error("ClientException", e);
         }
 
 

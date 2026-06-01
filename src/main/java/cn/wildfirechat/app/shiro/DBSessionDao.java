@@ -8,6 +8,8 @@ import org.apache.shiro.session.Session;
 import org.apache.shiro.session.UnknownSessionException;
 import org.apache.shiro.session.mgt.SimpleSession;
 import org.apache.shiro.session.mgt.eis.SessionDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class DBSessionDao implements SessionDAO {
+    private static final Logger LOG = LoggerFactory.getLogger(DBSessionDao.class);
+
     /** 缓存条目存活时间 */
     private static final long CACHE_TTL_MINUTES = 60;
 
@@ -107,7 +111,7 @@ public class DBSessionDao implements SessionDAO {
             oo.writeObject(session);
             bytes = bo.toByteArray();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("IOException", e);
         }
         return bytes;
     }
@@ -124,9 +128,9 @@ public class DBSessionDao implements SessionDAO {
             in = new ObjectInputStream(bi);
             session = (SimpleSession) in.readObject();
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            LOG.error("ClassNotFoundException", e);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("IOException", e);
         }
 
         return session;

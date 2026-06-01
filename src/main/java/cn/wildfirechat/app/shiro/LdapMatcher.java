@@ -4,6 +4,8 @@ import cn.wildfirechat.app.tools.LdapUser;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,7 @@ import java.util.List;
 
 @Service
 public class LdapMatcher implements CredentialsMatcher {
+    private static final Logger LOG = LoggerFactory.getLogger(LdapMatcher.class);
 
     @Override
     public boolean doCredentialsMatch(AuthenticationToken token, AuthenticationInfo info) {
@@ -33,7 +36,7 @@ public class LdapMatcher implements CredentialsMatcher {
                 new InitialDirContext(env).close();  // 能 bind 就算成功
                 return true;
             } catch (NamingException e) {
-                e.printStackTrace();
+                LOG.error("NamingException", e);
                 return false;
             }
         }
@@ -68,6 +71,6 @@ public class LdapMatcher implements CredentialsMatcher {
 
     public static void main(String[] args) {
         boolean ok = authenticate(LDAP_URL, USER_DN, "123456");   // 与条目里明文一致
-        System.out.println(ok ? "登录成功" : "用户名或密码错误");
+        LOG.info(ok ? "登录成功" : "用户名或密码错误");
     }
 }

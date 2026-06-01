@@ -1,5 +1,7 @@
 package cn.wildfirechat.app;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.MediaType;
@@ -20,6 +22,7 @@ import java.util.function.Supplier;
 
 @RestController
 public class AudioController {
+    private static final Logger LOG = LoggerFactory.getLogger(AudioController.class);
 
     @Value("${wfc.audio.cache.dir}")
     String cacheDirPath;
@@ -67,12 +70,11 @@ public class AudioController {
                         .contentLength(mp3File.length())
                         .body(resource);
                 } catch (MalformedURLException e) {
-                    System.out.println(amrUrl);
-                    e.printStackTrace();
+                    LOG.error("MalformedURLException for amrUrl: {}", amrUrl, e);
                 } catch (EncoderException e) {
-                    e.printStackTrace();
+                    LOG.error("EncoderException", e);
                 } catch (FileNotFoundException e) {
-                    e.printStackTrace();
+                    LOG.error("FileNotFoundException", e);
                 }
                 return ResponseEntity.status(500).build();
             }

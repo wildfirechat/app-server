@@ -3,6 +3,8 @@ package cn.wildfirechat.app.shiro;
 import cn.wildfirechat.app.RestResult;
 import com.google.gson.Gson;
 import org.apache.shiro.web.filter.AccessControlFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
@@ -14,6 +16,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 public class JsonAuthLoginFilter extends AccessControlFilter {
+    private static final Logger LOG = LoggerFactory.getLogger(JsonAuthLoginFilter.class);
 
     @Override
     protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue)
@@ -48,7 +51,7 @@ public class JsonAuthLoginFilter extends AccessControlFilter {
 
             out.write(new Gson().toJson(RestResult.error(RestResult.RestCode.ERROR_NOT_LOGIN)));
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("IOException", e);
         } finally {
             if (out != null) {
                 out.close();

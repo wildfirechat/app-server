@@ -8,11 +8,14 @@ import cn.wildfirechat.sdk.utilities.AdminHttpUtils;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TokenMatcher implements CredentialsMatcher {
+    private static final Logger LOG = LoggerFactory.getLogger(TokenMatcher.class);
     @Autowired
     private AuthDataSource authDataSource;
 
@@ -32,10 +35,10 @@ public class TokenMatcher implements CredentialsMatcher {
         AdminHttpUtils.init("http://wildfirechat.cn:18080", "37923");
         try {
             IMResult<InputOutputUserInfo> userByMobile = UserAdmin.getUserByMobile("13888888888");
-            System.out.println(userByMobile.msg);
+            LOG.info("{}", userByMobile.msg);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception", e);
         }
     }
 }

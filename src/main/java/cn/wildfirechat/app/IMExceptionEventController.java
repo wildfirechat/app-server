@@ -56,7 +56,7 @@ public class IMExceptionEventController {
                         sendTextMail("IM服务报警通知：节点" + event.node_id + "，发生" + event.count + "次  " + event.msg, "call stack:" + event.call_stack);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.error("Exception", e);
                 }
             }
         }).start();
@@ -64,7 +64,7 @@ public class IMExceptionEventController {
 
     @PostMapping("im_exception_event")
     public String onIMException(@RequestBody IMExceptionEvent event)  {
-        System.out.println(event);
+        logger.info("{}", event);
         events.add(event);
         return "ok";
     }
