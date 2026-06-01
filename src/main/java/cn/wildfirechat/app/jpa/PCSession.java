@@ -5,10 +5,11 @@ import cn.wildfirechat.app.pojo.SessionOutput;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "pc_session")
+@Table(name = "pc_session", indexes = @Index(name = "idx_create_dt", columnList = "createDt"))
 public class PCSession {
     public interface PCSessionStatus {
         int Session_Created = 0;

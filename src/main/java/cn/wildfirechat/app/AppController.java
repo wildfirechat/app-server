@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +27,9 @@ public class AppController {
     private static final Logger LOG = LoggerFactory.getLogger(AppController.class);
     @Autowired
     private Service mService;
+
+    // 固定线程池，替代每次请求都新建 CachedThreadPool
+    private static final Executor ASYNC_EXECUTOR = Executors.newFixedThreadPool(100);
 
     @GetMapping()
     public Object health() {
@@ -135,7 +139,7 @@ public class AppController {
                 ex.printStackTrace();
                 deferredResult.setResult(new ResponseEntity(RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR), HttpStatus.OK));
             }
-        }, Executors.newCachedThreadPool());
+        }, ASYNC_EXECUTOR);
         return deferredResult;
     }
 

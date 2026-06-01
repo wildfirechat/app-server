@@ -4,7 +4,7 @@ import javax.persistence.*;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "slide_verify")
+@Table(name = "slide_verify", indexes = @Index(name = "idx_timestamp", columnList = "timestamp"))
 public class SlideVerify {
     @Id
     @Column(length = 64)

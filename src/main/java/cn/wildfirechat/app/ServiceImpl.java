@@ -591,9 +591,6 @@ public class ServiceImpl implements Service {
                 }
                 up.setTryCount(0);
             }
-            up.setTryCount(up.getTryCount()+1);
-            up.setLastTryTime(System.currentTimeMillis());
-            userPasswordRepository.save(up);
 
             //检查用户是否被封禁
             int userStatus = getUserStatus(mobile);
@@ -610,6 +607,10 @@ public class ServiceImpl implements Service {
             } catch (UnknownAccountException uae) {
                 return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
             } catch (IncorrectCredentialsException ice) {
+                // 认证失败后才记录尝试次数
+                up.setTryCount(up.getTryCount() + 1);
+                up.setLastTryTime(System.currentTimeMillis());
+                userPasswordRepository.save(up);
                 return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
             } catch (LockedAccountException lae) {
                 return RestResult.error(RestResult.RestCode.ERROR_CODE_INCORRECT);
@@ -621,9 +622,12 @@ public class ServiceImpl implements Service {
             if (subject.isAuthenticated()) {
                 long timeout = subject.getSession().getTimeout();
                 LOG.info("Login success " + timeout);
-                up.setTryCount(0);
-                up.setLastTryTime(0);
-                userPasswordRepository.save(up);
+                // 只有之前有过失败记录才清零，避免成功登录时的无谓写操作
+                if (up.getTryCount() != 0 || up.getLastTryTime() != 0) {
+                    up.setTryCount(0);
+                    up.setLastTryTime(0);
+                    userPasswordRepository.save(up);
+                }
 
                 // 检查密码是否已过期
                 if (passwordExpiryEnable && passwordExpiryDays > 0) {
