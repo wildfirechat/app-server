@@ -10,6 +10,7 @@ import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.util.unit.DataSize;
 
 import javax.servlet.MultipartConfigElement;
@@ -41,6 +42,17 @@ public class Application {
 		/// 设置总上传数据总大小
 		factory.setMaxRequestSize(DataSize.ofMegabytes(100));
 		return factory.createMultipartConfig();
+	}
+
+	/**
+	 * PC 扫码登录轮询使用的调度器。默认 pool-size=1，需要调大以免轮询任务排队。
+	 */
+	@Bean
+	public ThreadPoolTaskScheduler pcLoginScheduler() {
+		ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+		scheduler.setPoolSize(8);
+		scheduler.setThreadNamePrefix("pc-login-poll-");
+		return scheduler;
 	}
 
     @Scheduled(fixedRate = 60 * 60 * 1000)

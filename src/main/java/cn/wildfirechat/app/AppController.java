@@ -11,16 +11,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 public class AppController {
@@ -28,8 +27,11 @@ public class AppController {
     @Autowired
     private Service mService;
 
-    // 固定线程池，替代每次请求都新建 CachedThreadPool
-    private static final Executor ASYNC_EXECUTOR = Executors.newFixedThreadPool(100);
+    @javax.annotation.Resource(name = "pcLoginScheduler")
+    private TaskScheduler taskScheduler;
+
+    /** 等待中的 PC 扫码登录请求（用于轮询调度），key=token，value=DeferredResult */
+    private final ConcurrentHashMap<String, DeferredResult<ResponseEntity>> pendingPcLogin = new ConcurrentHashMap<>();
 
     @GetMapping()
     public Object health() {
@@ -101,46 +103,74 @@ public class AppController {
         return mService.createPcSession(request);
     }
 
+    /**
+     * 使用 TaskScheduler 定时轮询 DB，不给轮询分配独立线程（每次查询完立即释放调度线程）。
+     * 集群兼容：每台服务器独立轮询各自的 DB，不需要共享内存。
+     */
     @CrossOrigin
     @PostMapping(value = "/session_login/{token}", produces = "application/json;charset=UTF-8")
     public Object loginWithSession(@PathVariable("token") String token) {
         LOG.info("receive login with session key {}", token);
+
         RestResult timeoutResult = RestResult.error(RestResult.RestCode.ERROR_SESSION_EXPIRED);
         ResponseEntity<RestResult> timeoutResponseEntity = new ResponseEntity<>(timeoutResult, HttpStatus.OK);
         int timeoutSecond = 50;
         DeferredResult<ResponseEntity> deferredResult = new DeferredResult<>(timeoutSecond * 1000L, timeoutResponseEntity);
-        CompletableFuture.runAsync(() -> {
+        deferredResult.onCompletion(() -> pendingPcLogin.remove(token));
+
+        DeferredResult<ResponseEntity> existing = pendingPcLogin.putIfAbsent(token, deferredResult);
+        if (existing != null) {
+            LOG.warn("duplicate pending pc login for token {}", token);
+            return ResponseEntity.ok(RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR));
+        }
+
+        // attempt=0 立即执行第一次检查，后续每隔 1 秒轮询一次，共 50 次
+        schedulePoll(token, 0, timeoutSecond);
+        return deferredResult;
+    }
+
+    private void schedulePoll(String token, int attempt, int maxAttempts) {
+        schedulePollWithDelay(token, attempt, maxAttempts, attempt == 0 ? 0 : 1);
+    }
+
+    private void schedulePollWithDelay(String token, int attempt, int maxAttempts, long delaySeconds) {
+        if (attempt >= maxAttempts) {
+            return;
+        }
+        taskScheduler.schedule(() -> {
+            DeferredResult<ResponseEntity> deferredResult = pendingPcLogin.get(token);
+            if (deferredResult == null || deferredResult.isSetOrExpired()) {
+                return;
+            }
+
             try {
-                int i = 0;
-                while (i < timeoutSecond) {
-                    RestResult restResult = mService.loginWithSession(token);
-                    if (restResult.getCode() == RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED.code && restResult.getResult() != null) {
-                        deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));
-                        break;
-                    } else if (restResult.getCode() == RestResult.RestCode.SUCCESS.code
-                        || restResult.getCode() == RestResult.RestCode.ERROR_SESSION_EXPIRED.code
-                        || restResult.getCode() == RestResult.RestCode.ERROR_SERVER_ERROR.code
-                        || restResult.getCode() == RestResult.RestCode.ERROR_SESSION_CANCELED.code
-                        || restResult.getCode() == RestResult.RestCode.ERROR_CODE_INCORRECT.code) {
-                        ResponseEntity.BodyBuilder builder =ResponseEntity.ok();
-                        if(restResult.getCode() == RestResult.RestCode.SUCCESS.code){
-                            Subject subject = SecurityUtils.getSubject();
-                            Object sessionId = subject.getSession().getId();
-                            builder.header("authToken", sessionId.toString());
-                        }
-                        deferredResult.setResult(builder.body(restResult));
-                        break;
-                    } else {
-                        TimeUnit.SECONDS.sleep(1);
+                RestResult restResult = mService.loginWithSession(token);
+                int code = restResult.getCode();
+
+                if (code == RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED.code && restResult.getResult() != null) {
+                    // 已扫码（返回用户信息），PC 端展示用户信息并等待确认
+                    deferredResult.setResult(new ResponseEntity(restResult, HttpStatus.OK));
+                } else if (code == RestResult.RestCode.SUCCESS.code
+                    || code == RestResult.RestCode.ERROR_SESSION_EXPIRED.code
+                    || code == RestResult.RestCode.ERROR_SERVER_ERROR.code
+                    || code == RestResult.RestCode.ERROR_SESSION_CANCELED.code
+                    || code == RestResult.RestCode.ERROR_CODE_INCORRECT.code) {
+                    // 终态，直接返回
+                    ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+                    if (code == RestResult.RestCode.SUCCESS.code) {
+                        Subject subject = SecurityUtils.getSubject();
+                        builder.header("authToken", subject.getSession().getId().toString());
                     }
-                    i ++;
+                    deferredResult.setResult(builder.body(restResult));
+                } else {
+                    // 仍在等待，1秒后继续轮询
+                    schedulePoll(token, attempt + 1, maxAttempts);
                 }
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            } catch (Exception e) {
+                LOG.error("poll pc session error, token: {}", token, e);
                 deferredResult.setResult(new ResponseEntity(RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR), HttpStatus.OK));
             }
-        }, ASYNC_EXECUTOR);
-        return deferredResult;
+        }, Instant.now().plusSeconds(delaySeconds));
     }
 
     /* 手机扫码操作
@@ -156,6 +186,7 @@ public class AppController {
     public Object confirmPc(@RequestBody ConfirmSessionRequest request) {
         return mService.confirmPc(request);
     }
+
     @PostMapping(value = "/cancel_pc", produces = "application/json;charset=UTF-8")
     public Object cancelPc(@RequestBody CancelSessionRequest request) {
         return mService.cancelPc(request);
