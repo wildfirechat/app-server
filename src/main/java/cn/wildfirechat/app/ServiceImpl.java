@@ -1343,7 +1343,13 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult saveUserLogs(String userId, MultipartFile file) {
-        File localFile = new File(userLogPath, userId + "_" + Utils.getSafeFileName(file.getOriginalFilename()));
+        // 防止 userId 中包含 ../ 等路径遍历字符
+        String safeUserId = Utils.getSafeFileName(userId);
+        if (safeUserId.isEmpty() || !safeUserId.equals(userId)) {
+            LOG.warn("saveUserLogs rejected - unsafe userId: {}", userId);
+            return RestResult.error(ERROR_INVALID_PARAMETER);
+        }
+        File localFile = new File(userLogPath, safeUserId + "_" + Utils.getSafeFileName(file.getOriginalFilename()));
 
         try {
             file.transferTo(localFile);

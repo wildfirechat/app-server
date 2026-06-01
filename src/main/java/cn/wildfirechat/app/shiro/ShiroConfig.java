@@ -57,7 +57,6 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/reset_pwd", "anon");
         filterChainDefinitionMap.put("/session_login/**", "anon");
         filterChainDefinitionMap.put("/user/online_event", "anon");
-        filterChainDefinitionMap.put("/logs/**", "anon");
         filterChainDefinitionMap.put("/im_event/**", "anon");
         filterChainDefinitionMap.put("/im_exception_event/**", "anon");
         filterChainDefinitionMap.put("/message/censor", "anon");

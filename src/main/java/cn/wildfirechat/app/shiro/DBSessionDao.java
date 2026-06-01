@@ -2,6 +2,8 @@ package cn.wildfirechat.app.shiro;
 
 import cn.wildfirechat.app.jpa.ShiroSession;
 import cn.wildfirechat.app.jpa.ShiroSessionRepository;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.session.UnknownSessionException;
 import org.apache.shiro.session.mgt.SimpleSession;
@@ -12,16 +14,22 @@ import org.springframework.stereotype.Component;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class DBSessionDao implements SessionDAO {
-    // 用于脏检查：缓存已持久化的 session 序列化数据，避免无变化时重复写入数据库
-    private final Map<Object, byte[]> sessionDataCache = new ConcurrentHashMap<>();
-    // 读缓存：避免同一 session 在短时间内重复读库
-    private final Map<Object, Session> sessionReadCache = new ConcurrentHashMap<>();
+    /** 缓存条目存活时间 */
+    private static final long CACHE_TTL_MINUTES = 60;
+
+    /** 用于脏检查：缓存已持久化的 session 序列化数据，避免无变化时重复写入数据库 */
+    private final Cache<Object, byte[]> sessionDataCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(CACHE_TTL_MINUTES, TimeUnit.MINUTES)
+            .build();
+    /** 读缓存：避免同一 session 在短时间内重复读库 */
+    private final Cache<Object, Session> sessionReadCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(CACHE_TTL_MINUTES, TimeUnit.MINUTES)
+            .build();
 
     @Autowired
     private ShiroSessionRepository shiroSessionRepository;
@@ -37,7 +45,7 @@ public class DBSessionDao implements SessionDAO {
 
     @Override
     public Session readSession(Serializable sessionId) throws UnknownSessionException {
-        Session cached = sessionReadCache.get(sessionId);
+        Session cached = sessionReadCache.getIfPresent(sessionId);
         if (cached != null) {
             return cached;
         }
@@ -62,7 +70,7 @@ public class DBSessionDao implements SessionDAO {
             return;
         }
         Object sessionId = session.getId();
-        byte[] cachedBytes = sessionDataCache.get(sessionId);
+        byte[] cachedBytes = sessionDataCache.getIfPresent(sessionId);
 
         // 脏检查：如果数据未变化，直接跳过数据库写入
         if (cachedBytes != null && Arrays.equals(cachedBytes, currentBytes)) {
@@ -78,8 +86,8 @@ public class DBSessionDao implements SessionDAO {
     @Override
     public void delete(Session session) {
         Object sessionId = session.getId();
-        sessionDataCache.remove(sessionId);
-        sessionReadCache.remove(sessionId);
+        sessionDataCache.invalidate(sessionId);
+        sessionReadCache.invalidate(sessionId);
         shiroSessionRepository.deleteById((String) sessionId);
     }
 
