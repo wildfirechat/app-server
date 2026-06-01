@@ -10,7 +10,7 @@
             <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
         </Console>
 
-        <RollingRandomAccessFile name="RollingFile" immediateFlush="true"
+        <RollingRandomAccessFile name="RollingFile" immediateFlush="false"
                                  fileName="${LOG_PATH}/app-server.log"
                                  filePattern="${LOG_PATH}/app-server-%d{yyyy-MM-dd}-%i.log.gz">
             <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
