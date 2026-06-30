@@ -14,6 +14,7 @@ public class ConferenceEntity {
 	public String conferenceTitle;
 	public String password;
 	public String pin;
+	@Column(length = 64)
 	public String owner;
 	public String manages;
 	public long startTime;

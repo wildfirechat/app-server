@@ -16,9 +16,10 @@ public class UserConference {
 	@Column(name = "id")
 	public Long id;
 
-	@Column(length = 128)
+	@Column(length = 64)
 	private String userId;
 
+	@Column(length = 128)
 	private String conferenceId;
 
 	private long timestamp;
