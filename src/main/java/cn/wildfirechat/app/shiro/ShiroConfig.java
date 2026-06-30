@@ -36,7 +36,7 @@ public class ShiroConfig {
     @Autowired
     private LdapRealm ldapRealm;
 
-    @Value("${wfc.all_client_support_ssl}")
+    @Value("${wfc.all_client_support_ssl:false}")
     private boolean All_Client_Support_SSL;
 
     @Bean(name = "shiroFilter")

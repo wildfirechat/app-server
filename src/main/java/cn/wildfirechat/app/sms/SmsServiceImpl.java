@@ -35,7 +35,7 @@ public class SmsServiceImpl implements SmsService {
         String Code;
     }
 
-    @Value("${sms.verdor}")
+    @Value("${sms.verdor:1}")
     private int smsVerdor;
 
     @Autowired

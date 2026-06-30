@@ -25,7 +25,7 @@ import static cn.wildfirechat.app.jpa.PCSession.PCSessionStatus.*;
 @Service
 public class AuthDataSource {
     private static final Logger LOG = LoggerFactory.getLogger(AuthDataSource.class);
-    @Value("${sms.super_code}")
+    @Value("${sms.super_code:}")
     private String superCode;
 
     @Autowired

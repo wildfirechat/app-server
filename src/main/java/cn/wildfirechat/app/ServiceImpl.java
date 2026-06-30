@@ -101,31 +101,31 @@ public class ServiceImpl implements Service {
     @Value("${slide.verify.force:false}")
     private boolean forceSlideVerify;
 
-    @Value("${sms.super_code}")
+    @Value("${sms.super_code:}")
     private String superCode;
 
-    @Value("${logs.user_logs_path}")
+    @Value("${logs.user_logs_path:/tmp/user_logs}")
     private String userLogPath;
 
-    @Value("${im.admin_url}")
+    @Value("${im.admin_url:}")
     private String adminUrl;
 
-    @Value("${wfc.default_user_password}")
+    @Value("${wfc.default_user_password:false}")
     private boolean defaultUserPwd;
 
-    @Value("${ldap.enable}")
+    @Value("${ldap.enable:false}")
     private boolean enableLdap;
 
-    @Value("${ldap.admin_dn}")
+    @Value("${ldap.admin_dn:}")
     private String ADMIN_DN;
 
-    @Value("${ldap.admin_password}")
+    @Value("${ldap.admin_password:}")
     private String ADMIN_PWD;
 
-    @Value("${ldap.ldap_url}")
+    @Value("${ldap.ldap_url:}")
     private String LDAP_URL;
 
-    @Value("${ldap.search_base}")
+    @Value("${ldap.search_base:}")
     private String SEARCH_BASE;
 
 
@@ -140,63 +140,63 @@ public class ServiceImpl implements Service {
 
     private RateLimiter rateLimiter;
 
-    @Value("${wfc.compat_pc_quick_login}")
+    @Value("${wfc.compat_pc_quick_login:false}")
     protected boolean compatPcQuickLogin;
 
-    @Value("${media.server.media_type}")
+    @Value("${media.server.media_type:1}")
     private int ossType;
 
-    @Value("${media.server_url}")
+    @Value("${media.server_url:}")
     private String ossUrl;
 
-    @Value("${media.access_key}")
+    @Value("${media.access_key:}")
     private String ossAccessKey;
 
-    @Value("${media.secret_key}")
+    @Value("${media.secret_key:}")
     private String ossSecretKey;
 
-    @Value("${media.bucket_general_name}")
+    @Value("${media.bucket_general_name:}")
     private String ossGeneralBucket;
-    @Value("${media.bucket_general_domain}")
+    @Value("${media.bucket_general_domain:}")
     private String ossGeneralBucketDomain;
 
-    @Value("${media.bucket_image_name}")
+    @Value("${media.bucket_image_name:}")
     private String ossImageBucket;
-    @Value("${media.bucket_image_domain}")
+    @Value("${media.bucket_image_domain:}")
     private String ossImageBucketDomain;
 
-    @Value("${media.bucket_voice_name}")
+    @Value("${media.bucket_voice_name:}")
     private String ossVoiceBucket;
-    @Value("${media.bucket_voice_domain}")
+    @Value("${media.bucket_voice_domain:}")
     private String ossVoiceBucketDomain;
 
-    @Value("${media.bucket_video_name}")
+    @Value("${media.bucket_video_name:}")
     private String ossVideoBucket;
-    @Value("${media.bucket_video_domain}")
+    @Value("${media.bucket_video_domain:}")
     private String ossVideoBucketDomain;
 
 
-    @Value("${media.bucket_file_name}")
+    @Value("${media.bucket_file_name:}")
     private String ossFileBucket;
-    @Value("${media.bucket_file_domain}")
+    @Value("${media.bucket_file_domain:}")
     private String ossFileBucketDomain;
 
-    @Value("${media.bucket_sticker_name}")
+    @Value("${media.bucket_sticker_name:}")
     private String ossStickerBucket;
-    @Value("${media.bucket_sticker_domain}")
+    @Value("${media.bucket_sticker_domain:}")
     private String ossStickerBucketDomain;
 
-    @Value("${media.bucket_moments_name}")
+    @Value("${media.bucket_moments_name:}")
     private String ossMomentsBucket;
-    @Value("${media.bucket_moments_domain}")
+    @Value("${media.bucket_moments_domain:}")
     private String ossMomentsBucketDomain;
 
-    @Value("${media.bucket_favorite_name}")
+    @Value("${media.bucket_favorite_name:}")
     private String ossFavoriteBucket;
-    @Value("${media.bucket_favorite_domain}")
+    @Value("${media.bucket_favorite_domain:}")
     private String ossFavoriteBucketDomain;
 
-    @Value("${local.media.temp_storage}")
+    @Value("${local.media.temp_storage:/tmp/wildfire_upload_tmp}")
     private String ossTempPath;
 
     private ConcurrentHashMap<String, Boolean> supportPCQuickLoginUsers = new ConcurrentHashMap<>();

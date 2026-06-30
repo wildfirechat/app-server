@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 public class AudioController {
     private static final Logger LOG = LoggerFactory.getLogger(AudioController.class);
 
-    @Value("${wfc.audio.cache.dir}")
+    @Value("${wfc.audio.cache.dir:/tmp/wfc_audio_cache}")
     String cacheDirPath;
     private File cacheDir;
 

@@ -35,10 +35,10 @@ public class IMExceptionEventController {
     private BlockingDeque<IMExceptionEvent> events = new LinkedBlockingDeque<>();
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:}")
     private String from;
 
-    @Value("${spring.mail.to_lists}")
+    @Value("${spring.mail.to_lists:}")
     private String toLists;
 
     @Autowired
