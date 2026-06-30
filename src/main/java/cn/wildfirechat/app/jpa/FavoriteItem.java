@@ -4,7 +4,9 @@ import javax.annotation.Nullable;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "t_favorites", indexes = {@Index(columnList = "user_id, type")})
+@Table(name = "t_favorites", indexes = {
+    @Index(name = "idx_user_id_id", columnList = "user_id, id desc")
+})
 public class FavoriteItem {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)

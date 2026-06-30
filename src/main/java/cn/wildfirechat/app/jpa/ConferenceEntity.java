@@ -3,7 +3,10 @@ package cn.wildfirechat.app.jpa;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "conference")
+@Table(name = "conference", indexes = {
+    @Index(name = "idx_end_time", columnList = "endTime"),
+    @Index(name = "idx_owner", columnList = "owner")
+})
 public class ConferenceEntity {
 	@Id
 	@Column(length = 12)

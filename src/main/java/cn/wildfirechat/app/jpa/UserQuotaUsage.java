@@ -8,7 +8,9 @@ import java.util.Date;
  * 记录每个月用户实际使用的会议分钟数
  */
 @Entity
-@Table(name = "user_quota_usage")
+@Table(name = "user_quota_usage", indexes = {
+    @Index(name = "idx_user_month", columnList = "user_id, billing_month", unique = true)
+})
 public class UserQuotaUsage {
 
     @Id

@@ -7,7 +7,9 @@ import java.util.List;
 import static javax.persistence.CascadeType.ALL;
 
 @Entity
-@Table(name = "user_conference", uniqueConstraints = {@UniqueConstraint(columnNames = {"userId","conferenceId"})})
+@Table(name = "user_conference", indexes = {
+    @Index(name = "idx_conference_id", columnList = "conferenceId")
+}, uniqueConstraints = {@UniqueConstraint(columnNames = {"userId","conferenceId"})})
 public class UserConference {
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
