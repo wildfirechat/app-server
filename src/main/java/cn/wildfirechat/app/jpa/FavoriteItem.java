@@ -5,7 +5,7 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "t_favorites", indexes = {
-    @Index(name = "idx_user_id_id", columnList = "user_id, id desc")
+    @Index(name = "idx_user_id_id", columnList = "user_id, id")
 })
 public class FavoriteItem {
     @Id
