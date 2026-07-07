@@ -82,6 +82,7 @@ public class DBSessionDao implements SessionDAO {
         }
 
         ShiroSession shiroSession = new ShiroSession((String) sessionId, currentBytes);
+        shiroSession.setUpdateTime(System.currentTimeMillis());
         shiroSessionRepository.save(shiroSession);
         sessionDataCache.put(sessionId, currentBytes);
         sessionReadCache.put(sessionId, session);

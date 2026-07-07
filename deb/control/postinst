@@ -1,2 +1,15 @@
-mv -f /opt/app-server/app-*.jar /opt/app-server/app-server.jar
-systemctl daemon-reload
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        mv -f /opt/app-server/app-*.jar /opt/app-server/app-server.jar
+        mkdir -p /var/log/app-server
+        chmod 755 /var/log/app-server
+        systemctl daemon-reload
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+esac
+
+exit 0
