@@ -1,6 +1,7 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.jpa.PCSessionRepository;
+import cn.wildfirechat.app.jpa.ShiroSessionRepository;
 import cn.wildfirechat.app.slide.SlideVerifyCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -20,6 +21,9 @@ import javax.servlet.MultipartConfigElement;
 public class Application {
     @Autowired
     private PCSessionRepository pcSessionRepository;
+
+    @Autowired
+    private ShiroSessionRepository shiroSessionRepository;
 
     @Autowired
     private SlideVerifyCleanupService slideVerifyCleanupService;
@@ -52,6 +56,12 @@ public class Application {
     @Scheduled(fixedRate = 60 * 60 * 1000)
     public void cleanExpiredSlideVerify(){
         slideVerifyCleanupService.cleanupExpired();
+    }
+
+    @Scheduled(fixedRate = 60 * 60 * 1000)
+    public void clearExpiredShiroSession(){
+        // 清理 3 个月未更新的 shiro session；保留 update_time 为 0/null 的历史数据
+        shiroSessionRepository.deleteExpiredSessions(System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000);
     }
 
 }

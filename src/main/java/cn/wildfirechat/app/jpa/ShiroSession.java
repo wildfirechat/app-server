@@ -16,9 +16,13 @@ public class ShiroSession {
 	@Type(type="org.hibernate.type.BinaryType")
 	private byte[] sessionData;
 
+	@Column(name = "update_time")
+	private long updateTime;
+
 	public ShiroSession(String sessionId, byte[] sessionData) {
 		this.sessionId = sessionId;
 		this.sessionData = sessionData;
+		this.updateTime = System.currentTimeMillis();
 	}
 
 	public ShiroSession() {
@@ -38,5 +42,13 @@ public class ShiroSession {
 
 	public void setSessionData(byte[] sessionData) {
 		this.sessionData = sessionData;
+	}
+
+	public long getUpdateTime() {
+		return updateTime;
+	}
+
+	public void setUpdateTime(long updateTime) {
+		this.updateTime = updateTime;
 	}
 }
