@@ -54,20 +54,27 @@ public class AvatarServiceImpl implements AvatarService {
     }
 
     @Override
-    public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(GroupAvatarRequest request) throws MalformedURLException {
+    public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(GroupAvatarRequest request) {
         List<GroupAvatarRequest.GroupMemberInfo> infos = request.getMembers();
         List<URL> paths = new ArrayList<>();
         long hashCode = 0;
         for (int i = 0; i < infos.size() && i < 9; i++) {
             GroupAvatarRequest.GroupMemberInfo info = infos.get(i);
             if (!StringUtils.isEmpty(info.getAvatarUrl())) {
-                paths.add(new URL(info.getAvatarUrl()));
-                hashCode += info.getAvatarUrl().hashCode();
-            } else {
-                File file = nameAvatar(info.getName());
-                if (file != null && file.exists()) {
+                try {
+                    paths.add(new URL(info.getAvatarUrl()));
+                    hashCode += info.getAvatarUrl().hashCode();
+                    continue;
+                } catch (MalformedURLException e) {
+                    // use default name avatar instead
+                }
+            }
+            File file = nameAvatar(info.getName());
+            if (file != null && file.exists()) {
+                try {
                     paths.add(file.toURI().toURL());
                     hashCode += info.getName().hashCode();
+                } catch (MalformedURLException ignored) {
                 }
             }
         }
@@ -121,18 +128,19 @@ public class AvatarServiceImpl implements AvatarService {
     }
 
     private File nameAvatar(String name) {
-        if (StringUtils.isEmpty(name)) {
-            return null;
+        String displayName = name;
+        if (StringUtils.isEmpty(displayName)) {
+            displayName = "?";
         }
         String[] colors = bgColors.split(",");
         int len = colors.length;
-        int hashCode = name.hashCode();
+        int hashCode = displayName.hashCode();
         File file = new File(AVATAR_DIR, hashCode + ".png");
         if (!file.exists()) {
-            String color = colors[Math.abs(name.hashCode() % len)];
+            String color = colors[Math.abs(displayName.hashCode() % len)];
             // 最后一个字符
-            String lastChar = name.substring(name.length() - 1).toUpperCase();
-            file = new NameAvatarBuilder(color).name(lastChar, name).build();
+            String lastChar = displayName.substring(displayName.length() - 1).toUpperCase();
+            file = new NameAvatarBuilder(color).name(lastChar, displayName).build();
         }
         return file;
     }
