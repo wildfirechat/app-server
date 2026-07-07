@@ -69,11 +69,12 @@ public class AvatarServiceImpl implements AvatarService {
                     // use default name avatar instead
                 }
             }
-            File file = nameAvatar(info.getName());
+            String memberName = info.getName();
+            File file = nameAvatar(memberName);
             if (file != null && file.exists()) {
                 try {
                     paths.add(file.toURI().toURL());
-                    hashCode += info.getName().hashCode();
+                    hashCode += (StringUtils.isEmpty(memberName) ? "?" : memberName).hashCode();
                 } catch (MalformedURLException ignored) {
                 }
             }
