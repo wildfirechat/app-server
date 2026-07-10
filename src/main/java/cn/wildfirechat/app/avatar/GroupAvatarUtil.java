@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -16,12 +17,17 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author: fangdaji
  * @date: 2019/3/23 15:59
  * @description:
  */
 public class GroupAvatarUtil {
+    private static final Logger LOG = LoggerFactory.getLogger(GroupAvatarUtil.class);
+
     public static void getCombinationOfHead(List<URL> paths, File targetFile)
         throws IOException, URISyntaxException {
 
@@ -205,7 +211,7 @@ public class GroupAvatarUtil {
             }
             return (BufferedImage) itemp;
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("load avatar failed, url: {}, fallback: {}", filePath, fallback, e);
             if (fallback) {
                 URL defaultAvatarUrl = GroupAvatarUtil.class.getResource(DEFAULT_AVATAR_PATH);
                 if (defaultAvatarUrl != null) {

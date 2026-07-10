@@ -1,5 +1,7 @@
 package cn.wildfirechat.app.avatar;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,6 +25,8 @@ import java.util.function.Supplier;
 
 @Service
 public class AvatarServiceImpl implements AvatarService {
+    private static final Logger LOG = LoggerFactory.getLogger(AvatarServiceImpl.class);
+
     private static final String DEFAULT_AVATAR_PATH = "/static/avatar/avatar_def.png";
 
     @Value("${avatar.bg.corlors}")
@@ -115,7 +119,7 @@ public class AvatarServiceImpl implements AvatarService {
                             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
                         }
                     } catch (IOException | URISyntaxException e) {
-                        e.printStackTrace();
+                        LOG.error("generate group avatar error", e);
                     } finally {
                         if (inputStream != null) {
                             try {
@@ -139,7 +143,7 @@ public class AvatarServiceImpl implements AvatarService {
                     .header("Cache-Control", "max-age=604800")
                     .body(bytes));
             } catch (IOException e) {
-                e.printStackTrace();
+                LOG.error("read cached group avatar error", e);
             }
             return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
         }
