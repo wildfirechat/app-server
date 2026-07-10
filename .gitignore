@@ -3,5 +3,5 @@ target
 appdata.mv.db
 nohup.out
 appdata.trace.db
-avatar/
+/avatar/
 logs

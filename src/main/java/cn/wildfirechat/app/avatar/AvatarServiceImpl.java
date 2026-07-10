@@ -23,6 +23,8 @@ import java.util.function.Supplier;
 
 @Service
 public class AvatarServiceImpl implements AvatarService {
+    private static final String DEFAULT_AVATAR_PATH = "/static/avatar/avatar_def.png";
+
     @Value("${avatar.bg.corlors}")
     String bgColors;
 
@@ -58,25 +60,40 @@ public class AvatarServiceImpl implements AvatarService {
         List<GroupAvatarRequest.GroupMemberInfo> infos = request.getMembers();
         List<URL> paths = new ArrayList<>();
         long hashCode = 0;
+        URL defaultAvatarUrl = getClass().getResource(DEFAULT_AVATAR_PATH);
         for (int i = 0; i < infos.size() && i < 9; i++) {
             GroupAvatarRequest.GroupMemberInfo info = infos.get(i);
+            URL url = null;
+            long urlHashCode = 0;
             if (!StringUtils.isEmpty(info.getAvatarUrl())) {
                 try {
-                    paths.add(new URL(info.getAvatarUrl()));
-                    hashCode += info.getAvatarUrl().hashCode();
-                    continue;
+                    url = new URL(info.getAvatarUrl());
+                    urlHashCode = info.getAvatarUrl().hashCode();
                 } catch (MalformedURLException e) {
-                    // use default name avatar instead
+                    // 头像链接非法，使用默认头像
+                    url = defaultAvatarUrl;
+                    urlHashCode = DEFAULT_AVATAR_PATH.hashCode();
+                }
+            } else {
+                String memberName = info.getName();
+                if (StringUtils.isEmpty(memberName)) {
+                    // 没有头像且没有名字，使用默认头像
+                    url = defaultAvatarUrl;
+                    urlHashCode = DEFAULT_AVATAR_PATH.hashCode();
+                } else {
+                    File file = nameAvatar(memberName);
+                    if (file != null && file.exists()) {
+                        try {
+                            url = file.toURI().toURL();
+                            urlHashCode = memberName.hashCode();
+                        } catch (MalformedURLException ignored) {
+                        }
+                    }
                 }
             }
-            String memberName = info.getName();
-            File file = nameAvatar(memberName);
-            if (file != null && file.exists()) {
-                try {
-                    paths.add(file.toURI().toURL());
-                    hashCode += (StringUtils.isEmpty(memberName) ? "?" : memberName).hashCode();
-                } catch (MalformedURLException ignored) {
-                }
+            if (url != null) {
+                paths.add(url);
+                hashCode += urlHashCode;
             }
         }
         File file = new File(AVATAR_DIR, hashCode + "-group.png");

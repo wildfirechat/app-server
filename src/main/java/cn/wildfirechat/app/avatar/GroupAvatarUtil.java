@@ -141,6 +141,8 @@ public class GroupAvatarUtil {
         ImageIO.write(outImage, format, targetFile);
     }
 
+    private static final String DEFAULT_AVATAR_PATH = "/static/avatar/avatar_def.png";
+
     /**
      * 图片缩放
      *
@@ -151,6 +153,11 @@ public class GroupAvatarUtil {
      */
     private static BufferedImage resize2(URL filePath, int height, int width,
                                          boolean bb) {
+        return resize2(filePath, height, width, bb, true);
+    }
+
+    private static BufferedImage resize2(URL filePath, int height, int width,
+                                         boolean bb, boolean fallback) {
         DataInputStream dis = null;
         try {
             URLConnection urlConnection = filePath.openConnection();
@@ -159,8 +166,10 @@ public class GroupAvatarUtil {
             dis = new DataInputStream(urlConnection.getInputStream());
 
             double ratio = 0; // 缩放比例
-            //File f = new File(dis);
             BufferedImage bi = ImageIO.read(dis);
+            if (bi == null) {
+                throw new IOException("Failed to read image from " + filePath);
+            }
             Image itemp = bi.getScaledInstance(width, height,
                 Image.SCALE_SMOOTH);
             // 计算比例
@@ -197,6 +206,12 @@ public class GroupAvatarUtil {
             return (BufferedImage) itemp;
         } catch (IOException e) {
             e.printStackTrace();
+            if (fallback) {
+                URL defaultAvatarUrl = GroupAvatarUtil.class.getResource(DEFAULT_AVATAR_PATH);
+                if (defaultAvatarUrl != null) {
+                    return resize2(defaultAvatarUrl, height, width, bb, false);
+                }
+            }
         } finally {
             if (dis != null) {
                 try {
