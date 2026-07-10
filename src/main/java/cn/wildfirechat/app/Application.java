@@ -9,8 +9,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.MultipartConfigFactory;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.util.unit.DataSize;
 
 import javax.servlet.MultipartConfigElement;
@@ -48,19 +50,33 @@ public class Application {
 		return factory.createMultipartConfig();
 	}
 
-    @Scheduled(fixedRate = 60 * 60 * 1000)
+    /**
+     * 统一调度线程池。避免多个 @Scheduled 任务（尤其是每秒一次的 PC 登录轮询）
+     * 占用唯一默认线程，导致清理任务被长时间阻塞。
+     */
+    @Bean
+    public TaskScheduler taskScheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(8);
+        scheduler.setThreadNamePrefix("app-scheduler-");
+        scheduler.setRemoveOnCancelPolicy(true);
+        scheduler.setWaitForTasksToCompleteOnShutdown(true);
+        return scheduler;
+    }
+
+    @Scheduled(fixedDelay = 60 * 60 * 1000)
     public void clearPCSession(){
         pcSessionRepository.deleteByCreateDtBefore(System.currentTimeMillis() - 60 * 60 * 1000);
     }
 
-    @Scheduled(fixedRate = 60 * 60 * 1000)
+    @Scheduled(fixedDelay = 60 * 60 * 1000)
     public void cleanExpiredSlideVerify(){
         slideVerifyCleanupService.cleanupExpired();
     }
 
-    @Scheduled(fixedRate = 60 * 60 * 1000)
+    @Scheduled(fixedDelay = 60 * 60 * 1000)
     public void clearExpiredShiroSession(){
-        // 清理 3 个月未更新的 shiro session；保留 update_time 为 0/null 的历史数据
+        // 清理 3 个月未更新的 shiro session；保留 update_time 为 0 的历史数据
         shiroSessionRepository.deleteExpiredSessions(System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000);
     }
 
