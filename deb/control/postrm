@@ -1,16 +1,3 @@
-#!/bin/sh
-set -e
-
-case "$1" in
-    purge|remove)
-        rm -rf /opt/app-server
-        rm -rf /var/log/app-server
-        rm -rf /usr/lib/systemd/system/app-server.service
-        ;;
-    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
-        ;;
-esac
-
+rm -rf /opt/app-server
+rm -rf /usr/lib/systemd/system/app-server.service
 systemctl daemon-reload
-
-exit 0

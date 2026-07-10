@@ -60,7 +60,7 @@ public class PcSessionPollingService {
         deferredResult.onCompletion(() -> pendingPcLogin.remove(token, deferredResult));
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedDelay = 1000)
     public void poll() {
         if (pendingPcLogin.isEmpty()) {
             return;

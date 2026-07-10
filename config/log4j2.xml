@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Properties>
-        <Property name="LOG_PATH">/var/log/app-server</Property>
+        <Property name="LOG_PATH">./logs</Property>
         <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
     </Properties>
 
@@ -10,7 +10,7 @@
             <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
         </Console>
 
-        <RollingRandomAccessFile name="RollingFile" immediateFlush="true"
+        <RollingRandomAccessFile name="RollingFile" immediateFlush="false"
                                  fileName="${LOG_PATH}/app-server.log"
                                  filePattern="${LOG_PATH}/app-server-%d{yyyy-MM-dd}-%i.log.gz">
             <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>

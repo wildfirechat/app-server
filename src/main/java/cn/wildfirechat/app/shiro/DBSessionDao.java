@@ -61,6 +61,13 @@ public class DBSessionDao implements SessionDAO {
                 // 同步到缓存，用于后续脏检查比对
                 sessionDataCache.put(sessionId, shiroSession.getSessionData());
                 sessionReadCache.put(sessionId, session);
+                // 读缓存过期后仍被访问，说明 session 仍在被使用；
+                // 刷新 update_time 以免 60 秒 touch 节流导致活跃 session 被清理任务误删
+                try {
+                    shiroSessionRepository.updateAccessTime((String) sessionId, System.currentTimeMillis());
+                } catch (Exception e) {
+                    LOG.error("update session access time error, sessionId: {}", sessionId, e);
+                }
             }
             return session;
         }
