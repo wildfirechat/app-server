@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 漏桶算法
  * capacity * 1000是为了更精确, 漏水的小洞更小^~^
@@ -51,6 +54,7 @@ public class RateLimiter {
                 count += 1000;
                 requestTimeMap.put(userId, current);
                 requestCountMap.put(userId, count);
+                LOG.debug("RateLimiter granted new key: {}, count: {}", userId, count / 1000);
                 return true;
             } else {
                 count = requestCountMap.get(userId);
@@ -61,9 +65,11 @@ public class RateLimiter {
                 if (count < capacity) {
                     count += 1000;
                     requestCountMap.put(userId, count);
+                    LOG.debug("RateLimiter granted, key: {}, count: {}", userId, count / 1000);
                     return true;
                 } else {
                     requestCountMap.put(userId, count);
+                    LOG.debug("RateLimiter rejected, key: {}, count: {}", userId, count / 1000);
                     return false;
                 }
             }

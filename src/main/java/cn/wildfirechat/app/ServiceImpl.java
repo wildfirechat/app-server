@@ -1366,9 +1366,12 @@ public class ServiceImpl implements Service {
             return RestResult.error(ERROR_FILE_TYPE_NOT_ALLOWED);
         }
 
-        // 4. IP 限频：每个 IP 一小时最多 10 个文件
+        // 4. 用户限频：每个用户一小时最多 10 个文件
         String clientIp = getIp();
-        if (!logUploadRateLimiter.isGranted(clientIp)) {
+        LOG.debug("saveUserLogs rate limit check, userId: {}, ip: {}", userId, clientIp);
+        boolean granted = logUploadRateLimiter.isGranted(userId);
+        LOG.debug("saveUserLogs rate limit result, userId: {}, granted: {}", userId, granted);
+        if (!granted) {
             LOG.warn("saveUserLogs rejected - too frequent, userId: {}, ip: {}", userId, clientIp);
             return RestResult.error(ERROR_UPLOAD_TOO_FREQUENT);
         }
