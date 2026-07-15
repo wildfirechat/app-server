@@ -201,7 +201,7 @@ public class ServiceImpl implements Service {
 
     private ConcurrentHashMap<String, Boolean> supportPCQuickLoginUsers = new ConcurrentHashMap<>();
 
-    private FixedWindowRateLimiter logUploadRateLimiter;
+    private RateLimiter logUploadRateLimiter;
 
     private static final long MAX_LOG_FILE_SIZE = 100 * 1024 * 1024L;
     private static final long MAX_MEDIA_FILE_SIZE = 100 * 1024 * 1024L;
@@ -209,7 +209,7 @@ public class ServiceImpl implements Service {
     @PostConstruct
     private void init() {
         rateLimiter = new RateLimiter(60, 200);
-        logUploadRateLimiter = new FixedWindowRateLimiter(60 * 60 * 1000, 10);
+        logUploadRateLimiter = new RateLimiter(60 * 60, 10);
     }
 
     private String getIp() {
