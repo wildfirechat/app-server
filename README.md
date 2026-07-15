@@ -57,6 +57,63 @@ mvn clean package
 java -jar app-XXXXX.jar
 ```
 
+#### Nginx 反向代理配置
+生产环境建议使用 Nginx 做反向代理和 HTTPS 终止，项目已在 ```nginx/appserver.conf``` 中提供一份参考配置片段（需放入 Nginx 配置文件的 ```http {}``` 块内使用），主要说明如下：
+
+1. **HTTP 自动跳 HTTPS**
+   ```nginx
+   server {
+       listen 80;
+       server_name apptest.wildfirechat.cn;
+       rewrite ^(.*)$ https://apptest.wildfirechat.cn permanent;
+   }
+   ```
+
+2. **HTTPS 反向代理到应用服务**
+   ```nginx
+   server {
+       listen 443 ssl;
+       server_name apptest.wildfirechat.cn;
+
+       # SSL 证书配置
+       ssl_certificate   cert/app.pem;
+       ssl_certificate_key  cert/app.key;
+
+       # 文件最大上传大小，需与 config/application.properties 中的 multipart 配置保持一致
+       client_max_body_size 100m;
+
+       # 扫码登录长轮询超时时间要大于 1 分钟
+       location / {
+           proxy_read_timeout 100s;
+           proxy_pass http://127.0.0.1:8888;
+
+           # 透传真实客户端 IP，确保服务端的 IP 限频、日志等功能正常
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       }
+   }
+   ```
+
+3. **传递真实客户端 IP**
+   由于服务内部对 IP 做了限频（如短信、上传日志等），使用 Nginx 反向代理时必须在 location 中透传真实 IP：
+   ```nginx
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   ```
+   若未传递真实 IP，所有请求都会被识别为 Nginx 所在服务器 IP，导致限频失效或误拦截。
+
+4. **不需要在 Nginx 中配置 CORS**
+   应用服务本身已处理跨域，Nginx 中不要再添加 `Access-Control-Allow-Origin` 等跨域头，直接透传即可。
+
+5. **通过 path 分流（可选）**
+   如果需要带 path 前缀访问，可参考配置文件中注释掉的示例，注意 `proxy_pass` 末尾的 `/` 不能省略：
+   ```nginx
+   location /app/ {
+       proxy_pass http://127.0.0.1:8888/;
+   }
+   ```
+
 #### 性能瓶颈
 本服务最早只提供获取token功能，后来逐渐增加了群公告/Shiro等功能，需要引入数据库。为了提高用户体验的便利性，引入了数据库[H2](http://www.h2database.com)，让用户可以无需安装任何软件就可以直接运行（JRE还是需要的），另外shiro的session也存储在h2数据库中。提高了便利性的同时导致一方面性能有瓶颈，另外一方面也不能水平扩展和高可用。因此需要使用本工程上线必须修改2个地方。
 1. 切换到MySQL，切换方法请参考 ```application.properties``` 文件中的描述。

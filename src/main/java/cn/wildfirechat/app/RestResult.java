@@ -26,7 +26,10 @@ public class RestResult {
         ERROR_SLIDE_VERIFY_NOT_PASS(22, "滑动验证未通过"),
         ERROR_CONFERENCE_QUOTA_EXCEEDED(23, "会议额度已用完"),
         ERROR_WEAK_PASSWORD(24, "密码强度不够，请设置更复杂的密码"),
-        ERROR_PASSWORD_EXPIRED(25, "密码已过期，请重置密码");
+        ERROR_PASSWORD_EXPIRED(25, "密码已过期，请重置密码"),
+        ERROR_FILE_TYPE_NOT_ALLOWED(26, "文件类型不允许"),
+        ERROR_FILE_TOO_LARGE(27, "文件大小超过限制"),
+        ERROR_UPLOAD_TOO_FREQUENT(28, "上传太频繁，请稍后再试");
         public int code;
         public String msg;
 

@@ -201,9 +201,15 @@ public class ServiceImpl implements Service {
 
     private ConcurrentHashMap<String, Boolean> supportPCQuickLoginUsers = new ConcurrentHashMap<>();
 
+    private FixedWindowRateLimiter logUploadRateLimiter;
+
+    private static final long MAX_LOG_FILE_SIZE = 100 * 1024 * 1024L;
+    private static final long MAX_MEDIA_FILE_SIZE = 100 * 1024 * 1024L;
+
     @PostConstruct
     private void init() {
         rateLimiter = new RateLimiter(60, 200);
+        logUploadRateLimiter = new FixedWindowRateLimiter(60 * 60 * 1000, 10);
     }
 
     private String getIp() {
@@ -1336,13 +1342,44 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult saveUserLogs(String userId, MultipartFile file) {
-        // 防止 userId 中包含 ../ 等路径遍历字符
+        // 1. 鉴权：必须已登录，且只能上传自己的日志
+        Subject subject = SecurityUtils.getSubject();
+        if (subject == null || !subject.isAuthenticated()) {
+            return RestResult.error(ERROR_NOT_LOGIN);
+        }
+        String currentUserId = (String) subject.getSession().getAttribute("userId");
+        if (StringUtils.isEmpty(currentUserId) || !currentUserId.equals(userId)) {
+            LOG.warn("saveUserLogs rejected - userId mismatch, path userId: {}, currentUserId: {}", userId, currentUserId);
+            return RestResult.error(ERROR_NO_RIGHT);
+        }
+
+        // 2. 单文件大小限制：100MB
+        if (file.getSize() > MAX_LOG_FILE_SIZE) {
+            LOG.warn("saveUserLogs rejected - file too large, userId: {}, size: {}", userId, file.getSize());
+            return RestResult.error(ERROR_FILE_TOO_LARGE);
+        }
+
+        // 3. 文件类型限制：仅允许 .xlog
+        String originalFilename = file.getOriginalFilename();
+        if (!isXlogFile(originalFilename)) {
+            LOG.warn("saveUserLogs rejected - invalid file type, userId: {}, filename: {}", userId, originalFilename);
+            return RestResult.error(ERROR_FILE_TYPE_NOT_ALLOWED);
+        }
+
+        // 4. IP 限频：每个 IP 一小时最多 10 个文件
+        String clientIp = getIp();
+        if (!logUploadRateLimiter.isGranted(clientIp)) {
+            LOG.warn("saveUserLogs rejected - too frequent, userId: {}, ip: {}", userId, clientIp);
+            return RestResult.error(ERROR_UPLOAD_TOO_FREQUENT);
+        }
+
+        // 5. 防止 userId 中包含 ../ 等路径遍历字符
         String safeUserId = Utils.getSafeFileName(userId);
         if (safeUserId.isEmpty() || !safeUserId.equals(userId)) {
             LOG.warn("saveUserLogs rejected - unsafe userId: {}", userId);
             return RestResult.error(ERROR_INVALID_PARAMETER);
         }
-        File localFile = new File(userLogPath, safeUserId + "_" + Utils.getSafeFileName(file.getOriginalFilename()));
+        File localFile = new File(userLogPath, safeUserId + "_" + Utils.getSafeFileName(originalFilename));
 
         try {
             file.transferTo(localFile);
@@ -1352,6 +1389,13 @@ public class ServiceImpl implements Service {
         }
 
         return RestResult.ok(null);
+    }
+
+    private boolean isXlogFile(String fileName) {
+        if (StringUtils.isEmpty(fileName)) {
+            return false;
+        }
+        return fileName.toLowerCase().endsWith(".xlog");
     }
 
     @Override
@@ -1472,28 +1516,57 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult uploadMedia(int mediaType, MultipartFile file) {
+        // 1. 鉴权
         Subject subject = SecurityUtils.getSubject();
+        if (subject == null || !subject.isAuthenticated()) {
+            return RestResult.error(ERROR_NOT_LOGIN);
+        }
         String userId = (String) subject.getSession().getAttribute("userId");
+        if (StringUtils.isEmpty(userId)) {
+            return RestResult.error(ERROR_NOT_LOGIN);
+        }
+
+        // 2. 大小限制
+        if (file.getSize() > MAX_MEDIA_FILE_SIZE) {
+            LOG.warn("uploadMedia rejected - file too large, userId: {}, size: {}", userId, file.getSize());
+            return RestResult.error(ERROR_FILE_TOO_LARGE);
+        }
+
+        // 3. 文件类型校验
+        String originalFilename = file.getOriginalFilename();
+        if (!MediaFileTypeValidator.isAllowedMediaFile(mediaType, originalFilename)) {
+            LOG.warn("uploadMedia rejected - invalid file type, mediaType: {}, filename: {}", mediaType, originalFilename);
+            return RestResult.error(ERROR_FILE_TYPE_NOT_ALLOWED);
+        }
+
         String uuid = new ShortUUIDGenerator().getUserName(userId);
-        String fileName = userId + "-" + System.currentTimeMillis() + "-" + uuid + "-" + Utils.getSafeFileName(file.getOriginalFilename());
+        String fileName = userId + "-" + System.currentTimeMillis() + "-" + uuid + "-" + Utils.getSafeFileName(originalFilename);
         File localFile = new File(ossTempPath, fileName);
 
         try {
             file.transferTo(localFile);
+            return uploadMediaToOss(mediaType, fileName, localFile);
         } catch (IOException e) {
             LOG.error("Exception", e);
             return RestResult.error(ERROR_SERVER_ERROR);
+        } finally {
+            if (localFile.exists() && !localFile.delete()) {
+                LOG.warn("Failed to delete temp file: {}", localFile.getAbsolutePath());
+            }
         }
+    }
+
+    private RestResult uploadMediaToOss(int mediaType, String fileName, File localFile) {
         /*
         #Media_Type_GENERAL = 0,
-#Media_Type_IMAGE = 1,
-#Media_Type_VOICE = 2,
-#Media_Type_VIDEO = 3,
-#Media_Type_FILE = 4,
-#Media_Type_PORTRAIT = 5,
-#Media_Type_FAVORITE = 6,
-#Media_Type_STICKER = 7,
-#Media_Type_MOMENTS = 8
+        #Media_Type_IMAGE = 1,
+        #Media_Type_VOICE = 2,
+        #Media_Type_VIDEO = 3,
+        #Media_Type_FILE = 4,
+        #Media_Type_PORTRAIT = 5,
+        #Media_Type_FAVORITE = 6,
+        #Media_Type_STICKER = 7,
+        #Media_Type_MOMENTS = 8
          */
         String bucket;
         String bucketDomain;
@@ -1583,7 +1656,7 @@ public class ServiceImpl implements Service {
 
                 // 使用putObject上传一个文件到存储桶中。
 //                minioClient.putObject("asiatrip",fileName, localFile.getAbsolutePath(), new PutObjectOptions(PutObjectOptions.MAX_OBJECT_SIZE, PutObjectOptions.MIN_MULTIPART_SIZE));
-                minioClient.putObject(bucket, fileName, localFile.getAbsolutePath(), new PutObjectOptions(file.getSize(), 0));
+                minioClient.putObject(bucket, fileName, localFile.getAbsolutePath(), new PutObjectOptions(localFile.length(), 0));
             } catch (MinioException e) {
                 LOG.error("Error occurred: ", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
