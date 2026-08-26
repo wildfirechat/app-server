@@ -121,17 +121,13 @@ public class SlideVerifyService {
     public boolean isVerified(String token) {
         SlideVerify data = slideVerifyRepository.findByToken(token).orElse(null);
         if (data == null || data.isExpired(VERIFY_TIMEOUT)) {
+            if(data != null) {
+                slideVerifyRepository.delete(data);
+            }
             return false;
         }
 
-        // token已验证通过，立即删除，确保只能使用一次
-        if (data.isVerified()) {
-            LOG.info("验证token已使用，删除token: {}", token);
-            slideVerifyRepository.delete(data);
-            return true;
-        }
-
-        return false;
+        return data.isVerified();
     }
 
     /**
