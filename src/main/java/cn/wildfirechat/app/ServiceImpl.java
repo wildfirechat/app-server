@@ -1284,15 +1284,15 @@ public class ServiceImpl implements Service {
         if (!StringUtils.isEmpty(request.text)) {
             Subject subject = SecurityUtils.getSubject();
             String userId = (String) subject.getSession().getAttribute("userId");
-            boolean isGroupMember = false;
+            boolean isGroupManager = false;
             try {
                 IMResult<OutputGroupMemberList> imResult = GroupAdmin.getGroupMembers(request.groupId);
                 if (imResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS && imResult.getResult() != null && imResult.getResult().getMembers() != null) {
                     for (PojoGroupMember member : imResult.getResult().getMembers()) {
                         if (member.getMember_id().equals(userId)) {
-                            if (member.getType() != ProtoConstants.GroupMemberType.GroupMemberType_Removed
-                                && member.getType() != ProtoConstants.GroupMemberType.GroupMemberType_Silent) {
-                                isGroupMember = true;
+                            if (member.getType() == ProtoConstants.GroupMemberType.GroupMemberType_Owner
+                                && member.getType() != ProtoConstants.GroupMemberType.GroupMemberType_Manager) {
+                                isGroupManager = true;
                             }
                             break;
                         }
@@ -1301,7 +1301,7 @@ public class ServiceImpl implements Service {
             } catch (Exception e) {
                 LOG.error("Exception", e);
             }
-            if (!isGroupMember) {
+            if (!isGroupManager) {
                 return RestResult.error(ERROR_NO_RIGHT);
             }
 
