@@ -9,6 +9,7 @@ import cn.wildfirechat.sdk.model.IMResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +29,19 @@ public class ConferenceCleanupService {
     @Autowired
     private UserConferenceRepository userConferenceRepository;
 
+    @Value("${conference.cleanup_expired.enable:true}")
+    private boolean cleanupExpiredEnable;
+
     /**
      * 每5分钟检查一次过期会议，并调用SDK销毁
      */
     @Scheduled(fixedRate = 5 * 60 * 1000)
     @Transactional
     public void cleanupExpiredConferences() {
+        if (!cleanupExpiredEnable) {
+            return;
+        }
+
         long currentTime = System.currentTimeMillis() / 1000; // 转换为秒
 
         List<ConferenceEntity> expiredConferences = conferenceEntityRepository.findExpiredConferences(currentTime);
