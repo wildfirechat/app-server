@@ -30,8 +30,7 @@
 
     <Loggers>
         <Root level="info">
-<!--            如果要输出控制台日志，打开这里-->
-<!--            <AppenderRef ref="Console"/>-->
+            <AppenderRef ref="Console"/>
             <AppenderRef ref="RollingFile"/>
         </Root>
 
