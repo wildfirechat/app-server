@@ -24,5 +24,5 @@ public interface ShiroSessionRepository extends CrudRepository<ShiroSession, Str
     @Modifying
     @Transactional
     @Query("DELETE FROM ShiroSession s WHERE s.updateTime > 0 AND s.updateTime < :timestamp")
-    Long deleteExpiredSessions(@Param("timestamp") long timestamp);
+    int deleteExpiredSessions(@Param("timestamp") long timestamp);
 }
