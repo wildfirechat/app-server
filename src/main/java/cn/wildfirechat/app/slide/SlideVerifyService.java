@@ -116,7 +116,7 @@ public class SlideVerifyService {
     }
 
     /**
-     * 检查token是否已验证（一次性使用）
+     * 检查token是否已验证
      */
     public boolean isVerified(String token) {
         SlideVerify data = slideVerifyRepository.findByToken(token).orElse(null);

@@ -143,7 +143,7 @@ public class SlideVerifyServiceTest {
 
         // Then
         assertTrue(result);
-        verify(slideVerifyRepository, times(1)).delete(any(SlideVerify.class));
+        verify(slideVerifyRepository, never()).delete(any());
     }
 
     @Test
