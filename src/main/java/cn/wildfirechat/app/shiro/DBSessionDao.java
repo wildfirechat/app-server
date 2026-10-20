@@ -62,7 +62,7 @@ public class DBSessionDao implements SessionDAO {
                 sessionDataCache.put(sessionId, shiroSession.getSessionData());
                 sessionReadCache.put(sessionId, session);
                 // 读缓存过期后仍被访问，说明 session 仍在被使用；
-                // 刷新 update_time 以免 60 秒 touch 节流导致活跃 session 被清理任务误删
+                // 刷新 update_time，避免活跃 session 被清理任务误删
                 try {
                     shiroSessionRepository.updateAccessTime((String) sessionId, System.currentTimeMillis());
                 } catch (Exception e) {
@@ -74,6 +74,10 @@ public class DBSessionDao implements SessionDAO {
         return null;
     }
 
+    /**
+     * 全量持久化 session。创建、属性变更、停止等场景会走到这里；
+     * 单纯的请求 touch 不会走到这里（只刷新 update_time）。
+     */
     @Override
     public void update(Session session) throws UnknownSessionException {
         byte[] currentBytes = sessionToByte(session);
@@ -93,6 +97,15 @@ public class DBSessionDao implements SessionDAO {
         shiroSessionRepository.save(shiroSession);
         sessionDataCache.put(sessionId, currentBytes);
         sessionReadCache.put(sessionId, session);
+    }
+
+    /**
+     * 只刷新 session 的 update_time，不重写 session_data。
+     * 用于 touch：请求期间 session 的业务属性不变，只有 lastAccessTime 变化，
+     * 而 lastAccessTime 在本项目（会话永不过期）不参与过期判断。
+     */
+    public void updateLastAccessTime(Serializable sessionId) {
+        shiroSessionRepository.updateAccessTime((String) sessionId, System.currentTimeMillis());
     }
 
     @Override

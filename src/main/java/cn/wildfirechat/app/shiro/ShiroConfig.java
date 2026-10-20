@@ -92,6 +92,9 @@ public class ShiroConfig {
         DefaultWebSecurityManager defaultSecurityManager = new DefaultWebSecurityManager();
         defaultSecurityManager.setRealms(Arrays.asList(phoneCodeRealm, scanCodeRealm, userPasswordRealm, ldapRealm));
         ShiroSessionManager sessionManager = new ShiroSessionManager();
+        // 会话不主动过期（由数据库清理任务按 update_time 处理）。
+        // ShiroSessionManager 在会话永不过期时走“touch 只刷新 update_time”的轻量路径；
+        // 如果以后改成有限超时，touch 会自动退回全量更新，且超时时间必须大于 30 分钟。
         sessionManager.setGlobalSessionTimeout(Long.MAX_VALUE);
         sessionManager.setSessionDAO(dbSessionDao);
 

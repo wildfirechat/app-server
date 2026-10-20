@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 public interface ShiroSessionRepository extends CrudRepository<ShiroSession, String> {
 
     /**
-     * 轻量更新 session 的 update_time，用于读缓存过期后仍被访问的场景，
-     * 避免 60 秒 touch 节流导致活跃 session 的 update_time 长期不刷新而被误清理。
+     * 轻量更新 session 的 update_time，用于读缓存过期后仍被访问、以及请求 touch 的场景，
+     * 避免 touch 节流导致活跃 session 的 update_time 长期不刷新而被误清理。
      */
     @Modifying
     @Transactional

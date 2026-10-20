@@ -23,9 +23,10 @@ public class ShiroSessionManager extends DefaultWebSessionManager {
 
     private static final String REFERENCED_SESSION_ID_SOURCE = "Stateless request";
 
-    // 控制 touch 频率：60 秒内不重复更新 lastAccessTime
-    // 避免每次请求都触发 Session 序列化和数据库写入
-    private static final long TOUCH_INTERVAL_MILLIS = 60 * 1000;
+    // touch 节流：30 分钟内不重复写库。
+    // update_time 只用于 90 天清理保活，30 分钟的粒度足够；会话本身不会过期。
+    // 如果以后把 globalSessionTimeout 改成有限值，需要保证它大于这个间隔。
+    private static final long TOUCH_INTERVAL_MILLIS = 30 * 60 * 1000L;
 
     public ShiroSessionManager(){
         super();
@@ -59,12 +60,28 @@ public class ShiroSessionManager extends DefaultWebSessionManager {
             if (lastAccessTime != null) {
                 long elapsed = System.currentTimeMillis() - lastAccessTime.getTime();
                 if (elapsed < TOUCH_INTERVAL_MILLIS) {
-                    // 距离上次访问不到 60 秒，跳过 touch，不触发 SessionDAO.update()
+                    // 距上次写库不足 30 分钟，直接跳过
                     return;
                 }
             }
         }
         session.touch();
+
+        // 会话永不过期时（timeout < 0 或 Long.MAX_VALUE），lastAccessTime 不参与
+        // 过期判断，而请求期间 session 的业务属性也不会变化，因此只需要刷新
+        // update_time 供清理任务判断活跃度，不必序列化并重写整个 session_data。
+        // 如果超时是有限值，仍走全量更新，避免重启/读缓存加载到过旧的
+        // lastAccessTime 而误判会话过期。
+        long timeout = session.getTimeout();
+        boolean neverExpires = timeout < 0 || timeout == Long.MAX_VALUE;
+        if (neverExpires && getSessionDAO() instanceof DBSessionDao) {
+            try {
+                ((DBSessionDao) getSessionDAO()).updateLastAccessTime(session.getId());
+            } catch (Exception e) {
+                LOG.error("update session access time error, sessionId: {}", session.getId(), e);
+            }
+            return;
+        }
         onChange(session);
     }
 }
