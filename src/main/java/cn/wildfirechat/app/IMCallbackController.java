@@ -181,6 +181,27 @@ public class IMCallbackController {
         return "ok";
     }
 
+    /*
+    会议成员统一事件回调，对应 IM 配置 conference.member_event_callback。
+    eventName/eventType/roomType 可用于区分事件类型和会议/通话。
+     */
+    @PostMapping(value = "/im_event/conference/member_event")
+    public Object onConferenceMemberEvent(@RequestBody PojoConferenceMemberEvent event) {
+        LOG.info("conference member event room:{} roomType:{} user:{} type:{} data:{}",
+            event.roomId, event.roomType, event.userId, event.eventName, event.data);
+        return "ok";
+    }
+
+    /*
+    会议成员快照回调示例，对应 PojoConferenceMember。
+     */
+    @PostMapping(value = "/im_event/conference/member_snapshot")
+    public Object onConferenceMemberSnapshot(@RequestBody PojoConferenceMember member) {
+        LOG.info("conference member snapshot room:{} roomType:{} user:{} online:{} publishing:{}",
+            member.roomId, member.roomType, member.userId, member.online, member.publishing);
+        return "ok";
+    }
+
     @PostMapping(value = "/im_event/moments_feed")
     public Object onMomentsFeed(@RequestBody FeedPojo event) {
         LOG.info("feed posted:{}, {}, {}", event.sender, event.feedId, event.text);
