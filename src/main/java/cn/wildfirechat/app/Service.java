@@ -4,6 +4,7 @@ package cn.wildfirechat.app;
 import cn.wildfirechat.app.jpa.FavoriteItem;
 import cn.wildfirechat.app.pojo.*;
 import cn.wildfirechat.pojos.InputCreateDevice;
+import cn.wildfirechat.pojos.OutputMessageData;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -51,4 +52,6 @@ public interface Service {
     RestResult getGroupMembersForPortrait(String groupId);
 
     RestResult checkVersion(int platform, String currentVersion, int buildNumber);
+
+    void sendAntiFraudTip(OutputMessageData event);
 }

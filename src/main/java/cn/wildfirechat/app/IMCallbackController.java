@@ -7,6 +7,7 @@ import cn.wildfirechat.pojos.moments.IdPojo;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,6 +19,10 @@ IM对应事件发生时，会回调到配置地址。需要注意IM服务单线�
 @RestController()
 public class IMCallbackController {
     private static final Logger LOG = LoggerFactory.getLogger(IMCallbackController.class);
+
+    @Autowired
+    private Service mService;
+
     /*
     用户在线状态回调
      */
@@ -51,6 +56,7 @@ public class IMCallbackController {
     @PostMapping(value = "/im_event/message")
     public Object onMessage(@RequestBody OutputMessageData event) {
         LOG.info("message:{}", event.getMessageId());
+        mService.sendAntiFraudTip(event);
         return "ok";
     }
 

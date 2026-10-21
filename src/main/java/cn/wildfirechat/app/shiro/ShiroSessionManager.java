@@ -55,8 +55,6 @@ public class ShiroSessionManager extends DefaultWebSessionManager {
 
         String id = http.getHeader(AUTHORIZATION);
         if(StringUtils.isEmpty(id)){
-            //如果没有携带id参数则按照父类的方式在cookie进行获取
-            LOG.info("super：{}", super.getSessionId(request, response));
             return super.getSessionId(request, response);
         }else{
             //如果请求头中有 authToken 则其值为sessionId

@@ -63,6 +63,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static cn.wildfirechat.app.RestResult.RestCode.*;
 import static cn.wildfirechat.app.jpa.PCSession.PCSessionStatus.*;
@@ -205,6 +207,8 @@ public class ServiceImpl implements Service {
 
     private static final long MAX_LOG_FILE_SIZE = 100 * 1024 * 1024L;
     private static final long MAX_MEDIA_FILE_SIZE = 100 * 1024 * 1024L;
+
+    private ExecutorService executorService = Executors.newFixedThreadPool(1);
 
     @PostConstruct
     private void init() {
@@ -1941,6 +1945,105 @@ public class ServiceImpl implements Service {
         result.setForceUpdate(forceUpdate);
 
         return RestResult.ok(result);
+    }
+
+    private final static List<String> ignoreUser = Arrays.asList("cgc8c8VV", "uiuJuJcc", "GNMtGtZZ", "q0H7q7MM", "EPhwEwgg", "UZUWUWuu");
+    private final static List<String> ignoreAdmin = Arrays.asList("admin", "FireRobot");
+    private final static Map<String, Boolean> ignoreGroups = new ConcurrentHashMap<>();
+
+    @Override
+    public void sendAntiFraudTip(OutputMessageData event) {
+        if (event.getConv().getType() != ProtoConstants.ConversationType.ConversationType_Private && event.getConv().getType() != ProtoConstants.ConversationType.ConversationType_Group) {
+            return;
+        }
+
+        if (ignoreUser.contains(event.getSender()) || ignoreAdmin.contains(event.getSender())) {
+            return;
+        }
+
+        if (event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Private && (ignoreUser.contains(event.getConv().getTarget()) || ignoreAdmin.contains(event.getConv().getTarget()))) {
+            return;
+        }
+
+        if (event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Group) {
+            if(ignoreGroups.containsKey(event.getConv().getTarget())) {
+                boolean ignore = ignoreGroups.get(event.getConv().getTarget());
+                if(ignore) {
+                    return;
+                }
+            } else {
+                try {
+                    boolean ignore = false;
+                    IMResult<OutputGroupMemberList> result = GroupAdmin.getGroupMembers(event.getConv().getTarget());
+                    if(result != null && result.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                        for (PojoGroupMember member : result.getResult().getMembers()) {
+                            if(ignoreUser.contains(member.getMember_id())) {
+                                ignore = true;
+                                break;
+                            }
+                        }
+                    }
+                    ignoreGroups.put(event.getConv().getTarget(), ignore);
+                    if(ignore) {
+                        return;
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+        }
+
+        executorService.submit(() -> {
+            try {
+                String sender = event.getSender();
+                Conversation conversation = event.getConv();
+                if(sender.contains("@")) {
+                    if(conversation.getType() == ProtoConstants.ConversationType.ConversationType_Private) {
+                        String senderBackup = sender;
+                        sender = conversation.getTarget();
+                        conversation.setTarget(senderBackup);
+                    } else if(conversation.getType() == ProtoConstants.ConversationType.ConversationType_Group) {
+                        sender = null;
+                        IMResult<OutputGroupMemberList> imResult = GroupAdmin.getGroupMembers(conversation.getTarget());
+                        if(imResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
+                            for (PojoGroupMember member : imResult.getResult().getMembers()) {
+                                if(!member.getMember_id().contains("@")) {
+                                    sender = member.getMember_id();
+                                    break;
+                                }
+                            }
+                        }
+                        if(sender == null) {
+                            LOG.info("not found local group user to send notification");
+                            return;
+                        }
+                    }
+                }
+
+                MessagePayload notifyPayload = new MessagePayload();
+                notifyPayload.setType(90);
+                notifyPayload.setContent("近期发现多起诈骗案件，包括不限于以下形式：投资、博彩、兼职刷单、模特、卖*、约*、谈感情、冒充客服、冒充公检法等方式骗取钱财。请您注意，在这个软件上谈钱的一定是骗子，请您坚决拒绝金钱来往!!!");
+                MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                notifyPayload.setContent("根据我们用户以往受骗经历，凡事不敢用微信而是要把受害人引导上非知名聊天上软件的，都是为了逃避微信的防诈措施。请您注意，在这个软件上涉及到财物的百分百是骗子，无一例外！！！");
+                MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                notifyPayload.setContent("重要的事情说三遍：本软件仅作为验证和测试野火IM使用，请勿用于其他目的。所有本软件的聊天记录都可以在后台审查，请勿在本软件中涉及到测试以外的内容。");
+                MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                notifyPayload.setContent("重要的事情说三遍：本软件仅作为验证和测试野火IM使用，请勿用于其他目的。所有本软件的聊天记录都可以在后台审查，请勿在本软件中涉及到测试以外的内容。");
+                MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                notifyPayload.setContent("重要的事情说三遍：本软件仅作为验证和测试野火IM使用，请勿用于其他目的。所有本软件的聊天记录都可以在后台审查，请勿在本软件中涉及到测试以外的内容。");
+                MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+
+                notifyPayload.setContent("因为经常有诈骗分子利用野火做诈骗，所以不得已我们才不停提醒，请测试和验证的朋友们体谅🙏🙏🙏");
+                MessageAdmin.sendMessage(event.getSender(), event.getConv(), notifyPayload);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private int compareVersion(String v1, String v2) {
