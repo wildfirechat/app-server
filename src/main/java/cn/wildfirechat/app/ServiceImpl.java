@@ -1965,6 +1965,10 @@ public class ServiceImpl implements Service {
             return;
         }
 
+        if(event.getPayload().getPersistFlag() != ProtoConstants.PersistFlag.Persist_And_Count) {
+            return;
+        }
+
         if (event.getConv().getType() == ProtoConstants.ConversationType.ConversationType_Group) {
             if(ignoreGroups.containsKey(event.getConv().getTarget())) {
                 boolean ignore = ignoreGroups.get(event.getConv().getTarget());
