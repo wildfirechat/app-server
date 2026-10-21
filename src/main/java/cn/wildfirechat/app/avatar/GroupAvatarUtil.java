@@ -17,6 +17,7 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.input.BoundedInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,12 @@ import org.slf4j.LoggerFactory;
  */
 public class GroupAvatarUtil {
     private static final Logger LOG = LoggerFactory.getLogger(GroupAvatarUtil.class);
+
+    /** 单个头像响应体大小上限。 */
+    private static final long MAX_AVATAR_BYTES = 5L * 1024 * 1024;
+
+    /** 重定向最大跳数。 */
+    private static final int MAX_REDIRECTS = 3;
 
     public static void getCombinationOfHead(List<URL> paths, File targetFile)
         throws IOException, URISyntaxException {
@@ -162,14 +169,63 @@ public class GroupAvatarUtil {
         return resize2(filePath, height, width, bb, true);
     }
 
+    /**
+     * 打开头像连接。重定向时逐跳重新检查地址；{@code file:} 仅用于内部生成的头像。
+     */
+    private static URLConnection openConnectionSafely(URL url) throws IOException {
+        URL current = url;
+        for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
+            String protocol = current.getProtocol() == null ? "" : current.getProtocol().toLowerCase();
+            if ("file".equals(protocol)) {
+                // 内部生成：默认头像 / 名字头像
+                return current.openConnection();
+            }
+            if (!AvatarUrlValidator.isSafePublicUrl(current)) {
+                throw new IOException("Unavailable avatar url: " + current);
+            }
+
+            HttpURLConnection conn = (HttpURLConnection) current.openConnection();
+            conn.setConnectTimeout(5 * 1000);
+            conn.setReadTimeout(5 * 1000);
+            conn.setUseCaches(false);
+            conn.setInstanceFollowRedirects(false);
+            conn.setRequestProperty("Accept", "image/*");
+
+            int code = conn.getResponseCode();
+            boolean redirect = code == 301 || code == 302 || code == 303 || code == 307 || code == 308;
+            if (redirect) {
+                String location = conn.getHeaderField("Location");
+                conn.disconnect();
+                if (location == null || location.trim().isEmpty()) {
+                    throw new IOException("Redirect without Location: " + current);
+                }
+                current = new URL(current, location);
+                continue;
+            }
+            return conn;
+        }
+        throw new IOException("Too many redirects for avatar: " + url);
+    }
+
     private static BufferedImage resize2(URL filePath, int height, int width,
                                          boolean bb, boolean fallback) {
         DataInputStream dis = null;
         try {
-            URLConnection urlConnection = filePath.openConnection();
-            urlConnection.setConnectTimeout(5 * 1000);
-            urlConnection.setReadTimeout(5 * 1000);
-            dis = new DataInputStream(urlConnection.getInputStream());
+            URLConnection urlConnection = openConnectionSafely(filePath);
+
+            long contentLength = urlConnection.getContentLengthLong();
+            if (contentLength > MAX_AVATAR_BYTES) {
+                throw new IOException("Avatar too large: " + contentLength);
+            }
+            String contentType = urlConnection.getContentType();
+            if (contentType != null) {
+                String ct = contentType.toLowerCase();
+                if (!ct.startsWith("image/") && !ct.startsWith("application/octet-stream")) {
+                    throw new IOException("Not an image content type: " + contentType);
+                }
+            }
+            dis = new DataInputStream(
+                    new BoundedInputStream(urlConnection.getInputStream(), MAX_AVATAR_BYTES));
 
             double ratio = 0; // 缩放比例
             BufferedImage bi = ImageIO.read(dis);

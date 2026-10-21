@@ -2,6 +2,7 @@ package cn.wildfirechat.app.avatar;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,6 +33,9 @@ public class AvatarServiceImpl implements AvatarService {
     @Value("${avatar.bg.corlors}")
     String bgColors;
 
+    @Autowired
+    private AvatarUrlValidator avatarUrlValidator;
+
     public static final String AVATAR_DIR = "./avatar";
 
     @PostConstruct
@@ -61,22 +65,35 @@ public class AvatarServiceImpl implements AvatarService {
 
     @Override
     public CompletableFuture<ResponseEntity<byte[]>> groupAvatar(GroupAvatarRequest request) {
-        List<GroupAvatarRequest.GroupMemberInfo> infos = request.getMembers();
+        List<GroupAvatarRequest.GroupMemberInfo> infos = request == null ? null : request.getMembers();
         List<URL> paths = new ArrayList<>();
         long hashCode = 0;
         URL defaultAvatarUrl = getClass().getResource(DEFAULT_AVATAR_PATH);
+        if (infos == null || infos.isEmpty()) {
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+        }
         for (int i = 0; i < infos.size() && i < 9; i++) {
             GroupAvatarRequest.GroupMemberInfo info = infos.get(i);
+            if (info == null) {
+                continue;
+            }
             URL url = null;
             long urlHashCode = 0;
             if (!StringUtils.isEmpty(info.getAvatarUrl())) {
-                try {
-                    url = new URL(info.getAvatarUrl());
-                    urlHashCode = info.getAvatarUrl().hashCode();
-                } catch (MalformedURLException e) {
-                    // 头像链接非法，使用默认头像
+                // 地址不可用时使用默认头像
+                if (!avatarUrlValidator.isAllowed(info.getAvatarUrl())) {
+                    LOG.warn("group avatar url rejected: {}", info.getAvatarUrl());
                     url = defaultAvatarUrl;
                     urlHashCode = DEFAULT_AVATAR_PATH.hashCode();
+                } else {
+                    try {
+                        url = new URL(info.getAvatarUrl());
+                        urlHashCode = info.getAvatarUrl().hashCode();
+                    } catch (MalformedURLException e) {
+                        // 头像链接非法，使用默认头像
+                        url = defaultAvatarUrl;
+                        urlHashCode = DEFAULT_AVATAR_PATH.hashCode();
+                    }
                 }
             } else {
                 String memberName = info.getName();
