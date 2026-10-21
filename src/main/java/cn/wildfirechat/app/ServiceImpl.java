@@ -413,7 +413,8 @@ public class ServiceImpl implements Service {
                 IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
                 if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
                     LOG.info("User not exist and register is forbidden, cannot send reset code");
-                    return RestResult.error(ERROR_NOT_EXIST);
+                    //这里要返回服务错误，避免被探测电话号码
+                    return RestResult.error(ERROR_SERVER_ERROR);
                 }
             } catch (Exception e) {
                 LOG.error("Check user exist error", e);
