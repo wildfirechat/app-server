@@ -84,4 +84,12 @@ public class ShiroSessionTest {
         assertArrayEquals(largeData, session.getSessionData());
         assertEquals(2048, session.getSessionData().length);
     }
+
+    @Test
+    public void testNullUpdateTimeTreatedAsZero() {
+        ShiroSession session = new ShiroSession("null-update-time", new byte[]{1});
+        session.setUpdateTime(null);
+
+        assertEquals(0L, session.getUpdateTime());
+    }
 }
