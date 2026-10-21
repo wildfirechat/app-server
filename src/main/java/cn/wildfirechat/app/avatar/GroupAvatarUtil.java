@@ -170,14 +170,15 @@ public class GroupAvatarUtil {
     }
 
     /**
-     * 打开头像连接。重定向时逐跳重新检查地址；{@code file:} 仅用于内部生成的头像。
+     * 打开头像连接。重定向时逐跳重新检查地址；{@code file:} / {@code jar:} 仅用于内部资源。
      */
     private static URLConnection openConnectionSafely(URL url) throws IOException {
         URL current = url;
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             String protocol = current.getProtocol() == null ? "" : current.getProtocol().toLowerCase();
-            if ("file".equals(protocol)) {
-                // 内部生成：默认头像 / 名字头像
+            if ("file".equals(protocol) || "jar".equals(protocol)) {
+                // 内部资源：file 是名字头像，jar 是 Spring Boot 可执行 jar 里的默认头像
+                // （形如 jar:file:/...jar!/BOOT-INF/classes!/static/avatar/avatar_def.png）
                 return current.openConnection();
             }
             if (!AvatarUrlValidator.isSafePublicUrl(current)) {
