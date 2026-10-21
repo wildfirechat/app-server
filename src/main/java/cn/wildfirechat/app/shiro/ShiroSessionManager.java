@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -34,7 +35,25 @@ public class ShiroSessionManager extends DefaultWebSessionManager {
 
     @Override
     protected Serializable getSessionId(ServletRequest request, ServletResponse response){
-        String id = WebUtils.toHttp(request).getHeader(AUTHORIZATION);
+        HttpServletRequest http = WebUtils.toHttp(request);
+        String path = http.getRequestURI();
+        String contextPath = http.getContextPath();
+        if ("/".equals(contextPath)) {
+            contextPath = "";
+        }
+        if (contextPath != null && !contextPath.isEmpty()
+                && (path.equals(contextPath) || path.startsWith(contextPath + "/"))) {
+            path = path.substring(contextPath.length());
+        }
+
+        // 登录请求必须新建会话：不能复用请求里携带的旧 authToken / Cookie。
+        // 否则 A 登录后，B 带着 A 的 token 再登录，Shiro 会把 B 的 userId 写进 A 的会话，
+        // 两个用户就会拿到同一个 authToken。
+        if (isLoginPath(path)) {
+            return null;
+        }
+
+        String id = http.getHeader(AUTHORIZATION);
         if(StringUtils.isEmpty(id)){
             //如果没有携带id参数则按照父类的方式在cookie进行获取
             LOG.info("super：{}", super.getSessionId(request, response));
@@ -46,6 +65,25 @@ public class ShiroSessionManager extends DefaultWebSessionManager {
             request.setAttribute(ShiroHttpServletRequest.REFERENCED_SESSION_ID_IS_VALID,Boolean.TRUE);
             return id;
         }
+    }
+
+    /**
+     * 需要强制换新会话的登录入口。
+     *
+     * <p>这些接口全部是 {@code anon}，但 ShiroFilter 仍会先解析请求里的 authToken/Cookie；
+     * 不在这里跳过的话，{@code subject.login()} 会复用旧 session，导致 session ID 不轮换。
+     */
+    static boolean isLoginPath(String path) {
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        if (path.length() > 1 && path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+        return "/login".equals(path)
+                || "/login_pwd".equals(path)
+                || "/session_login".equals(path)
+                || path.startsWith("/session_login/");
     }
 
     @Override
