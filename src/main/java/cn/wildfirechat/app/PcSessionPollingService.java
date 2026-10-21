@@ -2,7 +2,7 @@ package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.jpa.PCSession;
 import cn.wildfirechat.app.jpa.PCSessionRepository;
-import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +34,9 @@ public class PcSessionPollingService {
 
     @Autowired
     private PCSessionRepository pcSessionRepository;
+
+    @Autowired
+    private SecurityManager securityManager;
 
     private static final int TIMEOUT_SECONDS = 50;
     private static final int MAX_PENDING_SIZE = 10000;
@@ -100,7 +103,11 @@ public class PcSessionPollingService {
             }
 
             try {
-                RestResult restResult = mService.loginWithSession(token);
+                // 调度线程没有 ShiroFilter 按请求绑定/解绑 Subject。
+                // 必须为每次扫码登录新建 Subject：直接用 SecurityUtils.getSubject() 会把 Subject
+                // 永久绑在调度线程上，后续每个用户的扫码登录都复用同一个会话，拿到同一个 authToken。
+                Subject subject = new Subject.Builder(securityManager).buildSubject();
+                RestResult restResult = subject.execute(() -> mService.loginWithSession(token));
                 int code = restResult.getCode();
 
                 if (code == RestResult.RestCode.ERROR_SESSION_NOT_VERIFIED.code && restResult.getResult() != null) {
@@ -114,7 +121,6 @@ public class PcSessionPollingService {
                     // 终态，直接返回
                     ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
                     if (code == RestResult.RestCode.SUCCESS.code) {
-                        Subject subject = SecurityUtils.getSubject();
                         builder.header("authToken", subject.getSession().getId().toString());
                     }
                     deferredResult.setResult(builder.body(restResult));
