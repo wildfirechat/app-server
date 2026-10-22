@@ -93,4 +93,39 @@ public class AvatarUrlValidatorTest {
         assertTrue(validator.isAllowed("https://" + PUBLIC_IP + "/a.png"));
         assertFalse(validator.isAllowed("https://93.184.216.35/a.png"));
     }
+
+    @Test
+    public void testAllowlistedPrivateHostWithPortAccepted() {
+        // 私有化部署：内网对象存储显式配置后可以加载，但只放行配置的端口
+        AvatarUrlValidator validator = new AvatarUrlValidator("http://192.168.1.20:9000");
+        assertTrue(validator.isAllowed("http://192.168.1.20:9000/portrait/a.png"));
+        assertFalse(validator.isAllowed("http://192.168.1.20:6379/a.png"));
+        assertFalse(validator.isAllowed("http://192.168.1.20/a.png"));
+        assertFalse(validator.isAllowed("http://192.168.1.21:9000/a.png"));
+    }
+
+    @Test
+    public void testAllowlistEntryWithoutPortOnlyAllowsDefaultPorts() {
+        AvatarUrlValidator validator = new AvatarUrlValidator("10.0.0.5");
+        assertTrue(validator.isAllowed("http://10.0.0.5/a.png"));
+        assertTrue(validator.isAllowed("https://10.0.0.5/a.png"));
+        assertFalse(validator.isAllowed("http://10.0.0.5:8080/a.png"));
+    }
+
+    @Test
+    public void testAllowlistStillRejectsNonHttpScheme() {
+        AvatarUrlValidator validator = new AvatarUrlValidator("http://192.168.1.20:9000");
+        assertFalse(validator.isAllowed("file://192.168.1.20:9000/a.png"));
+        assertFalse(validator.isAllowed("http://user:pass@192.168.1.20:9000/a.png"));
+    }
+
+    @Test
+    public void testMoreReservedAddressRejected() {
+        AvatarUrlValidator validator = new AvatarUrlValidator();
+        assertFalse(validator.isAllowed("http://198.18.0.1/a.png"));
+        assertFalse(validator.isAllowed("http://240.0.0.1/a.png"));
+        assertFalse(validator.isAllowed("http://255.255.255.255/a.png"));
+        assertFalse(validator.isAllowed("http://[64:ff9b::a00:1]/a.png"));
+        assertFalse(validator.isAllowed("http://[2002:a00:1::]/a.png"));
+    }
 }

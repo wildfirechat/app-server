@@ -10,7 +10,6 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -22,7 +21,9 @@ import java.util.Set;
  * 标准 80/443 端口，且主机不能是本机、内网或保留地址；域名解析失败时不加载。</p>
  *
  * <p>默认不限制图片域名。如需收敛，可配置
- * {@code avatar.url.allowlist=cdn.example.com,img.example.com}（逗号分隔，留空即关闭）。</p>
+ * {@code avatar.url.allowlist=cdn.example.com,http://192.168.1.20:9000}（逗号分隔，留空即关闭）。
+ * 配置后只放行名单内的主机；名单内的主机视为运维信任的地址，不再做内网地址检查，
+ * 私有化部署的对象存储（如内网 MinIO）需要配置在这里。条目不写端口时放行 80 和 443。</p>
  */
 @Component
 public class AvatarUrlValidator {
@@ -32,7 +33,8 @@ public class AvatarUrlValidator {
     @Value("${avatar.url.allowlist:}")
     private String allowlistConfig;
 
-    private final Set<String> allowedHosts = Collections.synchronizedSet(new HashSet<>());
+    /** 白名单 "主机:端口"，只在初始化时写入。 */
+    private final Set<String> allowedHostPorts = new HashSet<>();
 
     /** Spring 使用的无参构造。 */
     public AvatarUrlValidator() {
@@ -54,10 +56,10 @@ public class AvatarUrlValidator {
                 addHost(d);
             }
         }
-        if (allowedHosts.isEmpty()) {
+        if (allowedHostPorts.isEmpty()) {
             LOG.info("avatar url allowlist disabled, only public http(s) urls are allowed");
         } else {
-            LOG.info("avatar url allowlist enabled, hosts: {}", allowedHosts);
+            LOG.info("avatar url allowlist enabled, hosts: {}", allowedHostPorts);
         }
     }
 
@@ -65,17 +67,23 @@ public class AvatarUrlValidator {
         if (domain == null || domain.trim().isEmpty()) {
             return;
         }
-        String host;
+        String value = domain.trim();
+        URL url;
         try {
-            host = new URL(domain.trim()).getHost();
+            url = new URL(value.contains("://") ? value : "http://" + value);
         } catch (MalformedURLException e) {
-            host = domain.trim();
+            LOG.warn("avatar url allowlist ignore invalid entry: {}", value);
+            return;
         }
-        if (host != null) {
-            host = host.toLowerCase(Locale.ROOT);
-            if (!host.isEmpty()) {
-                allowedHosts.add(host);
-            }
+        String host = url.getHost() == null ? "" : url.getHost().toLowerCase(Locale.ROOT);
+        if (host.isEmpty()) {
+            return;
+        }
+        if (url.getPort() != -1) {
+            allowedHostPorts.add(host + ":" + url.getPort());
+        } else {
+            allowedHostPorts.add(host + ":80");
+            allowedHostPorts.add(host + ":443");
         }
     }
 
@@ -89,30 +97,35 @@ public class AvatarUrlValidator {
         if (urlStr == null || urlStr.trim().isEmpty()) {
             return false;
         }
-        URL url;
         try {
-            url = new URL(urlStr.trim());
+            return isAllowedUrl(new URL(urlStr.trim()));
         } catch (MalformedURLException e) {
             return false;
         }
-        if (!isSafePublicUrl(url)) {
-            return false;
-        }
-        // 可选白名单：未配置时不限制域名
-        if (!allowedHosts.isEmpty()) {
-            String host = url.getHost() == null ? "" : url.getHost().toLowerCase(Locale.ROOT);
-            if (!allowedHosts.contains(host)) {
-                LOG.warn("avatar url rejected, host not in allowlist: {}", host);
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
-     * 静态校验（供 {@link GroupAvatarUtil} 在每次重定向跳转时复用，不依赖 Spring 注入）。
+     * 校验外部图片地址是否可以加载，{@link GroupAvatarUtil} 在每次重定向跳转时也会调用。
+     * 会做 DNS 解析，不要在请求线程上调用。
      */
-    public static boolean isSafePublicUrl(URL url) {
+    public boolean isAllowedUrl(URL url) {
+        if (!isHttpUrl(url)) {
+            return false;
+        }
+        if (!allowedHostPorts.isEmpty()) {
+            String hostPort = url.getHost().toLowerCase(Locale.ROOT) + ":" + effectivePort(url);
+            if (!allowedHostPorts.contains(hostPort)) {
+                LOG.warn("avatar url rejected, host not in allowlist: {}", hostPort);
+                return false;
+            }
+            // 运维显式配置的主机，不再限制内网地址和端口
+            return true;
+        }
+        return isSafePublicUrl(url);
+    }
+
+    /** 只检查格式：http/https、有主机名、不带用户信息。不做 DNS 解析。 */
+    public static boolean isHttpUrl(URL url) {
         if (url == null) {
             return false;
         }
@@ -125,14 +138,21 @@ public class AvatarUrlValidator {
             LOG.warn("avatar url rejected, userinfo not allowed");
             return false;
         }
+        return url.getHost() != null && !url.getHost().isEmpty();
+    }
+
+    /** 公网地址校验：标准端口，主机不能是本机、内网或保留地址。 */
+    public static boolean isSafePublicUrl(URL url) {
+        if (!isHttpUrl(url)) {
+            return false;
+        }
         int port = url.getPort();
-        int defaultPort = "https".equals(protocol) ? 443 : 80;
-        if (port != -1 && port != 80 && port != 443 && port != defaultPort) {
+        if (port != -1 && port != 80 && port != 443) {
             LOG.warn("avatar url rejected, unsupported port: {}", port);
             return false;
         }
-        String host = url.getHost() == null ? "" : url.getHost().toLowerCase(Locale.ROOT);
-        if (host.isEmpty() || isInternalHostName(host)) {
+        String host = url.getHost().toLowerCase(Locale.ROOT);
+        if (isInternalHostName(host)) {
             LOG.warn("avatar url rejected, internal host name: {}", host);
             return false;
         }
@@ -148,6 +168,10 @@ public class AvatarUrlValidator {
             return false;
         }
         return true;
+    }
+
+    private static int effectivePort(URL url) {
+        return url.getPort() == -1 ? url.getDefaultPort() : url.getPort();
     }
 
     private static boolean isInternalHostName(String host) {
@@ -183,10 +207,36 @@ public class AvatarUrlValidator {
             if (b0 == 0) {
                 return true;
             }
+            // 198.18.0.0/15
+            if (b0 == 198 && (b1 == 18 || b1 == 19)) {
+                return true;
+            }
+            // 240.0.0.0/4（含 255.255.255.255）
+            if (b0 >= 240) {
+                return true;
+            }
         } else if (bytes.length == 16) {
             // fc00::/7
             if ((bytes[0] & 0xfe) == 0xfc) {
                 return true;
+            }
+            // 2002::/16（6to4，内嵌 IPv4 地址）
+            if ((bytes[0] & 0xff) == 0x20 && (bytes[1] & 0xff) == 0x02) {
+                return true;
+            }
+            // 64:ff9b::/96（NAT64，内嵌 IPv4 地址）
+            if ((bytes[0] & 0xff) == 0x00 && (bytes[1] & 0xff) == 0x64
+                    && (bytes[2] & 0xff) == 0xff && (bytes[3] & 0xff) == 0x9b) {
+                boolean zeros = true;
+                for (int i = 4; i < 12; i++) {
+                    if (bytes[i] != 0) {
+                        zeros = false;
+                        break;
+                    }
+                }
+                if (zeros) {
+                    return true;
+                }
             }
         }
         return false;

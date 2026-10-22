@@ -36,15 +36,9 @@ public class ShiroSessionManager extends DefaultWebSessionManager {
     @Override
     protected Serializable getSessionId(ServletRequest request, ServletResponse response){
         HttpServletRequest http = WebUtils.toHttp(request);
-        String path = http.getRequestURI();
-        String contextPath = http.getContextPath();
-        if ("/".equals(contextPath)) {
-            contextPath = "";
-        }
-        if (contextPath != null && !contextPath.isEmpty()
-                && (path.equals(contextPath) || path.startsWith(contextPath + "/"))) {
-            path = path.substring(contextPath.length());
-        }
+        // 用解码并规范化后的应用内路径（与 Shiro 过滤器链匹配时一致），
+        // 避免 //login_pwd、/./login 这类写法绕过下面的登录路径判断。
+        String path = WebUtils.getPathWithinApplication(http);
 
         // 登录请求必须新建会话：不能复用请求里携带的旧 authToken / Cookie。
         // 否则 A 登录后，B 带着 A 的 token 再登录，Shiro 会把 B 的 userId 写进 A 的会话，

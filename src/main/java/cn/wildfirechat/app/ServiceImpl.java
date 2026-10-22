@@ -295,7 +295,8 @@ public class ServiceImpl implements Service {
                     IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
                     if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
                         LOG.info("User not exist and register is forbidden, cannot send login code");
-                        return RestResult.error(ERROR_NOT_EXIST);
+                        //这里要返回服务错误，避免被探测电话号码
+                        return RestResult.error(ERROR_SERVER_ERROR);
                     }
                 } catch (Exception e) {
                     LOG.error("Check user exist error", e);
@@ -407,27 +408,30 @@ public class ServiceImpl implements Service {
             return RestResult.error(ERROR_USER_FORBIDDEN);
         }
 
-        // 如果禁止注册，检查用户是否存在
-        if (userRegisterForbidden) {
+        // 未登录时按手机号找到用户，重置码存到该用户下（resetPassword 也是按手机号找用户）。
+        // 重置密码要求用户已存在，与是否禁止注册无关；用户不存在时不发短信。
+        if (StringUtils.isEmpty(userId)) {
             try {
                 IMResult<InputOutputUserInfo> userResult = UserAdmin.getUserByMobile(mobile);
-                if (userResult.getErrorCode() == ErrorCode.ERROR_CODE_NOT_EXIST) {
-                    LOG.info("User not exist and register is forbidden, cannot send reset code");
+                if (userResult == null || userResult.getErrorCode() != ErrorCode.ERROR_CODE_SUCCESS) {
+                    LOG.info("User not exist, cannot send reset code");
                     //这里要返回服务错误，避免被探测电话号码
                     return RestResult.error(ERROR_SERVER_ERROR);
                 }
+                userId = userResult.getResult().getUserId();
             } catch (Exception e) {
                 LOG.error("Check user exist error", e);
                 return RestResult.error(ERROR_SERVER_ERROR);
             }
         }
+        final String resetUserId = userId;
 
         try {
             String code = Utils.getRandomCode(6);
             RestResult.RestCode restCode = smsService.sendCode(mobile, code);
             if (restCode == RestResult.RestCode.SUCCESS) {
-                Optional<UserPassword> optional = userPasswordRepository.findById(userId);
-                UserPassword up = optional.orElseGet(() -> new UserPassword(userId));
+                Optional<UserPassword> optional = userPasswordRepository.findById(resetUserId);
+                UserPassword up = optional.orElseGet(() -> new UserPassword(resetUserId));
                 up.setResetCode(code);
                 up.setResetCodeTime(System.currentTimeMillis());
                 userPasswordRepository.save(up);

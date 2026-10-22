@@ -2,6 +2,9 @@ package cn.wildfirechat.app.avatar;
 
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -15,7 +18,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.apache.commons.io.input.BoundedInputStream;
 import org.slf4j.Logger;
@@ -35,7 +40,14 @@ public class GroupAvatarUtil {
     /** 重定向最大跳数。 */
     private static final int MAX_REDIRECTS = 3;
 
-    public static void getCombinationOfHead(List<URL> paths, File targetFile)
+    /** 单个头像的像素上限。只限制字节数不够：很小的图片也可以声明极大的尺寸，解码时撑爆内存。 */
+    private static final long MAX_AVATAR_PIXELS = 4096L * 4096;
+
+    /**
+     * @param paths            成员头像地址。外部地址必须是 http/https；file/jar 只用于内部资源（名字头像、默认头像）
+     * @param externalUrlCheck 外部地址校验，首跳和每次重定向都会调用
+     */
+    public static void getCombinationOfHead(List<URL> paths, File targetFile, Predicate<URL> externalUrlCheck)
         throws IOException, URISyntaxException {
 
         List<BufferedImage> bufferedImages = new ArrayList<BufferedImage>();
@@ -52,7 +64,7 @@ public class GroupAvatarUtil {
         }
 
         for (int i = 0; i < paths.size(); i++) {
-            bufferedImages.add(resize2(paths.get(i), imageSize, imageSize, true));
+            bufferedImages.add(resize2(paths.get(i), imageSize, imageSize, true, externalUrlCheck));
         }
 
         // BufferedImage.TYPE_INT_RGB可以自己定义可查看API
@@ -165,23 +177,25 @@ public class GroupAvatarUtil {
      * @param bb       比例不对时是否需要补白
      */
     private static BufferedImage resize2(URL filePath, int height, int width,
-                                         boolean bb) {
-        return resize2(filePath, height, width, bb, true);
+                                         boolean bb, Predicate<URL> externalUrlCheck) {
+        return resize2(filePath, height, width, bb, true, externalUrlCheck);
     }
 
     /**
-     * 打开头像连接。重定向时逐跳重新检查地址；{@code file:} / {@code jar:} 仅用于内部资源。
+     * 打开头像连接。{@code file:} / {@code jar:} 只在首跳放行，用于内部资源；
+     * 重定向后的每一跳都必须是 http/https，并重新经过 {@code externalUrlCheck} 校验。
      */
-    private static URLConnection openConnectionSafely(URL url) throws IOException {
+    private static URLConnection openConnectionSafely(URL url, Predicate<URL> externalUrlCheck) throws IOException {
+        String protocol = url.getProtocol() == null ? "" : url.getProtocol().toLowerCase();
+        if ("file".equals(protocol) || "jar".equals(protocol)) {
+            // 内部资源：file 是名字头像，jar 是 Spring Boot 可执行 jar 里的默认头像
+            // （形如 jar:file:/...jar!/BOOT-INF/classes!/static/avatar/avatar_def.png）。
+            // 外部地址在 AvatarServiceImpl 里已限定为 http/https，不会走到这里。
+            return url.openConnection();
+        }
         URL current = url;
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
-            String protocol = current.getProtocol() == null ? "" : current.getProtocol().toLowerCase();
-            if ("file".equals(protocol) || "jar".equals(protocol)) {
-                // 内部资源：file 是名字头像，jar 是 Spring Boot 可执行 jar 里的默认头像
-                // （形如 jar:file:/...jar!/BOOT-INF/classes!/static/avatar/avatar_def.png）
-                return current.openConnection();
-            }
-            if (!AvatarUrlValidator.isSafePublicUrl(current)) {
+            if (!AvatarUrlValidator.isHttpUrl(current) || !externalUrlCheck.test(current)) {
                 throw new IOException("Unavailable avatar url: " + current);
             }
 
@@ -208,11 +222,44 @@ public class GroupAvatarUtil {
         throw new IOException("Too many redirects for avatar: " + url);
     }
 
+    /**
+     * 先读图片头里的尺寸再解码：超过像素上限直接拒绝；大图按比例降采样解码，
+     * 解码结果保留目标尺寸的 2 倍，后面再平滑缩放。
+     */
+    private static BufferedImage readImage(InputStream in, int width, int height) throws IOException {
+        try (ImageInputStream iis = ImageIO.createImageInputStream(in)) {
+            if (iis == null) {
+                return null;
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+            if (!readers.hasNext()) {
+                return null;
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(iis, true, true);
+                int srcWidth = reader.getWidth(0);
+                int srcHeight = reader.getHeight(0);
+                if ((long) srcWidth * srcHeight > MAX_AVATAR_PIXELS) {
+                    throw new IOException("Avatar dimensions too large: " + srcWidth + "x" + srcHeight);
+                }
+                ImageReadParam param = reader.getDefaultReadParam();
+                int step = Math.max(1, Math.min(srcWidth / (width * 2), srcHeight / (height * 2)));
+                if (step > 1) {
+                    param.setSourceSubsampling(step, step, 0, 0);
+                }
+                return reader.read(0, param);
+            } finally {
+                reader.dispose();
+            }
+        }
+    }
+
     private static BufferedImage resize2(URL filePath, int height, int width,
-                                         boolean bb, boolean fallback) {
+                                         boolean bb, boolean fallback, Predicate<URL> externalUrlCheck) {
         DataInputStream dis = null;
         try {
-            URLConnection urlConnection = openConnectionSafely(filePath);
+            URLConnection urlConnection = openConnectionSafely(filePath, externalUrlCheck);
 
             long contentLength = urlConnection.getContentLengthLong();
             if (contentLength > MAX_AVATAR_BYTES) {
@@ -229,7 +276,7 @@ public class GroupAvatarUtil {
                     new BoundedInputStream(urlConnection.getInputStream(), MAX_AVATAR_BYTES));
 
             double ratio = 0; // 缩放比例
-            BufferedImage bi = ImageIO.read(dis);
+            BufferedImage bi = readImage(dis, width, height);
             if (bi == null) {
                 throw new IOException("Failed to read image from " + filePath);
             }
@@ -272,7 +319,7 @@ public class GroupAvatarUtil {
             if (fallback) {
                 URL defaultAvatarUrl = GroupAvatarUtil.class.getResource(DEFAULT_AVATAR_PATH);
                 if (defaultAvatarUrl != null) {
-                    return resize2(defaultAvatarUrl, height, width, bb, false);
+                    return resize2(defaultAvatarUrl, height, width, bb, false, externalUrlCheck);
                 }
             }
         } finally {

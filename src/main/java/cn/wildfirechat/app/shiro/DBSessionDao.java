@@ -25,9 +25,15 @@ import java.util.concurrent.TimeUnit;
 public class DBSessionDao implements SessionDAO {
     private static final Logger LOG = LoggerFactory.getLogger(DBSessionDao.class);
 
-    /** 会话反序列化只允许这些类型，避免读到库里的恶意字节流时执行任意代码。 */
+    /**
+     * 会话反序列化只允许这些类型，避免读到库里的恶意字节流时执行任意代码。
+     * SimplePrincipalCollection 是 Shiro 登录后写入会话的身份信息，缺少它所有已登录会话都会读取失败；
+     * Number 是 Long/Integer 等包装类的父类，反序列化时也会被校验。
+     */
     private static final Set<String> ALLOWED_CLASSES = new HashSet<>(Arrays.asList(
             "org.apache.shiro.session.mgt.SimpleSession",
+            "org.apache.shiro.subject.SimplePrincipalCollection",
+            "java.lang.Number",
             "java.util.HashMap",
             "java.util.LinkedHashMap",
             "java.util.HashSet",

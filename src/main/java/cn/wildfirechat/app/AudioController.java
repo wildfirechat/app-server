@@ -1,6 +1,8 @@
 package cn.wildfirechat.app;
 
 import cn.wildfirechat.app.tools.RateLimiter;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +10,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ws.schild.jave.*;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,17 +27,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.List;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 public class AudioController {
@@ -46,6 +56,9 @@ public class AudioController {
 
     /** 同时转码的任务数，避免匿名请求把 CPU 打满。 */
     private static final int MAX_CONCURRENT_TRANSCODES = 4;
+
+    /** 等待转码的任务数上限，超过时返回 429。 */
+    private static final int MAX_QUEUED_TRANSCODES = 64;
 
     @Value("${wfc.audio.cache.dir:/tmp/wfc_audio_cache}")
     String cacheDirPath;
@@ -60,12 +73,17 @@ public class AudioController {
     private String ossFileBucketDomain;
 
     private File cacheDir;
-    private List<String> allowedHosts;
 
-    /** 按来源 IP 限频：60 秒内最多 60 次。 */
+    /** 允许下载的 "主机:端口"。域名没写端口时放行 80 和 443。 */
+    private final Set<String> allowedHostPorts = new HashSet<>();
+
+    /** 按用户（未登录时按来源 IP）限频：60 秒内最多 60 次转码。 */
     private final RateLimiter rateLimiter = new RateLimiter(60, 60);
 
-    private final Semaphore transcodeSlots = new Semaphore(MAX_CONCURRENT_TRANSCODES);
+    /** 转码专用线程池：超出并发数的任务排队，不占用公共 ForkJoin 线程池。 */
+    private final ThreadPoolExecutor transcodeExecutor = new ThreadPoolExecutor(
+            MAX_CONCURRENT_TRANSCODES, MAX_CONCURRENT_TRANSCODES, 60, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(MAX_QUEUED_TRANSCODES), new CustomizableThreadFactory("amr2mp3-"));
 
     @PostConstruct
     public void init() {
@@ -73,43 +91,56 @@ public class AudioController {
         if (!cacheDir.exists()) {
             cacheDir.mkdirs();
         }
-        allowedHosts = new ArrayList<>();
         addHost(ossGeneralBucketDomain);
         addHost(ossVoiceBucketDomain);
         addHost(ossFileBucketDomain);
-        if (allowedHosts.isEmpty()) {
+        if (allowedHostPorts.isEmpty()) {
             LOG.warn("amr2mp3 allowlist is empty, all requests will be rejected");
         } else {
-            LOG.info("amr2mp3 allowed hosts: {}", allowedHosts);
+            LOG.info("amr2mp3 allowed hosts: {}", allowedHostPorts);
         }
     }
 
+    @PreDestroy
+    public void destroy() {
+        transcodeExecutor.shutdown();
+    }
+
     private void addHost(String domain) {
-        String host = getHost(domain);
-        if (!StringUtils.isEmpty(host) && !allowedHosts.contains(host)) {
-            allowedHosts.add(host);
+        if (StringUtils.isEmpty(domain)) {
+            return;
+        }
+        URL url;
+        try {
+            url = new URL(domain.contains("://") ? domain : "http://" + domain);
+        } catch (MalformedURLException e) {
+            LOG.warn("amr2mp3 ignore invalid media domain: {}", domain);
+            return;
+        }
+        String host = url.getHost() == null ? "" : url.getHost().toLowerCase(Locale.ROOT);
+        if (host.isEmpty()) {
+            return;
+        }
+        if (url.getPort() != -1) {
+            allowedHostPorts.add(host + ":" + url.getPort());
+        } else {
+            allowedHostPorts.add(host + ":80");
+            allowedHostPorts.add(host + ":443");
         }
     }
 
     @GetMapping("amr2mp3")
     public CompletableFuture<ResponseEntity<InputStreamResource>> amr2mp3(@RequestParam("path") String amrUrl,
                                                                          HttpServletRequest request) {
-        // 1. 基础校验：协议、域名白名单、.amr 后缀
+        // 1. 基础校验：协议、域名和端口白名单、.amr 后缀
         URL url = validateAmrUrl(amrUrl);
         if (url == null) {
             LOG.warn("amr2mp3 rejected - invalid url: {}", amrUrl);
             return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
         }
 
-        // 2. 按 IP 限频，避免匿名请求刷转码
-        String ip = getIp(request);
-        if (!rateLimiter.isGranted(ip)) {
-            LOG.warn("amr2mp3 rejected - too frequent, ip: {}", ip);
-            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build());
-        }
-
-        // 3. 缓存键用完整 URL 摘要，避免不同地址同名文件互相覆盖
-        File mp3File = new File(cacheDir, cacheKey(amrUrl) + ".mp3");
+        // 2. 缓存键只取协议、主机、端口和路径，同一个文件不会因为查询参数或 # 片段不同而重复转码
+        File mp3File = new File(cacheDir, cacheKey(url) + ".mp3");
         MediaType mediaType = new MediaType("audio", "mp3");
         if (mp3File.exists() && mp3File.length() > 0) {
             try {
@@ -120,35 +151,44 @@ public class AudioController {
             }
         }
 
-        return CompletableFuture.supplyAsync(() -> {
-            if (!transcodeSlots.tryAcquire()) {
-                LOG.warn("amr2mp3 rejected - too many concurrent transcodes");
-                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        // 3. 只对需要转码的请求限频，命中缓存的请求不计数
+        String limitKey = rateLimitKey(request);
+        if (!rateLimiter.isGranted(limitKey)) {
+            LOG.warn("amr2mp3 rejected - too frequent, key: {}", limitKey);
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build());
+        }
+
+        try {
+            return CompletableFuture.supplyAsync(() -> transcode(url, amrUrl, mp3File, mediaType), transcodeExecutor);
+        } catch (RejectedExecutionException e) {
+            LOG.warn("amr2mp3 rejected - transcode queue is full");
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build());
+        }
+    }
+
+    private ResponseEntity<InputStreamResource> transcode(URL url, String amrUrl, File mp3File, MediaType mediaType) {
+        File tmpAmr = null;
+        File tmpMp3 = null;
+        try {
+            // 先自己下载到临时文件，校验大小和文件头，再交给 JAVE 转码本地文件。
+            // 这样 ffmpeg 不会直接访问用户给的 URL，重定向也绕不到内网。
+            tmpAmr = downloadToTemp(url);
+            tmpMp3 = File.createTempFile("amr2mp3-", ".mp3", cacheDir);
+            amr2mp3(tmpAmr, tmpMp3);
+            Files.move(tmpMp3.toPath(), mp3File.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            return mp3Response(mp3File, mediaType);
+        } catch (IOException | EncoderException e) {
+            LOG.error("amr2mp3 failed for {}", amrUrl, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            if (tmpAmr != null) {
+                tmpAmr.delete();
             }
-            File tmpAmr = null;
-            File tmpMp3 = null;
-            try {
-                // 先自己下载到临时文件，校验大小和文件头，再交给 JAVE 转码本地文件。
-                // 这样 ffmpeg 不会直接访问用户给的 URL，重定向也绕不到内网。
-                tmpAmr = downloadToTemp(url);
-                tmpMp3 = File.createTempFile("amr2mp3-", ".mp3", cacheDir);
-                amr2mp3(tmpAmr, tmpMp3);
-                Files.move(tmpMp3.toPath(), mp3File.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-                return mp3Response(mp3File, mediaType);
-            } catch (IOException | EncoderException e) {
-                LOG.error("amr2mp3 failed for {}", amrUrl, e);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            } finally {
-                if (tmpAmr != null) {
-                    tmpAmr.delete();
-                }
-                if (tmpMp3 != null) {
-                    tmpMp3.delete();
-                }
-                transcodeSlots.release();
+            if (tmpMp3 != null) {
+                tmpMp3.delete();
             }
-        });
+        }
     }
 
     private URL validateAmrUrl(String amrUrl) {
@@ -180,11 +220,15 @@ public class AudioController {
             return false;
         }
         String host = url.getHost() == null ? "" : url.getHost().toLowerCase(Locale.ROOT);
-        return !host.isEmpty() && allowedHosts.contains(host);
+        return !host.isEmpty() && allowedHostPorts.contains(host + ":" + effectivePort(url));
+    }
+
+    private static int effectivePort(URL url) {
+        return url.getPort() == -1 ? url.getDefaultPort() : url.getPort();
     }
 
     /**
-     * 打开连接，手动处理重定向：每一跳都重新校验协议和域名，
+     * 打开连接，手动处理重定向：每一跳都重新校验协议、域名和端口，
      * 避免白名单域名 302 到内网地址造成 SSRF。
      */
     private HttpURLConnection openFollowingRedirects(URL url) throws IOException {
@@ -217,19 +261,15 @@ public class AudioController {
         throw new IOException("too many redirects: " + url);
     }
 
-    /** 下载到临时文件；边读边计数，不依赖 Content-Length，最后校验 AMR 文件头。 */
+    /**
+     * 下载到临时文件；边读边计数，不依赖 Content-Length，最后校验 AMR 文件头。
+     * 不校验 Content-Type：各家对象存储返回的类型不统一（如 binary/octet-stream），以文件头为准。
+     */
     private File downloadToTemp(URL url) throws IOException {
         HttpURLConnection conn = openFollowingRedirects(url);
         File tmp = File.createTempFile("amr2mp3-", ".amr", cacheDir);
         boolean success = false;
         try {
-            String contentType = conn.getContentType();
-            if (contentType != null) {
-                String ct = contentType.toLowerCase(Locale.ROOT);
-                if (!ct.startsWith("audio/") && !ct.startsWith("application/octet-stream")) {
-                    throw new IOException("unexpected content type: " + contentType);
-                }
-            }
             long total = 0;
             byte[] buffer = new byte[8192];
             try (InputStream in = conn.getInputStream();
@@ -270,24 +310,45 @@ public class AudioController {
         }
     }
 
-    private static String cacheKey(String url) {
+    static String cacheKey(URL url) {
+        String normalized = url.getProtocol().toLowerCase(Locale.ROOT) + "://"
+                + url.getHost().toLowerCase(Locale.ROOT) + ":" + effectivePort(url) + url.getPath();
+        MessageDigest digest;
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(url.getBytes(StandardCharsets.UTF_8));
-            char[] hex = "0123456789abcdef".toCharArray();
-            char[] out = new char[hash.length * 2];
-            for (int i = 0; i < hash.length; i++) {
-                int b = hash[i] & 0xff;
-                out[i * 2] = hex[b >>> 4];
-                out[i * 2 + 1] = hex[b & 0x0f];
-            }
-            return new String(out);
-        } catch (Exception e) {
-            return Integer.toHexString(url.hashCode());
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
         }
+        byte[] hash = digest.digest(normalized.getBytes(StandardCharsets.UTF_8));
+        char[] hex = "0123456789abcdef".toCharArray();
+        char[] out = new char[hash.length * 2];
+        for (int i = 0; i < hash.length; i++) {
+            int b = hash[i] & 0xff;
+            out[i * 2] = hex[b >>> 4];
+            out[i * 2 + 1] = hex[b & 0x0f];
+        }
+        return new String(out);
     }
 
-    private static String getIp(HttpServletRequest request) {
+    /** 已登录按用户限频；未登录按来源 IP。 */
+    private static String rateLimitKey(HttpServletRequest request) {
+        Session session = SecurityUtils.getSubject().getSession(false);
+        Object userId = session == null ? null : session.getAttribute("userId");
+        if (userId != null) {
+            return "user:" + userId;
+        }
+        return "ip:" + getIp(request);
+    }
+
+    /**
+     * 只有请求来自本机或内网（即经过反向代理）时才信任 X-Real-IP / X-Forwarded-For，
+     * 否则直接用对端地址，避免客户端伪造请求头绕过限频。
+     */
+    static String getIp(HttpServletRequest request) {
+        String remoteAddr = request.getRemoteAddr();
+        if (!isTrustedProxy(remoteAddr)) {
+            return remoteAddr;
+        }
         String ip = request.getHeader("X-Real-IP");
         if (StringUtils.isEmpty(ip) || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Forwarded-For");
@@ -296,17 +357,19 @@ public class AudioController {
             int index = ip.indexOf(',');
             return index > 0 ? ip.substring(0, index).trim() : ip.trim();
         }
-        return request.getRemoteAddr();
+        return remoteAddr;
     }
 
-    private String getHost(String domain) {
-        if (StringUtils.isEmpty(domain)) {
-            return "";
+    private static boolean isTrustedProxy(String remoteAddr) {
+        if (StringUtils.isEmpty(remoteAddr)) {
+            return false;
         }
         try {
-            return new URL(domain).getHost().toLowerCase(Locale.ROOT);
-        } catch (MalformedURLException e) {
-            return domain.toLowerCase(Locale.ROOT);
+            // remoteAddr 是 IP 字面量，这里不会触发 DNS 解析
+            InetAddress address = InetAddress.getByName(remoteAddr);
+            return address.isLoopbackAddress() || address.isSiteLocalAddress() || address.isLinkLocalAddress();
+        } catch (UnknownHostException e) {
+            return false;
         }
     }
 
