@@ -17,13 +17,14 @@ import java.util.Set;
 /**
  * 外部图片地址校验。
  *
- * <p>服务端在拉取群成员头像等外部图片前，先确认地址可用：仅接受 http/https、
- * 标准 80/443 端口，且主机不能是本机、内网或保留地址；域名解析失败时不加载。</p>
+ * <p>服务端在拉取群成员头像等外部图片前，先确认地址可用：仅接受 http/https，端口不限，
+ * 允许内网地址（私有化部署的头像通常在内网对象存储上）；拒绝本机回环、链路本地
+ * （含云厂商元数据地址）和保留地址。这些地址不会是客户端能访问的正常头像地址。
+ * 域名解析失败时不加载。</p>
  *
- * <p>默认不限制图片域名。如需收敛，可配置
+ * <p>默认不限制图片域名。如需收紧，可配置
  * {@code avatar.url.allowlist=cdn.example.com,http://192.168.1.20:9000}（逗号分隔，留空即关闭）。
- * 配置后只放行名单内的主机；名单内的主机视为运维信任的地址，不再做内网地址检查，
- * 私有化部署的对象存储（如内网 MinIO）需要配置在这里。条目不写端口时放行 80 和 443。</p>
+ * 配置后只放行名单内的主机，名单内的主机不再做地址检查。条目不写端口时放行 80 和 443。</p>
  */
 @Component
 public class AvatarUrlValidator {
@@ -118,10 +119,10 @@ public class AvatarUrlValidator {
                 LOG.warn("avatar url rejected, host not in allowlist: {}", hostPort);
                 return false;
             }
-            // 运维显式配置的主机，不再限制内网地址和端口
+            // 运维显式配置的主机，不再做地址检查
             return true;
         }
-        return isSafePublicUrl(url);
+        return isSafeUrl(url);
     }
 
     /** 只检查格式：http/https、有主机名、不带用户信息。不做 DNS 解析。 */
@@ -141,25 +142,20 @@ public class AvatarUrlValidator {
         return url.getHost() != null && !url.getHost().isEmpty();
     }
 
-    /** 公网地址校验：标准端口，主机不能是本机、内网或保留地址。 */
-    public static boolean isSafePublicUrl(URL url) {
+    /** 默认地址校验：主机解析出的所有地址都不能是本机回环、链路本地或保留地址。 */
+    public static boolean isSafeUrl(URL url) {
         if (!isHttpUrl(url)) {
             return false;
         }
-        int port = url.getPort();
-        if (port != -1 && port != 80 && port != 443) {
-            LOG.warn("avatar url rejected, unsupported port: {}", port);
-            return false;
-        }
         String host = url.getHost().toLowerCase(Locale.ROOT);
-        if (isInternalHostName(host)) {
-            LOG.warn("avatar url rejected, internal host name: {}", host);
+        if (isLocalHostName(host)) {
+            LOG.warn("avatar url rejected, local host name: {}", host);
             return false;
         }
         try {
             for (InetAddress address : InetAddress.getAllByName(host)) {
-                if (isInternalAddress(address)) {
-                    LOG.warn("avatar url rejected, internal address: {} -> {}", host, address.getHostAddress());
+                if (isBlockedAddress(address)) {
+                    LOG.warn("avatar url rejected, blocked address: {} -> {}", host, address.getHostAddress());
                     return false;
                 }
             }
@@ -174,24 +170,19 @@ public class AvatarUrlValidator {
         return url.getPort() == -1 ? url.getDefaultPort() : url.getPort();
     }
 
-    private static boolean isInternalHostName(String host) {
-        if ("localhost".equals(host)) {
-            return true;
-        }
-        String[] suffixes = {".localhost", ".local", ".internal", ".lan", ".home", ".corp", ".intranet"};
-        for (String suffix : suffixes) {
-            if (host.endsWith(suffix)) {
-                return true;
-            }
-        }
-        return false;
+    /** 内网域名（如 .lan、.corp）解析后按地址判断，这里只拦截指向本机的名字。 */
+    private static boolean isLocalHostName(String host) {
+        return "localhost".equals(host) || host.endsWith(".localhost");
     }
 
-    private static boolean isInternalAddress(InetAddress address) {
+    /**
+     * 不允许访问的地址。内网地址（10/8、172.16/12、192.168/16）不在其中：私有化部署的头像通常在那里。
+     */
+    private static boolean isBlockedAddress(InetAddress address) {
         if (address.isAnyLocalAddress()
                 || address.isLoopbackAddress()
+                // 169.254.0.0/16、fe80::/10，含 169.254.169.254 等云厂商元数据地址
                 || address.isLinkLocalAddress()
-                || address.isSiteLocalAddress()
                 || address.isMulticastAddress()) {
             return true;
         }
@@ -199,7 +190,7 @@ public class AvatarUrlValidator {
         if (bytes.length == 4) {
             int b0 = bytes[0] & 0xff;
             int b1 = bytes[1] & 0xff;
-            // 100.64.0.0/10
+            // 100.64.0.0/10，阿里云元数据地址 100.100.100.200 在这个段内
             if (b0 == 100 && b1 >= 64 && b1 <= 127) {
                 return true;
             }
@@ -216,7 +207,7 @@ public class AvatarUrlValidator {
                 return true;
             }
         } else if (bytes.length == 16) {
-            // fc00::/7
+            // fc00::/7，AWS IPv6 元数据地址 fd00:ec2::254 在这个段内；用 IPv6 ULA 存头像的情况很少
             if ((bytes[0] & 0xfe) == 0xfc) {
                 return true;
             }

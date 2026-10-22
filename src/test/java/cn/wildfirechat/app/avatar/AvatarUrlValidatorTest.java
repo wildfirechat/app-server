@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * 外部图片地址校验用例。
  *
- * <p>覆盖常见地址形态：公网 http(s)、本机/内网/保留地址、非 http(s) 协议、非标准端口等。</p>
+ * <p>覆盖常见地址形态：公网和内网 http(s)、本机/链路本地/保留地址、非 http(s) 协议、非标准端口等。</p>
  *
  * <p>说明：使用 IP 字面量作为主机，避免依赖外部 DNS，保证单元测试可离线、确定性运行。</p>
  */
@@ -55,29 +55,42 @@ public class AvatarUrlValidatorTest {
     }
 
     @Test
+    public void testPrivateAddressAcceptedByDefault() {
+        // 私有化部署的头像通常在内网对象存储上，不配置也要能加载
+        AvatarUrlValidator validator = new AvatarUrlValidator();
+        assertTrue(validator.isAllowed("http://10.0.0.1/a.png"));
+        assertTrue(validator.isAllowed("http://192.168.1.20:9000/portrait/a.png"));
+        assertTrue(validator.isAllowed("http://172.16.0.1:8888/avatar?name=a"));
+    }
+
+    @Test
     public void testReservedAddressRejected() {
         AvatarUrlValidator validator = new AvatarUrlValidator();
         assertFalse(validator.isAllowed("http://169.254.1.1/a.png"));
-        assertFalse(validator.isAllowed("http://10.0.0.1/a.png"));
-        assertFalse(validator.isAllowed("http://192.168.1.1/a.png"));
-        assertFalse(validator.isAllowed("http://172.16.0.1/a.png"));
         assertFalse(validator.isAllowed("http://100.64.0.1/a.png"));
+        assertFalse(validator.isAllowed("http://0.0.0.0/a.png"));
     }
 
     @Test
-    public void testInternalHostNameRejected() {
+    public void testCloudMetadataAddressRejected() {
         AvatarUrlValidator validator = new AvatarUrlValidator();
-        assertFalse(validator.isAllowed("http://foo.internal/a.png"));
-        assertFalse(validator.isAllowed("http://printer.local/a.png"));
-        assertFalse(validator.isAllowed("http://app.lan/a.png"));
+        assertFalse(validator.isAllowed("http://169.254.169.254/latest/meta-data/"));
+        assertFalse(validator.isAllowed("http://100.100.100.200/latest/meta-data/"));
+        assertFalse(validator.isAllowed("http://[fd00:ec2::254]/latest/meta-data/"));
     }
 
     @Test
-    public void testNonStandardPortRejected() {
+    public void testLocalHostNameRejected() {
         AvatarUrlValidator validator = new AvatarUrlValidator();
-        assertFalse(validator.isAllowed("http://" + PUBLIC_IP + ":22/a.png"));
-        assertFalse(validator.isAllowed("http://" + PUBLIC_IP + ":3306/a.png"));
-        assertFalse(validator.isAllowed("http://" + PUBLIC_IP + ":8080/a.png"));
+        assertFalse(validator.isAllowed("http://localhost:8888/a.png"));
+        assertFalse(validator.isAllowed("http://foo.localhost/a.png"));
+    }
+
+    @Test
+    public void testNonStandardPortAccepted() {
+        AvatarUrlValidator validator = new AvatarUrlValidator();
+        assertTrue(validator.isAllowed("http://" + PUBLIC_IP + ":8080/a.png"));
+        assertTrue(validator.isAllowed("http://" + PUBLIC_IP + ":9000/a.png"));
     }
 
     @Test

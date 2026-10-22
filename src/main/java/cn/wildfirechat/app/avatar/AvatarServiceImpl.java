@@ -96,7 +96,7 @@ public class AvatarServiceImpl implements AvatarService {
             URL url = null;
             long urlHashCode = 0;
             if (!StringUtils.isEmpty(info.getAvatarUrl())) {
-                // 这里只检查格式，外部地址只能是 http/https。DNS 解析和内网地址校验
+                // 这里只检查格式，外部地址只能是 http/https。DNS 解析和地址校验
                 // 放到生成任务里做，不阻塞请求线程；校验不通过时那一格使用默认头像。
                 try {
                     url = new URL(info.getAvatarUrl().trim());
