@@ -16,12 +16,34 @@ import org.springframework.stereotype.Component;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Component
 public class DBSessionDao implements SessionDAO {
     private static final Logger LOG = LoggerFactory.getLogger(DBSessionDao.class);
+
+    /** 会话反序列化只允许这些类型，避免读到库里的恶意字节流时执行任意代码。 */
+    private static final Set<String> ALLOWED_CLASSES = new HashSet<>(Arrays.asList(
+            "org.apache.shiro.session.mgt.SimpleSession",
+            "java.util.HashMap",
+            "java.util.LinkedHashMap",
+            "java.util.HashSet",
+            "java.util.LinkedHashSet",
+            "java.util.ArrayList",
+            "java.util.Date",
+            "java.lang.String",
+            "java.lang.Long",
+            "java.lang.Integer",
+            "java.lang.Short",
+            "java.lang.Byte",
+            "java.lang.Character",
+            "java.lang.Float",
+            "java.lang.Double",
+            "java.lang.Boolean"
+    ));
 
     /** 缓存条目存活时间 */
     private static final long CACHE_TTL_MINUTES = 60;
@@ -142,18 +164,47 @@ public class DBSessionDao implements SessionDAO {
         if (bytes == null || bytes.length == 0) {
             return null;
         }
-        ByteArrayInputStream bi = new ByteArrayInputStream(bytes);
-        ObjectInputStream in;
-        SimpleSession session = null;
-        try {
-            in = new ObjectInputStream(bi);
-            session = (SimpleSession) in.readObject();
+        try (ObjectInputStream in = new SafeObjectInputStream(new ByteArrayInputStream(bytes))) {
+            Object object = in.readObject();
+            if (object instanceof SimpleSession) {
+                return (SimpleSession) object;
+            }
+            LOG.warn("session data is not a SimpleSession, ignore it");
+        } catch (InvalidClassException e) {
+            LOG.warn("session data rejected: {}", e.getMessage());
         } catch (ClassNotFoundException e) {
             LOG.error("ClassNotFoundException", e);
         } catch (IOException e) {
             LOG.error("IOException", e);
         }
+        return null;
+    }
 
-        return session;
+    /**
+     * 只允许会话需要的类型，其它类一律拒绝。
+     * 库里的 session_data 一旦被写入恶意字节流，默认的 ObjectInputStream 会直接反序列化并执行 gadget。
+     */
+    private static final class SafeObjectInputStream extends ObjectInputStream {
+        SafeObjectInputStream(InputStream in) throws IOException {
+            super(in);
+        }
+
+        @Override
+        protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+            String name = desc.getName();
+            if (name.startsWith("[")) {
+                // 数组只放行基本类型数组、String[]、Object[]
+                if (name.length() == 2
+                        || "[Ljava.lang.String;".equals(name)
+                        || "[Ljava.lang.Object;".equals(name)) {
+                    return super.resolveClass(desc);
+                }
+                throw new InvalidClassException("Unauthorized array class", name);
+            }
+            if (!ALLOWED_CLASSES.contains(name)) {
+                throw new InvalidClassException("Unauthorized deserialization class", name);
+            }
+            return super.resolveClass(desc);
+        }
     }
 }
