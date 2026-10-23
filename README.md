@@ -149,3 +149,62 @@ UNDER MIT LICENSE. 详情见LICENSE文件
 
 #### 使用阿里云短信
 请参考说明[使用阿里云短信](./aliyun_sms.md)
+
+## DSH 机器人开通（/robot/provision）
+
+登录成功后，PC 客户端调用：
+
+```
+POST /robot/provision
+Header: authToken: <应用服务登录态>
+Content-Type: application/json
+
+{"clientId":"pc-xxx","platform":4,"forceRefresh":false}
+```
+
+返回：
+
+```json
+{
+  "code": 0,
+  "result": {
+    "robot": {
+      "robotId": "robot_xxx",
+      "robotSecret": "******",
+      "gatewayUrl": "ws://gateway:8884/robot/gateway",
+      "imServerUrl": "http://im:80",
+      "owner": "userId",
+      "displayName": "DSH 助手"
+    },
+    "ai": {"provider":"openai-compatible","baseUrl":"...","apiKey":"...","model":"...","models":[]},
+    "features": {"line":2,"workspaceMode":"multi-group-per-workspace","sessionMode":"one-session-per-group-per-robot","multiRobot":true},
+    "configVersion": 1
+  }
+}
+```
+
+配置项（`config/application.properties` / `config/im.properties`）：
+
+```properties
+robot.gateway_url=ws://gateway:8884/robot/gateway
+robot.callback_url=http://gateway:8885/robot/recvmsg
+im.robot_api_url=http://im:80
+ai.provider=openai-compatible
+ai.base_url=...
+ai.api_key=...
+ai.model=deepseek-v4-pro
+ai.reasoning_effort=high
+ai.max_tokens=8192
+ai.models=deepseek-v4-pro:DeepSeek V4 Pro
+```
+
+说明：
+
+- 每次调用先通过 `UserAdmin.getUserRobots(userId)` 查询该用户的机器人列表，取第一个属于该用户的机器人；列表为空才调用 `UserAdmin.createRobot` 创建。
+- 创建方式参考 BotFather：`robot_<userId>_<6位随机数>`，先查 IM 是否已存在；`name=robotId`，`displayName=<用户昵称> 的机器人`（取不到昵称时用 `DSH 助手`）。
+- 创建/复用时设置 callback 为网关 HTTP 地址（`robot.callback_url`，默认从 `robot.gateway_url` 推导为 `http://<host>:8885/robot/recvmsg`）。
+- provision 成功后自动把机器人加为当前用户好友（`RelationAdmin.setUserFriend`），方便客户端直接找到单聊。
+- 不会全局复用同一个机器人；服务端不记录用户↔机器人绑定，每次调用都以 IM 的 `getUserRobots` 为准。
+- `getUserRobots` 查询失败时直接返回 1002，不做本地缓存降级，避免绑定与 IM 不一致。
+- `gateway_url` 支持 `ws://` / `wss://`，原样返回给客户端。
+- 该接口默认受 Shiro 登录保护；不要加入匿名路径。
