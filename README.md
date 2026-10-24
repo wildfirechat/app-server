@@ -194,8 +194,8 @@ ai.base_url=...
 ai.api_key=...
 ai.model=deepseek-v4-pro
 ai.reasoning_effort=high
-ai.max_tokens=8192
-ai.context_window=131072
+ai.max_tokens=393216
+ai.context_window=1048576
 ai.models=deepseek-v4-pro:DeepSeek V4 Pro
 ```
 

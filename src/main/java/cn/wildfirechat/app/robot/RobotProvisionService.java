@@ -302,6 +302,11 @@ public class RobotProvisionService {
         ai.setApiKey(aiApiKey);
         ai.setModel(aiModel);
         ai.setReasoningEffort(aiReasoningEffort);
+        if (aiMaxTokens <= 0 || aiContextWindow <= 0 || aiMaxTokens >= aiContextWindow) {
+            throw new IllegalStateException(
+                "invalid AI token config: ai.max_tokens=" + aiMaxTokens
+                    + " must be > 0 and < ai.context_window=" + aiContextWindow);
+        }
         ai.setMaxTokens(aiMaxTokens);
         ai.setContextWindow(aiContextWindow);
         ai.setModels(parseModels(aiModels, aiModel));
