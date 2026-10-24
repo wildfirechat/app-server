@@ -73,8 +73,6 @@ public class RobotProvisionService {
     @Value("${ai.context_window:131072}")
     private int aiContextWindow;
 
-    @Value("${ai.models:}")
-    private String aiModels;
 
     public RobotProvisionResponse provision(String userId, boolean forceRefresh) {
         if (userId == null || userId.trim().isEmpty()) {
@@ -309,7 +307,6 @@ public class RobotProvisionService {
         }
         ai.setMaxTokens(aiMaxTokens);
         ai.setContextWindow(aiContextWindow);
-        ai.setModels(parseModels(aiModels, aiModel));
         response.setAi(ai);
 
         RobotProvisionResponse.Features features = new RobotProvisionResponse.Features();
@@ -321,26 +318,6 @@ public class RobotProvisionService {
         response.setConfigVersion(baseConfigVersion);
         response.setUpdatedAt(System.currentTimeMillis());
         return response;
-    }
-
-    private List<RobotProvisionResponse.Model> parseModels(String value, String fallback) {
-        List<RobotProvisionResponse.Model> models = new ArrayList<>();
-        if (value != null && !value.trim().isEmpty()) {
-            for (String item : value.split(",")) {
-                String part = item.trim();
-                if (part.isEmpty()) continue;
-                int idx = part.indexOf(':');
-                if (idx > 0) {
-                    models.add(new RobotProvisionResponse.Model(part.substring(0, idx).trim(), part.substring(idx + 1).trim()));
-                } else {
-                    models.add(new RobotProvisionResponse.Model(part, part));
-                }
-            }
-        }
-        if (models.isEmpty() && fallback != null && !fallback.trim().isEmpty()) {
-            models.add(new RobotProvisionResponse.Model(fallback, fallback));
-        }
-        return models;
     }
 
     private String userDisplayName(String userId) {

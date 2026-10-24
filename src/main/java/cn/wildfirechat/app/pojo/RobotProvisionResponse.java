@@ -1,8 +1,5 @@
 package cn.wildfirechat.app.pojo;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * POST /robot/provision 响应。
  */
@@ -67,7 +64,6 @@ public class RobotProvisionResponse {
         private String reasoningEffort;
         private Integer maxTokens;
         private Integer contextWindow;
-        private List<Model> models = new ArrayList<>();
 
         public String getProvider() { return provider; }
         public void setProvider(String provider) { this.provider = provider; }
@@ -89,23 +85,6 @@ public class RobotProvisionResponse {
 
         public Integer getContextWindow() { return contextWindow; }
         public void setContextWindow(Integer contextWindow) { this.contextWindow = contextWindow; }
-
-        public List<Model> getModels() { return models; }
-        public void setModels(List<Model> models) { this.models = models; }
-    }
-
-    public static class Model {
-        private String id;
-        private String label;
-
-        public Model() {}
-        public Model(String id, String label) { this.id = id; this.label = label; }
-
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
-
-        public String getLabel() { return label; }
-        public void setLabel(String label) { this.label = label; }
     }
 
     public static class Features {

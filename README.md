@@ -196,7 +196,6 @@ ai.model=deepseek-v4-pro
 ai.reasoning_effort=high
 ai.max_tokens=393216
 ai.context_window=1048576
-ai.models=deepseek-v4-pro:DeepSeek V4 Pro
 ```
 
 说明：
