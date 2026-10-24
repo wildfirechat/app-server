@@ -66,6 +66,7 @@ public class RobotProvisionResponse {
         private String model;
         private String reasoningEffort;
         private Integer maxTokens;
+        private Integer contextWindow;
         private List<Model> models = new ArrayList<>();
 
         public String getProvider() { return provider; }
@@ -85,6 +86,9 @@ public class RobotProvisionResponse {
 
         public Integer getMaxTokens() { return maxTokens; }
         public void setMaxTokens(Integer maxTokens) { this.maxTokens = maxTokens; }
+
+        public Integer getContextWindow() { return contextWindow; }
+        public void setContextWindow(Integer contextWindow) { this.contextWindow = contextWindow; }
 
         public List<Model> getModels() { return models; }
         public void setModels(List<Model> models) { this.models = models; }

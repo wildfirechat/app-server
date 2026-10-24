@@ -70,6 +70,9 @@ public class RobotProvisionService {
     @Value("${ai.max_tokens:8192}")
     private int aiMaxTokens;
 
+    @Value("${ai.context_window:131072}")
+    private int aiContextWindow;
+
     @Value("${ai.models:}")
     private String aiModels;
 
@@ -300,6 +303,7 @@ public class RobotProvisionService {
         ai.setModel(aiModel);
         ai.setReasoningEffort(aiReasoningEffort);
         ai.setMaxTokens(aiMaxTokens);
+        ai.setContextWindow(aiContextWindow);
         ai.setModels(parseModels(aiModels, aiModel));
         response.setAi(ai);
 
