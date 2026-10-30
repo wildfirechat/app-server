@@ -25,9 +25,6 @@ import static cn.wildfirechat.app.jpa.PCSession.PCSessionStatus.*;
 @Service
 public class AuthDataSource {
     private static final Logger LOG = LoggerFactory.getLogger(AuthDataSource.class);
-    @Value("${sms.super_code:}")
-    private String superCode;
-
     @Autowired
     private PCSessionRepository pcSessionRepository;
 
@@ -68,21 +65,19 @@ public class AuthDataSource {
     }
 
     public RestResult.RestCode verifyCode(String mobile, String code) {
-        if (StringUtils.isEmpty(superCode) || !code.equals(superCode)) {
-            Optional<Record> recordOptional = recordRepository.findById(mobile);
-            if (!recordOptional.isPresent()) {
-                LOG.error("code not exist");
-                return RestResult.RestCode.ERROR_CODE_INCORRECT;
-            }
-            if(!recordOptional.get().getCode().equals(code)) {
-                LOG.error("code not matched");
-                return RestResult.RestCode.ERROR_CODE_INCORRECT;
-            }
+        Optional<Record> recordOptional = recordRepository.findById(mobile);
+        if (!recordOptional.isPresent()) {
+            LOG.error("code not exist");
+            return RestResult.RestCode.ERROR_CODE_INCORRECT;
+        }
+        if (!recordOptional.get().getCode().equals(code)) {
+            LOG.error("code not matched");
+            return RestResult.RestCode.ERROR_CODE_INCORRECT;
+        }
 
-            if (System.currentTimeMillis() - recordOptional.get().getTimestamp() > 5 * 60 * 1000) {
-                LOG.error("Code expired. timestamp {}, now {}", recordOptional.get().getTimestamp(), System.currentTimeMillis());
-                return RestResult.RestCode.ERROR_CODE_EXPIRED;
-            }
+        if (System.currentTimeMillis() - recordOptional.get().getTimestamp() > 5 * 60 * 1000) {
+            LOG.error("Code expired. timestamp {}, now {}", recordOptional.get().getTimestamp(), System.currentTimeMillis());
+            return RestResult.RestCode.ERROR_CODE_EXPIRED;
         }
         return RestResult.RestCode.SUCCESS;
     }

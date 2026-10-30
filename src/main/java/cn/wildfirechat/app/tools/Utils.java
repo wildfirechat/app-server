@@ -4,17 +4,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Paths;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
+    private static final SecureRandom RANDOM = new SecureRandom();
     public static String getRandomCode(int length) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
-            sb.append(((int)(Math.random()*100))%10);
+            sb.append(RANDOM.nextInt(10));
         }
         return sb.toString();
     }

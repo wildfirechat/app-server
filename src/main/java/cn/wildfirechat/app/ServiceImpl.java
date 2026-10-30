@@ -101,9 +101,6 @@ public class ServiceImpl implements Service {
     @Value("${slide.verify.force:false}")
     private boolean forceSlideVerify;
 
-    @Value("${sms.super_code:}")
-    private String superCode;
-
     @Value("${logs.user_logs_path:/tmp/user_logs}")
     private String userLogPath;
 
@@ -725,24 +722,35 @@ public class ServiceImpl implements Service {
         Optional<UserPassword> optional = userPasswordRepository.findById(userId);
         if (optional.isPresent()) {
             UserPassword up = optional.get();
-            if (resetCode.equals(up.getResetCode()) && System.currentTimeMillis() - up.getResetCodeTime() > 10 * 60 * 60 * 1000){
+            long now = System.currentTimeMillis();
+            // 验证码 10 分钟内有效，最多尝试 5 次。原来有效期写成 10 小时，且没有失败次数限制，
+            // 6 位数字可以被暴力枚举。
+            if (up.getTryCount() >= 5 && now - up.getLastTryTime() < 10 * 60 * 1000) {
+                return RestResult.error(ERROR_CODE_INCORRECT);
+            }
+            if (up.getResetCode() == null || !up.getResetCode().equals(resetCode)) {
+                up.setTryCount(up.getTryCount() + 1);
+                up.setLastTryTime(now);
+                userPasswordRepository.save(up);
+                return RestResult.error(ERROR_CODE_INCORRECT);
+            }
+            if (now - up.getResetCodeTime() > 10 * 60 * 1000) {
                 return RestResult.error(ERROR_CODE_EXPIRED);
             }
-            if(resetCode.equals(up.getResetCode()) || (!StringUtils.isEmpty(superCode) && resetCode.equals(superCode))) {
-                if (weakPasswordChecker.isWeakPassword(newPwd)) {
-                    return RestResult.error(ERROR_WEAK_PASSWORD);
-                }
-                try {
-                    changePassword(up, newPwd);
-                    up.setResetCode(null);
-                    userPasswordRepository.save(up);
-                    return RestResult.ok(null);
-                } catch (Exception e) {
-                    LOG.error("Exception", e);
-                    return RestResult.error(ERROR_SERVER_ERROR);
-                }
-            } else {
-                return RestResult.error(ERROR_CODE_INCORRECT);
+            if (weakPasswordChecker.isWeakPassword(newPwd)) {
+                return RestResult.error(ERROR_WEAK_PASSWORD);
+            }
+            try {
+                changePassword(up, newPwd);
+                up.setResetCode(null);
+                up.setResetCodeTime(0);
+                up.setTryCount(0);
+                up.setLastTryTime(0);
+                userPasswordRepository.save(up);
+                return RestResult.ok(null);
+            } catch (Exception e) {
+                LOG.error("Exception", e);
+                return RestResult.error(ERROR_SERVER_ERROR);
             }
         } else {
             return RestResult.error(ERROR_NOT_EXIST);
@@ -1310,6 +1318,9 @@ public class ServiceImpl implements Service {
                 return RestResult.error(ERROR_NO_RIGHT);
             }
 
+            // 公告作者必须取当前登录用户，不能信任客户端传入的 author，否则群主可以冒充任何人发公告
+            request.author = userId;
+
             Conversation conversation = new Conversation();
             conversation.setTarget(request.groupId);
             conversation.setType(ProtoConstants.ConversationType.ConversationType_Group);
@@ -1415,9 +1426,15 @@ public class ServiceImpl implements Service {
             if (!StringUtils.isEmpty(createDevice.getDeviceId())) {
                 IMResult<OutputDevice> outputDeviceIMResult = UserAdmin.getDevice(createDevice.getDeviceId());
                 if (outputDeviceIMResult.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS) {
-                    if (!createDevice.getOwners().contains(userId)) {
+                    // 必须校验设备“现有”的 owners，不能校验请求里自带的 owners，
+                    // 否则任何登录用户都能把别人的设备改到自己名下。
+                    OutputDevice existingDevice = outputDeviceIMResult.getResult();
+                    if (existingDevice == null || existingDevice.getOwners() == null
+                            || !existingDevice.getOwners().contains(userId)) {
                         return RestResult.error(ERROR_NO_RIGHT);
                     }
+                    // 保留原有 owner 列表，不接受客户端重新指定
+                    createDevice.setOwners(existingDevice.getOwners());
                 } else if (outputDeviceIMResult.getErrorCode() != ErrorCode.ERROR_CODE_NOT_EXIST) {
                     return RestResult.error(ERROR_SERVER_ERROR);
                 }
@@ -1837,7 +1854,9 @@ public class ServiceImpl implements Service {
 
     @Override
     public RestResult removeFavoriteItems(long id) {
-        favoriteRepository.deleteById(id);
+        // 只能删自己的收藏，否则遍历 id 可以删掉别人的收藏
+        String userId = (String) SecurityUtils.getSubject().getSession().getAttribute("userId");
+        favoriteRepository.deleteByIdAndUserId(id, userId);
         return RestResult.ok(null);
     }
 

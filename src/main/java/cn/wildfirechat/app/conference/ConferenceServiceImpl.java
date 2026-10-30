@@ -112,6 +112,19 @@ public class ConferenceServiceImpl implements ConferenceService {
                 return RestResult.error(RestResult.RestCode.ERROR_NO_RIGHT);
             }
         } else {
+            // 本地没有这条会议记录时，不能仅凭请求里的 owner 建记录：
+            // 否则可以先把 IM 里已存在、但本地没同步的会议“认领”成自己的，再调用 destroyConference 销毁。
+            try {
+                IMResult<Boolean> exists = ConferenceAdmin.existsConferences(info.conferenceId);
+                if (exists != null && exists.getErrorCode() == ErrorCode.ERROR_CODE_SUCCESS
+                        && Boolean.TRUE.equals(exists.getResult())) {
+                    LOG.warn("拒绝为已存在但本地无记录的会议创建元数据, conferenceId={}, userId={}", info.conferenceId, getUserId());
+                    return RestResult.error(RestResult.RestCode.ERROR_NO_RIGHT);
+                }
+            } catch (Exception e) {
+                LOG.error("检查会议是否存在失败, conferenceId={}", info.conferenceId, e);
+                return RestResult.error(RestResult.RestCode.ERROR_SERVER_ERROR);
+            }
             conferenceEntityRepository.save(convertConference(info));
         }
 
@@ -310,6 +323,10 @@ public class ConferenceServiceImpl implements ConferenceService {
     @Override
     public RestResult favConference(String conferenceId) {
         String userId = getUserId();
+        // 只能收藏真实存在的会议，避免凭空创建收藏记录
+        if (!conferenceEntityRepository.findById(conferenceId).isPresent()) {
+            return RestResult.error(RestResult.RestCode.ERROR_NOT_EXIST);
+        }
         UserConference userConference = new UserConference(userId, conferenceId);
         userConferenceRepository.save(userConference);
         return RestResult.ok(null);
@@ -323,14 +340,19 @@ public class ConferenceServiceImpl implements ConferenceService {
 
     @Override
     public RestResult getFavConferences() {
-        List<ConferenceDTO> ucs = userConferenceRepository.findByUserId(getUserId(), System.currentTimeMillis()/1000);
+        String userId = getUserId();
+        List<ConferenceDTO> ucs = userConferenceRepository.findByUserId(userId, System.currentTimeMillis()/1000);
         List<ConferenceInfo> infos = new ArrayList<>();
         for (ConferenceDTO dto:ucs) {
             ConferenceInfo info = new ConferenceInfo();
             info.conferenceId = dto.getId();
             info.conferenceTitle = dto.getConference_title();
-            info.password = dto.getPassword();
-            info.pin = dto.getPin();
+            // 会议密码和入会 PIN 只返回给会议创建者。普通参与者收藏会议后不能借此拿到密码，
+            // 否则先收藏任意 conferenceId 再拉收藏列表即可绕过入会密码校验。
+            if (userId.equals(dto.getOwner())) {
+                info.password = dto.getPassword();
+                info.pin = dto.getPin();
+            }
             info.owner = dto.getOwner();
             info.startTime = dto.getStart_time();
             info.endTime = dto.getEnd_time();
